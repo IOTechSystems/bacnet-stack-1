@@ -283,7 +283,7 @@ void dlenv_maintenance_timer(
  *     communications.  Default is 47808 (0xBAC0).
  *   - BACNET_BIP6_BROADCAST - FF05::BAC0 or FF02::BAC0 or ...
  */
-void dlenv_init(
+int dlenv_init(
     void)
 {
     char *pEnv = NULL;
@@ -382,7 +382,7 @@ void dlenv_init(
     }
     /* === Initialize the Datalink Here === */
     if (!datalink_init(getenv("BACNET_IFACE"))) {
-        exit(1);
+        return 1;
     }
 #if (MAX_TSM_TRANSACTIONS)
     pEnv = getenv("BACNET_INVOKE_ID");
@@ -391,4 +391,5 @@ void dlenv_init(
     }
 #endif
     dlenv_register_as_foreign_device();
+    return 0;
 }

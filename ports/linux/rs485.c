@@ -548,7 +548,7 @@ void RS485_Cleanup(
 }
 
 
-void RS485_Initialize(
+int RS485_Initialize(
     void)
 {
     struct termios newtio;
@@ -563,7 +563,7 @@ void RS485_Initialize(
     RS485_Handle = open(RS485_Port_Name, O_RDWR | O_NOCTTY /*| O_NDELAY */ );
     if (RS485_Handle < 0) {
         perror(RS485_Port_Name);
-        exit(-1);
+        return 1;
     }
 #if 0
     /* non blocking for the read */
@@ -626,6 +626,7 @@ void RS485_Initialize(
     /* ringbuffer */
     FIFO_Init(&Rx_FIFO, Rx_Buffer, sizeof(Rx_Buffer));
     printf("=success!\n");
+    return 0;
 }
 
 /* Print in a format for Wireshark ExtCap */

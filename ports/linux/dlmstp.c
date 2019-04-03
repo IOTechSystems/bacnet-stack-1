@@ -47,6 +47,8 @@
 /* Number of MS/TP Packets Rx/Tx */
 uint16_t MSTP_Packets = 0;
 
+static unsigned long hThread;
+
 /* packet queues */
 static DLMSTP_PACKET Receive_Packet;
 /* mechanism to wait for a packet */
@@ -142,6 +144,8 @@ void dlmstp_cleanup(
     pthread_mutex_destroy(&Received_Frame_Mutex);
     pthread_mutex_destroy(&Receive_Packet_Mutex);
     pthread_mutex_destroy(&Master_Done_Mutex);
+    pthread_cancel(hThread);
+    RS485_Cleanup ();
 }
 
 /* returns number of bytes sent on success, zero on failure */
@@ -671,7 +675,7 @@ void dlmstp_get_broadcast_address(
 bool dlmstp_init(
     char *ifname)
 {
-    unsigned long hThread = 0;
+    hThread = 0;
     int rv = 0;
 
     /* initialize PDU queue */
@@ -700,7 +704,8 @@ bool dlmstp_init(
         fprintf(stderr, "MS/TP Interface: %s\n", ifname);
 #endif
     }
-    RS485_Initialize();
+    if (RS485_Initialize() != 0)
+      return false;
     MSTP_Port.InputBuffer = &RxBuffer[0];
     MSTP_Port.InputBufferSize = sizeof(RxBuffer);
     MSTP_Port.OutputBuffer = &TxBuffer[0];

@@ -48,7 +48,7 @@ extern "C" {
     const char *RS485_Interface(
         void);
 
-    void RS485_Initialize(
+    int RS485_Initialize(
         void);
 
     void RS485_Send_Frame(

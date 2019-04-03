@@ -26,7 +26,7 @@
 
 #include "mstp.h"
 /*#include "dlmstp.h" */
-#include "bits/pthreadtypes.h"
+#include <sys/types.h>
 #include <semaphore.h>
 
 #include <stdbool.h>
