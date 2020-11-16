@@ -36,7 +36,7 @@ extern "C" {
 #endif /* __cplusplus */
 
     BACNET_STACK_EXPORT
-    void dlenv_init(
+    int dlenv_init(
         void);
 
     BACNET_STACK_EXPORT

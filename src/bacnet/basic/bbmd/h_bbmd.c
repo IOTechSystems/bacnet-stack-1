@@ -36,6 +36,8 @@
 #include <stdint.h> /* for standard integer types uint8_t etc. */
 #include <stdbool.h> /* for the standard bool type. */
 #include <string.h> /* for memcpy */
+#include <pthread.h>
+#include <sys/time.h>
 #include "bacnet/bacdcode.h"
 #include "bacnet/datalink/bip.h"
 #include "bacnet/datalink/bvlc.h"
@@ -90,6 +92,11 @@ static BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY
 #endif
 static BACNET_IP_FOREIGN_DEVICE_TABLE_ENTRY FD_Table[MAX_FD_ENTRIES];
 #endif
+
+/** Mutex and condition variable for checking if BBMD registration has been successful */
+static pthread_mutex_t mutex;
+static pthread_cond_t cond;
+static bool bbmd_reg_success;
 
 /**
  * @brief Enabled debug printing of BACnet/IPv4 BBMD
@@ -833,6 +840,10 @@ int bvlc_bbmd_enabled_handler(BACNET_IP_ADDRESS *addr,
                 debug_print_unsigned(
                     "Received Result Code =", BVLC_Result_Code);
             }
+            /* Set the BBMD registration bool to successfull, signal the condition variable and unlock the mutex */
+            bbmd_reg_success = true;
+            pthread_cond_signal (&cond);
+            pthread_mutex_unlock (&mutex);
             break;
         case BVLC_WRITE_BROADCAST_DISTRIBUTION_TABLE:
             debug_print_bip("Received Write-BDT", addr);
@@ -1138,7 +1149,34 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     BVLC_Buffer_Len = bvlc_encode_register_foreign_device(
         &BVLC_Buffer[0], sizeof(BVLC_Buffer), ttl_seconds);
 
-    return bip_send_mpdu(bbmd_addr, &BVLC_Buffer[0], BVLC_Buffer_Len);
+    /* Set the initial value of the BBMD registration bool to false */
+    bbmd_reg_success = false;
+
+    int retval = bip_send_mpdu(bbmd_addr, &BVLC_Buffer[0], BVLC_Buffer_Len);
+    if (retval == -1)
+    {
+      return retval;
+    }
+    /* Setup a 30 second condition variable wait */
+    pthread_mutex_init (&mutex, NULL);
+    pthread_cond_init (&cond, NULL);
+    time_t timeout_seconds = 30;
+    struct timeval now;
+    struct timespec timeout;
+    gettimeofday (&now, NULL);
+    timeout.tv_sec = now.tv_sec + timeout_seconds;
+    timeout.tv_nsec = 0;
+    pthread_mutex_lock (&mutex);
+    pthread_cond_timedwait (&cond, &mutex, &timeout);
+    pthread_mutex_unlock (&mutex);
+
+    /* Fail if the BBMD registration was not successful */
+    if (!bbmd_reg_success)
+    {
+      retval = -1;
+    }
+
+    return retval;
 }
 #endif
 

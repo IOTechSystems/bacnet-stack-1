@@ -177,6 +177,7 @@ void Trend_Log_Init(void)
             TempTime.tm_hour = 0;
             TempTime.tm_min = 0;
             TempTime.tm_sec = 0;
+            TempTime.tm_isdst = -1; // Let mktime() determine whether or not DST is in effect
             tClock = mktime(&TempTime);
 
             for (iEntry = 0; iEntry < TL_MAX_ENTRIES; iEntry++) {
@@ -950,6 +951,7 @@ time_t TL_BAC_Time_To_Local(BACNET_DATE_TIME *SourceTime)
     LocalTime.tm_hour = SourceTime->time.hour;
     LocalTime.tm_min = SourceTime->time.min;
     LocalTime.tm_sec = SourceTime->time.sec;
+    LocalTime.tm_isdst = -1; // Let mktime() determine whether or not DST is in effect
 
     return (mktime(&LocalTime));
 }
