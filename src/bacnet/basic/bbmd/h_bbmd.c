@@ -840,10 +840,13 @@ int bvlc_bbmd_enabled_handler(BACNET_IP_ADDRESS *addr,
                 debug_print_unsigned(
                     "Received Result Code =", BVLC_Result_Code);
             }
-            /* Set the BBMD registration bool to successfull, signal the condition variable and unlock the mutex */
-            bbmd_reg_success = true;
-            pthread_cond_signal (&cond);
-            pthread_mutex_unlock (&mutex);
+            /* Set the BBMD registration bool to successful, signal the condition variable and unlock the mutex */
+            if (bbmd_reg_success == false)
+            {
+                bbmd_reg_success = true;
+                pthread_cond_signal (&cond);
+                pthread_mutex_unlock (&mutex);
+            }
             break;
         case BVLC_WRITE_BROADCAST_DISTRIBUTION_TABLE:
             debug_print_bip("Received Write-BDT", addr);
@@ -1169,6 +1172,8 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     pthread_mutex_lock (&mutex);
     pthread_cond_timedwait (&cond, &mutex, &timeout);
     pthread_mutex_unlock (&mutex);
+    pthread_cond_destroy(&cond);
+    pthread_mutex_destroy(&mutex);
 
     /* Fail if the BBMD registration was not successful */
     if (!bbmd_reg_success)
