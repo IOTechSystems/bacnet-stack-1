@@ -38,8 +38,12 @@
 #include <net/if.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
+#ifdef _AZURESPHERE_
+#include <ifaddrs.h>
+#else
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#endif
 #include <sys/types.h>
 #include <unistd.h>
 /* standard C */
@@ -495,6 +499,7 @@ struct route_info {
     char ifName[IF_NAMESIZE];
 };
 
+#ifndef _AZURESPHERE_
 /**
  * @brief Read the Network Layer socket info
  * @param sockFd - socket file descriptor
@@ -515,6 +520,10 @@ static int readNlSock(
         if ((readLen = recv(sockFd, bufPtr, buf_size - msgLen, 0)) < 0) {
             perror("SOCK READ: ");
             return -1;
+        }
+        if (readLen == 0) {
+            /* no data in the response */
+            break;
         }
         nlHdr = (struct nlmsghdr *)bufPtr;
         /* Check if the header is valid */
@@ -538,6 +547,7 @@ static int readNlSock(
 
     return msgLen;
 }
+#endif
 
 /**
  * @brief Convert an IPv4 address into ASCII dotted decimal
@@ -555,6 +565,7 @@ static char *ntoa(uint32_t addr)
     return buffer;
 }
 
+#ifndef _AZURESPHERE_
 /**
  * @brief Printing one route
  * @param rtInfo - Route info
@@ -617,6 +628,7 @@ static void parseRoutes(struct nlmsghdr *nlHdr, struct route_info *rtInfo)
         }
     }
 }
+#endif
 
 /**
  * @brief Get the default interface name using routing info
@@ -625,6 +637,7 @@ static void parseRoutes(struct nlmsghdr *nlHdr, struct route_info *rtInfo)
 static char *ifname_default(void)
 {
     static char ifName[IF_NAMESIZE] = { 0 };
+#ifndef _AZURESPHERE_
     struct nlmsghdr *nlMsg = NULL;
     struct route_info *rtInfo = NULL;
     char msgBuf[8192] = { 0 };
@@ -679,9 +692,68 @@ static char *ifname_default(void)
     }
     free(rtInfo);
     close(sock);
-
+#endif
     return ifName;
 }
+
+#ifdef _AZURESPHERE_
+
+/* Copy from BSD port */
+
+static void *get_addr_ptr(struct sockaddr *sockaddr_ptr)
+{
+    void *addr_ptr;
+    if (sockaddr_ptr->sa_family == AF_INET) {
+        addr_ptr = &((struct sockaddr_in *)sockaddr_ptr)->sin_addr;
+    } else if (sockaddr_ptr->sa_family == AF_INET6) {
+        addr_ptr = &((struct sockaddr_in6 *)sockaddr_ptr)->sin6_addr;
+    }
+    return addr_ptr;
+}
+
+/** Gets the local IP address and local broadcast address from the system,
+ *  and saves it into the BACnet/IP data structures.
+ *
+ * @param ifname [in] The named interface to use for the network layer.
+ *        Eg, for MAC OS X, ifname is en0, en1, and others.
+ * @param addr [out] The netmask addr, broadcast addr, ip addr.
+ * @param request [in] addr broadaddr netmask
+ */
+static int get_local_address(char *ifname, struct in_addr *addr, char *request)
+{
+    char rv; /* return value */
+
+    struct ifaddrs *ifaddrs_ptr;
+    int status;
+    status = getifaddrs(&ifaddrs_ptr);
+    if (status == -1) {
+        fprintf(
+            stderr, "Error in 'getifaddrs': %d (%s)\n", errno, strerror(errno));
+    }
+    while (ifaddrs_ptr) {
+        if ((ifaddrs_ptr->ifa_addr->sa_family == AF_INET) &&
+            (strcmp(ifaddrs_ptr->ifa_name, ifname) == 0)) {
+            void *addr_ptr;
+            if (!ifaddrs_ptr->ifa_addr) {
+                return rv;
+            }
+            if (strcmp(request, "addr") == 0) {
+                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_addr);
+            } else if (strcmp(request, "broadaddr") == 0) {
+                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_broadaddr);
+            } else if (strcmp(request, "netmask") == 0) {
+                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_netmask);
+            }
+            if (addr_ptr) {
+                memcpy(addr, addr_ptr, sizeof(struct in_addr));
+            }
+        }
+        ifaddrs_ptr = ifaddrs_ptr->ifa_next;
+    }
+    freeifaddrs(ifaddrs_ptr);
+    return rv;
+}
+#endif
 
 /**
  * @brief Get the netmask of the BACnet/IP's interface via an ioctl() call.
@@ -696,7 +768,11 @@ int bip_get_local_netmask(struct in_addr *netmask)
     if (ifname == NULL) {
         ifname = ifname_default();
     }
+#ifdef _AZURESPHERE_
+    rv = get_local_address (ifname, netmask, "netmask");
+#else
     rv = bip_get_local_address_ioctl(ifname, netmask, SIOCGIFNETMASK);
+#endif
 
     return rv;
 }
@@ -714,7 +790,11 @@ void bip_set_interface(char *ifname)
     int rv = 0;
 
     /* setup local address */
+#ifdef _AZURESPHERE_
+    rv = get_local_address (ifname, &local_address, "addr");
+#else
     rv = bip_get_local_address_ioctl(ifname, &local_address, SIOCGIFADDR);
+#endif
     if (rv < 0) {
         local_address.s_addr = 0;
     }
@@ -725,7 +805,11 @@ void bip_set_interface(char *ifname)
         fflush(stderr);
     }
     /* setup local broadcast address */
+#ifdef _AZURESPHERE_
+    rv = get_local_address (ifname, &local_address, "broadaddr");
+#else
     rv = bip_get_local_address_ioctl(ifname, &netmask, SIOCGIFNETMASK);
+#endif
     if (rv < 0) {
         BIP_Broadcast_Addr.s_addr = ~0;
     } else {
