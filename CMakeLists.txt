@@ -67,10 +67,11 @@ set(BACNET_PROTOCOL_REVISION 19)
 find_package(Threads)
 
 if (NOT "${LINUX_SYS}" STREQUAL "AzureSphere")
-  add_library (${PROJECT_NAME} src/bacnet/basic/object/bacfile.c src/bacnet/basic/object/bacfile.h)
+  set (OPT_LIB_FILES "src/bacnet/basic/object/bacfile.c src/bacnet/basic/object/bacfile.h")
 endif ()
 
 add_library(${PROJECT_NAME}
+    ${OPT_LIB_FILES}
     src/bacnet/abort.c
     src/bacnet/abort.h
     src/bacnet/access_rule.c
