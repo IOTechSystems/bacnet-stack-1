@@ -39,10 +39,12 @@
 #include	<stdio.h>
 #include	<stdlib.h>
 #include	<string.h>
+#ifndef _AZURESPHERE_
 #include	<sys/stat.h>    /* for S_xxx file mode constants */
+#include	<sys/wait.h>
+#endif
 #include	<sys/uio.h>     /* for iovec{} and readv/writev */
 #include	<unistd.h>
-#include	<sys/wait.h>
 #include	<sys/un.h>      /* for Unix domain sockets */
 
 #ifdef	HAVE_SYS_SELECT_H
@@ -89,9 +91,11 @@
 #else
 #include <asm/types.h>
 #ifndef __CYGWIN__
+#ifndef _AZURESPHERE_
 #include <linux/if_packet.h>
 #include <linux/if_arcnet.h>
 #include <linux/if_ether.h>
+#endif
 #endif
 #endif
 #include <netinet/in.h>
