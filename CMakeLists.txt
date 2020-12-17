@@ -16,17 +16,18 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   option (BACNET_STACK_BUILD_APPS "build apps" OFF)
   option (BAC_ROUTING "enable bac routing" OFF)
   option (BACNET_PROPERTY_LISTS "enable property lists" OFF)
-  option (BACDL_NONE "compile without datalink" ON)
 else ()
   option (BACNET_STACK_BUILD_APPS "build apps" ON)
   option (BAC_ROUTING "enable bac routing" ON)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (BACDL_NONE "compile without datalink" OFF)
 endif ()
 
 #
 # options
 #
+
+option (BACDL_NONE "compile without datalink" OFF)
+option (BACDL_BIP "compile without ip support" ON)
 
 option(
   BACNET_BUILD_PIFACE_APP
@@ -47,11 +48,6 @@ option(
   BACDL_ARCNET
   "compile with arcnet support"
   OFF)
-
-option(
-  BACDL_BIP
-  "compile with ip support"
-  ON)
 
 option(
   BACDL_BIP6
