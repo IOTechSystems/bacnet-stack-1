@@ -448,7 +448,7 @@ set(BACNET_PORT_DIRECTORY_PATH "")
 
 if(ZEPHYR_BASE)
   message(FATAL_ERROR "ZEPHYR_BASE env variable defined. Use zephyr/CMakeLists.txt for Zephyr build")
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR "${LINUX_SYS}" STREQUAL "AzureSphere")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "LINUX" OR "${LINUX_SYS}" STREQUAL "AzureSphere")
   message(STATUS "BACNET: building for linux")
   set(BACNET_PORT_DIRECTORY_PATH ${CMAKE_CURRENT_LIST_DIR}/ports/linux)
 
@@ -460,7 +460,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR "${LINUX_SYS}" STREQUAL "AzureSp
     $<$<BOOL:${BACDL_ARCNET}>:ports/linux/arcnet.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.h>
-    $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp.c>
+    #$<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.h>
     # ports/linux/rx_fsm.c
