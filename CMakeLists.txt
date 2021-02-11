@@ -18,7 +18,6 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   option (BAC_ROUTING "enable bac routing" OFF)
   option (BACNET_PROPERTY_LISTS "enable property lists" OFF)
 else ()
-
   option (BAC_ROUTING "enable bac routing" ON)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
 endif ()
@@ -32,7 +31,7 @@ option (BACDL_NONE "compile without datalink" OFF)
 
 option (BACDL_BIP "compile without ip support" OFF)
 
-option	(BACNET_BUILD_PIFACE_APP "compile the piface app" OFF)
+option (BACNET_BUILD_PIFACE_APP "compile the piface app" OFF)
 
 option (BACDL_ETHERNET "compile with ethernet support" OFF)
 
