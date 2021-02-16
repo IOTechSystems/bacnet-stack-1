@@ -461,7 +461,7 @@ void RS485_Send_Frame(
 void RS485_Check_UART_Data(volatile struct mstp_port_struct_t *mstp_port)
 {
     fd_set input;
-    struct timeval waiter;
+    struct timeval waiter = {};
     uint8_t buf[2048];
     int n;
 
