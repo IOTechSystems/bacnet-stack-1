@@ -17,9 +17,11 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   option (BACNET_STACK_BUILD_APPS "build apps" OFF)
   option (BAC_ROUTING "enable bac routing" OFF)
   option (BACNET_PROPERTY_LISTS "enable property lists" OFF)
+  option (BIG_OBJECTS "include support for bigger objects" OFF)
 else ()
   option (BAC_ROUTING "enable bac routing" ON)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
+  option (BIG_OBJECTS "include support for bigger objects" ON)
 endif ()
 
 #
@@ -158,12 +160,12 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/object/lsp.c
     src/bacnet/basic/object/lsp.h
     src/bacnet/basic/object/Makefile
-    src/bacnet/basic/object/ms-input.c
-    src/bacnet/basic/object/ms-input.h
-    src/bacnet/basic/object/mso.c
-    src/bacnet/basic/object/mso.h
-    src/bacnet/basic/object/msv.c
-    src/bacnet/basic/object/msv.h
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.c>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.h>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.c>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.h>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.c>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.h>
     src/bacnet/basic/object/nc.c
     src/bacnet/basic/object/nc.h
     src/bacnet/basic/object/netport.c
@@ -174,10 +176,10 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/object/osv.h
     src/bacnet/basic/object/piv.c
     src/bacnet/basic/object/piv.h
-    src/bacnet/basic/object/schedule.c
-    src/bacnet/basic/object/schedule.h
-    src/bacnet/basic/object/trendlog.c
-    src/bacnet/basic/object/trendlog.h
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.c>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.h>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.c>
+    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.h>
     src/bacnet/basic/service/h_alarm_ack.c
     src/bacnet/basic/service/h_alarm_ack.h
     src/bacnet/basic/service/h_apdu.c
