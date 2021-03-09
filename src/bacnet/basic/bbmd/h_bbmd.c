@@ -1153,14 +1153,11 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     BVLC_Buffer_Len = bvlc_encode_register_foreign_device(
         &BVLC_Buffer[0], sizeof(BVLC_Buffer), ttl_seconds);
 
-    pthread_mutex_init (&mutex, NULL);
-
     /* Set the initial value of the BBMD registration bool to false */
-    pthread_mutex_lock (&mutex);
     bbmd_reg_success = false;
-    pthread_mutex_unlock (&mutex);
 
     /* Setup a 30 second condition variable wait */
+    pthread_mutex_init (&mutex, NULL);
     pthread_cond_init (&cond, NULL);
     time_t timeout_seconds = 30;
     struct timeval now;
