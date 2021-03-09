@@ -521,9 +521,6 @@ int dlenv_init(void)
     }
 #endif
     dlenv_network_port_init();
-    if (dlenv_register_as_foreign_device() < 0)
-    {
-        return 1;
-    }
+
     return 0;
 }
