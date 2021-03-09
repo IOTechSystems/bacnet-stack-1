@@ -184,6 +184,7 @@ static object_functions_t My_Object_Table[] = {
         Load_Control_Write_Property, Load_Control_Property_Lists,
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
+#ifndef _AZURESPHERE_
     { OBJECT_MULTI_STATE_INPUT, Multistate_Input_Init, Multistate_Input_Count,
         Multistate_Input_Index_To_Instance, Multistate_Input_Valid_Instance,
         Multistate_Input_Object_Name, Multistate_Input_Read_Property,
@@ -211,6 +212,7 @@ static object_functions_t My_Object_Table[] = {
         Trend_Log_Write_Property, Trend_Log_Property_Lists, TrendLogGetRRInfo,
         NULL /* Iterator */, NULL /* Value_Lists */, NULL /* COV */,
         NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
+#endif
 #if (BACNET_PROTOCOL_REVISION >= 14) && defined(BACAPP_LIGHTING_COMMAND)
     { OBJECT_LIGHTING_OUTPUT, Lighting_Output_Init, Lighting_Output_Count,
         Lighting_Output_Index_To_Instance, Lighting_Output_Valid_Instance,
@@ -245,12 +247,14 @@ static object_functions_t My_Object_Table[] = {
         PositiveInteger_Value_Property_Lists, NULL /* ReadRangeInfo */,
         NULL /* Iterator */, NULL /* Value_Lists */, NULL /* COV */,
         NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
+#ifndef _AZURESPHERE_
     { OBJECT_SCHEDULE, Schedule_Init, Schedule_Count,
         Schedule_Index_To_Instance, Schedule_Valid_Instance,
         Schedule_Object_Name, Schedule_Read_Property, Schedule_Write_Property,
         Schedule_Property_Lists, NULL /* ReadRangeInfo */, NULL /* Iterator */,
         NULL /* Value_Lists */, NULL /* COV */, NULL /* COV Clear */,
         NULL /* Intrinsic Reporting */ },
+#endif
     { OBJECT_ACCUMULATOR, Accumulator_Init, Accumulator_Count,
         Accumulator_Index_To_Instance, Accumulator_Valid_Instance,
         Accumulator_Object_Name, Accumulator_Read_Property,
