@@ -842,14 +842,12 @@ int bvlc_bbmd_enabled_handler(BACNET_IP_ADDRESS *addr,
             }
             /* Set the BBMD registration bool to successful, signal the condition variable and unlock the mutex */
             pthread_mutex_lock (&mutex);
-
             if (bbmd_reg_success == false)
             {
                 bbmd_reg_success = true;
                 pthread_cond_signal (&cond);
             }
             pthread_mutex_unlock (&mutex);
-
             break;
         case BVLC_WRITE_BROADCAST_DISTRIBUTION_TABLE:
             debug_print_bip("Received Write-BDT", addr);
