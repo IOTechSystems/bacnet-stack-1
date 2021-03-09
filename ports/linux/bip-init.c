@@ -717,9 +717,9 @@ static void *get_addr_ptr(struct sockaddr *sockaddr_ptr)
  * @param ifname [in] The named interface to use for the network layer.
  *        Eg, for MAC OS X, ifname is en0, en1, and others.
  * @param addr [out] The netmask addr, broadcast addr, ip addr.
- * @param request [in] addr broadaddr netmask
+ * @param request [in] a (addr) b (broadaddr) n (netmask)
  */
-static int get_local_address(char *ifname, struct in_addr *addr, char *request)
+static int get_local_address (char *ifname, struct in_addr *addr, char request)
 {
     char rv; /* return value */
 
@@ -731,18 +731,18 @@ static int get_local_address(char *ifname, struct in_addr *addr, char *request)
             stderr, "Error in 'getifaddrs': %d (%s)\n", errno, strerror(errno));
     }
     while (ifaddrs_ptr) {
-        if ((ifaddrs_ptr->ifa_addr->sa_family == AF_INET) &&
+        if (ifaddrs_ptr->ifa_addr && (ifaddrs_ptr->ifa_addr->sa_family == AF_INET) &&
             (strcmp(ifaddrs_ptr->ifa_name, ifname) == 0)) {
             void *addr_ptr;
             if (!ifaddrs_ptr->ifa_addr) {
                 return rv;
             }
-            if (strcmp(request, "addr") == 0) {
-                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_addr);
-            } else if (strcmp(request, "broadaddr") == 0) {
-                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_broadaddr);
-            } else if (strcmp(request, "netmask") == 0) {
-                addr_ptr = get_addr_ptr(ifaddrs_ptr->ifa_netmask);
+            if (request == 'a') {
+                addr_ptr = get_addr_ptr (ifaddrs_ptr->ifa_addr);
+            } else if (request == 'b') {
+                addr_ptr = get_addr_ptr (ifaddrs_ptr->ifa_broadaddr);
+            } else if (request == 'n') {
+                addr_ptr = get_addr_ptr (ifaddrs_ptr->ifa_netmask);
             }
             if (addr_ptr) {
                 memcpy(addr, addr_ptr, sizeof(struct in_addr));
@@ -769,7 +769,7 @@ int bip_get_local_netmask(struct in_addr *netmask)
         ifname = ifname_default();
     }
 #ifdef _AZURESPHERE_
-    rv = get_local_address (ifname, netmask, "netmask");
+    rv = get_local_address (ifname, netmask, 'n');
 #else
     rv = bip_get_local_address_ioctl(ifname, netmask, SIOCGIFNETMASK);
 #endif
@@ -791,7 +791,7 @@ void bip_set_interface(char *ifname)
 
     /* setup local address */
 #ifdef _AZURESPHERE_
-    rv = get_local_address (ifname, &local_address, "addr");
+    rv = get_local_address (ifname, &local_address, 'a');
 #else
     rv = bip_get_local_address_ioctl(ifname, &local_address, SIOCGIFADDR);
 #endif
@@ -806,7 +806,7 @@ void bip_set_interface(char *ifname)
     }
     /* setup local broadcast address */
 #ifdef _AZURESPHERE_
-    rv = get_local_address (ifname, &local_address, "broadaddr");
+    rv = get_local_address (ifname, &local_address, 'b');
 #else
     rv = bip_get_local_address_ioctl(ifname, &netmask, SIOCGIFNETMASK);
 #endif
