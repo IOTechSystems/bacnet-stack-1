@@ -1166,9 +1166,6 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     struct timeval now;
     struct timespec timeout;
     int timeout_count = 0;
-    gettimeofday (&now, NULL);
-    timeout.tv_sec = now.tv_sec + timeout_seconds;
-    timeout.tv_nsec = 0;
 
     int retval = bip_send_mpdu(bbmd_addr, &BVLC_Buffer[0], BVLC_Buffer_Len);
     if (retval == -1)
