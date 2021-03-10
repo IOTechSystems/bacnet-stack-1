@@ -1162,7 +1162,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
 
     /* Setup a 30 second condition variable wait */
     pthread_cond_init (&cond, NULL);
-    time_t timeout_seconds = 5;
+    time_t timeout_seconds = 3;
     struct timeval now;
     struct timespec timeout;
     int timeout_count = 0;
@@ -1172,7 +1172,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     {
         return retval;
     }
-    while (timeout_count < 6)
+    while (timeout_count < 10)
     {
         gettimeofday (&now, NULL);
         timeout.tv_sec = now.tv_sec + timeout_seconds;
