@@ -1154,7 +1154,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
         &BVLC_Buffer[0], sizeof(BVLC_Buffer), ttl_seconds);
 
     pthread_mutex_init (&mutex, NULL);
-    
+
     pthread_mutex_lock (&mutex);
     /* Set the initial value of the BBMD registration bool to false */
     bbmd_reg_success = false;
@@ -1162,9 +1162,10 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
 
     /* Setup a 30 second condition variable wait */
     pthread_cond_init (&cond, NULL);
-    time_t timeout_seconds = 30;
+    time_t timeout_seconds = 5;
     struct timeval now;
     struct timespec timeout;
+    int timeout_count = 0;
     gettimeofday (&now, NULL);
     timeout.tv_sec = now.tv_sec + timeout_seconds;
     timeout.tv_nsec = 0;
@@ -1174,9 +1175,22 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     {
         return retval;
     }
-    pthread_mutex_lock (&mutex);
-    pthread_cond_timedwait (&cond, &mutex, &timeout);
-    pthread_mutex_unlock (&mutex);
+    while (timeout_count < 6)
+    {
+        gettimeofday (&now, NULL);
+        timeout.tv_sec = now.tv_sec + timeout_seconds;
+        timeout.tv_nsec = 0;
+        pthread_mutex_lock (&mutex);
+        pthread_cond_timedwait (&cond, &mutex, &timeout);
+        if (bbmd_reg_success)
+        {
+            pthread_mutex_unlock (&mutex);
+            break;
+        }
+        pthread_mutex_unlock (&mutex);
+        timeout_count++;
+    }
+
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
 
