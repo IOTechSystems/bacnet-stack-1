@@ -309,7 +309,7 @@ static void *dlmstp_master_fsm_task(void *pArg)
                 run_loop = true;
                 while (run_loop) {
                     /* do nothing while immediate transitioning */
-                    run_loop = MSTP_Master_Node_FSM(&MSTP_Port)
+                    run_loop = MSTP_Master_Node_FSM(&MSTP_Port);
                     pthread_mutex_lock (&Thread_Mutex);
                     if (!run_thread) run_loop = false;
                     pthread_mutex_unlock (&Thread_Mutex);
