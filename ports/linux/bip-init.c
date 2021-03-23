@@ -884,12 +884,7 @@ bool bip_init(char *ifname)
     }
     /* bind the socket to the local port number and IP address */
     sin.sin_family = AF_INET;
-#ifdef _AZURESPHERE_
-   // sin.sin_addr.s_addr = inet_addr("192.168.4.63");
     sin.sin_addr.s_addr = htonl(INADDR_ANY);
-#else
-    sin.sin_addr.s_addr = htonl(INADDR_ANY);
-#endif
     sin.sin_port = BIP_Port;
     memset(&(sin.sin_zero), '\0', sizeof(sin.sin_zero));
     status =
