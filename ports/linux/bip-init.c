@@ -810,12 +810,8 @@ void bip_set_interface(char *ifname)
 #endif
     if (rv < 0) {
         BIP_Broadcast_Addr.s_addr = ~0;
-        fprintf(stderr, "BIP: Broadcast Address 1\n");
     } else {
-        fprintf(stderr, "BIP: Broadcast Address 2\n");
         BIP_Broadcast_Addr = local_address;
-        fprintf(stderr, "BIP: local %s\n", inet_ntoa(BIP_Broadcast_Addr));
-        fprintf(stderr, "BIP: netmask %s\n", inet_ntoa(netmask));
         BIP_Broadcast_Addr.s_addr |= (~netmask.s_addr);
     }
     if (BIP_Debug) {
