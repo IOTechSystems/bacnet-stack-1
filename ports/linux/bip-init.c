@@ -721,8 +721,6 @@ static void *get_addr_ptr(struct sockaddr *sockaddr_ptr)
  */
 static int get_local_address (char *ifname, struct in_addr *addr, char request)
 {
-    char rv; /* return value */
-
     struct ifaddrs *ifaddrs_ptr;
     int status;
     status = getifaddrs(&ifaddrs_ptr);
@@ -735,7 +733,7 @@ static int get_local_address (char *ifname, struct in_addr *addr, char request)
             (strcmp(ifaddrs_ptr->ifa_name, ifname) == 0)) {
             void *addr_ptr;
             if (!ifaddrs_ptr->ifa_addr) {
-                return rv;
+                return -1;
             }
             if (request == 'a') {
                 addr_ptr = get_addr_ptr (ifaddrs_ptr->ifa_addr);
@@ -751,7 +749,7 @@ static int get_local_address (char *ifname, struct in_addr *addr, char request)
         ifaddrs_ptr = ifaddrs_ptr->ifa_next;
     }
     freeifaddrs(ifaddrs_ptr);
-    return rv;
+    return 0;
 }
 #endif
 
@@ -812,8 +810,12 @@ void bip_set_interface(char *ifname)
 #endif
     if (rv < 0) {
         BIP_Broadcast_Addr.s_addr = ~0;
+        fprintf(stderr, "BIP: Broadcast Address 1\n");
     } else {
+        fprintf(stderr, "BIP: Broadcast Address 2\n");
         BIP_Broadcast_Addr = local_address;
+        fprintf(stderr, "BIP: local %s\n", inet_ntoa(BIP_Broadcast_Addr));
+        fprintf(stderr, "BIP: netmask %s\n", inet_ntoa(netmask));
         BIP_Broadcast_Addr.s_addr |= (~netmask.s_addr);
     }
     if (BIP_Debug) {
