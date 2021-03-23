@@ -804,7 +804,7 @@ void bip_set_interface(char *ifname)
     }
     /* setup local broadcast address */
 #ifdef _AZURESPHERE_
-    rv = get_local_address (ifname, &local_address, 'b');
+    rv = get_local_address (ifname, &netmask, 'n');
 #else
     rv = bip_get_local_address_ioctl(ifname, &netmask, SIOCGIFNETMASK);
 #endif
