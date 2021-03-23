@@ -721,8 +721,6 @@ static void *get_addr_ptr(struct sockaddr *sockaddr_ptr)
  */
 static int get_local_address (char *ifname, struct in_addr *addr, char request)
 {
-    char rv; /* return value */
-
     struct ifaddrs *ifaddrs_ptr;
     int status;
     status = getifaddrs(&ifaddrs_ptr);
@@ -735,7 +733,7 @@ static int get_local_address (char *ifname, struct in_addr *addr, char request)
             (strcmp(ifaddrs_ptr->ifa_name, ifname) == 0)) {
             void *addr_ptr;
             if (!ifaddrs_ptr->ifa_addr) {
-                return rv;
+                return -1;
             }
             if (request == 'a') {
                 addr_ptr = get_addr_ptr (ifaddrs_ptr->ifa_addr);
@@ -751,7 +749,7 @@ static int get_local_address (char *ifname, struct in_addr *addr, char request)
         ifaddrs_ptr = ifaddrs_ptr->ifa_next;
     }
     freeifaddrs(ifaddrs_ptr);
-    return rv;
+    return 0;
 }
 #endif
 
@@ -806,7 +804,7 @@ void bip_set_interface(char *ifname)
     }
     /* setup local broadcast address */
 #ifdef _AZURESPHERE_
-    rv = get_local_address (ifname, &local_address, 'b');
+    rv = get_local_address (ifname, &netmask, 'n');
 #else
     rv = bip_get_local_address_ioctl(ifname, &netmask, SIOCGIFNETMASK);
 #endif
