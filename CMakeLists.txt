@@ -605,8 +605,11 @@ if(BACNET_STACK_BUILD_APPS)
   add_executable(scov apps/scov/main.c)
   target_link_libraries(scov PRIVATE ${PROJECT_NAME})
 
+
+  find_package(Lua 5.3 REQUIRED)
+  include_directories(/usr/local/include ${LUA_INCLUDE_DIR})
   add_executable(server apps/server/main.c)
-  target_link_libraries(server PRIVATE ${PROJECT_NAME})
+  target_link_libraries(server PRIVATE ${PROJECT_NAME} ${LUA_LIBRARIES})
 
   add_executable(timesync apps/timesync/main.c)
   target_link_libraries(timesync PRIVATE ${PROJECT_NAME})

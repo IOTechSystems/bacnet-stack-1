@@ -158,6 +158,25 @@ BACNET_BINARY_PV Binary_Output_Present_Value(uint32_t object_instance)
     return value;
 }
 
+bool Binary_Output_Present_Value_Set(
+        uint32_t object_instance,
+        BACNET_BINARY_PV binary_value,
+        unsigned priority)
+{
+    unsigned index = 0;
+    bool status = false;
+
+    index = Binary_Output_Instance_To_Index(object_instance);
+    if (index < MAX_BINARY_OUTPUTS) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
+            (priority != 6 /* reserved */)) {
+            Binary_Output_Level[index][priority - 1] = binary_value;
+            status = true;
+        }
+    }
+    return status;
+}
+
 bool Binary_Output_Out_Of_Service(uint32_t object_instance)
 {
     bool value = false;

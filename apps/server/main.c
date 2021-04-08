@@ -59,6 +59,229 @@
 #include "bacnet/basic/ucix/ucix.h"
 #endif /* defined(BAC_UCI) */
 
+
+
+/**---------SIMULATED Start ----------**/
+
+#include "bacnet/basic/object/ai.h"
+#include "bacnet/basic/object/ao.h"
+#include "bacnet/basic/object/av.h"
+
+#include "bacnet/basic/object/bi.h"
+#include "bacnet/basic/object/bo.h"
+#include "bacnet/basic/object/bv.h"
+
+#include "bacnet/basic/object/iv.h"
+#include "bacnet/basic/object/piv.h"
+#include "bacnet/basic/object/acc.h"
+
+#include "lua5.3/lua.h"
+#include "lua5.3/lauxlib.h"
+#include "lua5.3/lualib.h"
+
+#include <pthread.h>
+
+lua_State *lua_update_state = NULL; //lua state for the update loop
+lua_State *lua_thread_state = NULL; //lua state for the thread
+
+pthread_t script_runner_pthread;
+bool script_running = false;
+
+static int set_analog_input (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  Analog_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int set_analog_output (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Analog_Output_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_analog_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Analog_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_input (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  Binary_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int set_binary_output (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Binary_Output_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Binary_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_integer_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  int32_t value = lua_tonumber (L, 2);
+  uint8_t priority = lua_tonumber (L, 3);
+  bool status = Integer_Value_Present_Value_Set (object_instance, value, priority);
+  if (!status)
+  {
+      printf("JJJJ");
+  }
+  return 0;
+}
+
+static int set_positive_integer_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  uint32_t value = lua_tonumber (L, 2);
+  uint8_t priority = lua_tonumber (L, 3);
+  PositiveInteger_Value_Present_Value_Set (object_instance, value, priority);
+  return 0;
+}
+
+static int set_accumulator_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  uint32_t value = lua_tonumber (L, 2);
+  Accumulator_Present_Value_Set (object_instance, value);
+  return 0;
+}
+
+static void setup_lua_callbacks(lua_State *L)
+{
+  static const struct luaL_Reg callbacks [] = {
+      {"setAnalogInput", set_analog_input},
+      {"setAnalogOutput", set_analog_output},
+      {"setAnalogValue", set_analog_value},
+      {"setBinaryInput", set_binary_input},
+      {"setBinaryOutput", set_binary_output},
+      {"setBinaryValue", set_binary_value},
+      {"setIntegerValue", set_integer_value},
+      {"setPositiveIntegerValue", set_positive_integer_value},
+      {"setAccumulatorValue", set_accumulator_value}
+  };
+
+  lua_newtable(L);
+  luaL_setfuncs(L, callbacks, 0);
+  lua_setglobal(L, "canbus");
+} 
+
+static void lua_fail (lua_State *L)
+{
+  printf ("LUA ERROR: %s\n", lua_tostring(L, -1));  
+}
+
+static bool lua_call_function(lua_State *L, const char* function_name)
+{
+  lua_getglobal(L, function_name);
+  if (lua_pcall (L, 0, 0, 0))
+  {
+    printf ("No '%s' function found.\n", function_name);
+    lua_fail(L);
+    return false;
+  }     
+  return true;        
+}
+
+static bool lua_init_state(lua_State **L, const char* file_path)
+{
+  *L = luaL_newstate();
+  luaL_openlibs (*L);
+  
+  setup_lua_callbacks (*L);
+
+  if (luaL_loadfile (*L, file_path) || lua_pcall (*L, 0, 0, 0)) 
+  {
+    lua_fail(*L);
+    return false;
+  }
+  return true;
+}
+
+//cleanup and exit
+static void simulated_exit(void) 
+{
+  if (script_running)
+  {
+    pthread_join (script_runner_pthread, NULL);   
+  }
+
+  if (NULL != lua_update_state)
+  {
+    lua_close (lua_update_state);
+  }
+
+  printf("Exiting...\n");
+  exit(1);
+}
+
+//calls update function in lua script
+static void simulated_update(void)
+{
+  if(!lua_call_function (lua_update_state, "Update"))
+  {
+    simulated_exit();
+  }
+}
+
+static void *lua_script_runner (void * ptr)
+{
+  lua_call_function (lua_thread_state, "Run");
+  lua_close (lua_thread_state);
+  return NULL;
+}
+
+static void init_update(const char* file_path)
+{
+  if (!lua_init_state (&lua_update_state, file_path))
+  {
+    simulated_exit();
+  }
+}
+
+static void init_thread_runner(const char* file_path)
+{
+  if (!lua_init_state (&lua_thread_state, file_path))
+  {
+    simulated_exit();
+  }
+
+  script_running = true;
+  pthread_create (&script_runner_pthread, NULL, lua_script_runner, NULL);
+}
+
+static void simulated_init (const char * file_path)
+{
+  printf("Loading lua script...\n");
+  init_thread_runner (file_path); 
+  init_update (file_path);
+  printf("Loaded lua script sucessfully.\n");
+}
+
+/**---------SIMULATED END ----------**/
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -183,6 +406,7 @@ static void print_help(const char *filename)
  */
 int main(int argc, char *argv[])
 {
+    
     BACNET_ADDRESS src = { 0 }; /* address where message came from */
     uint16_t pdu_len = 0;
     unsigned timeout = 1; /* milliseconds */
@@ -240,6 +464,8 @@ int main(int argc, char *argv[])
     }
     ucix_cleanup(ctx);
 #endif /* defined(BAC_UCI) */
+    
+    
 
     printf("BACnet Server Demo\n"
            "BACnet Stack Version %s\n"
@@ -253,8 +479,15 @@ int main(int argc, char *argv[])
     if (argc > 2) {
         Device_Object_Name_ANSI_Init(argv[2]);
     }
+
+
     dlenv_init();
     atexit(datalink_cleanup);
+
+    /*setup lua */
+    simulated_init("apps/server/test.lua");
+    
+
     /* configure the timeout values */
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
@@ -309,8 +542,8 @@ int main(int argc, char *argv[])
         /* output */
 
         /* blink LEDs, Turn on or off outputs, etc */
+        simulated_update();
     }
-
     return 0;
 }
 

@@ -196,6 +196,25 @@ BACNET_BINARY_PV Binary_Value_Present_Value(uint32_t object_instance)
     return value;
 }
 
+bool Binary_Value_Present_Value_Set(
+        uint32_t object_instance,
+        BACNET_BINARY_PV binary_value,
+        unsigned priority)
+{
+    unsigned index = 0;
+    bool status = false;
+
+    index = Binary_Value_Instance_To_Index(object_instance);
+    if (index < MAX_BINARY_VALUES) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
+            (priority != 6 /* reserved */)) {
+            Binary_Value_Level[index][priority -1] = binary_value;
+            status = true;
+        }
+    }
+    return status;
+}
+
 /**
  * For a given object instance-number, return the name.
  *

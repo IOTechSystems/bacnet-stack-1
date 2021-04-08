@@ -154,11 +154,8 @@ unsigned Integer_Value_Instance_To_Index(uint32_t object_instance)
 {
     unsigned index = MAX_INTEGER_VALUES;
 
-    if (object_instance) {
-        index = object_instance - 1;
-        if (index > MAX_INTEGER_VALUES) {
-            index = MAX_INTEGER_VALUES;
-        }
+     if (object_instance < MAX_INTEGER_VALUES) {
+        index = object_instance;
     }
 
     return index;
