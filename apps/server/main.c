@@ -59,9 +59,7 @@
 #include "bacnet/basic/ucix/ucix.h"
 #endif /* defined(BAC_UCI) */
 
-
-
-/**---------SIMULATED Start ----------**/
+/**---------SIMULATED Device scripting ----------**/
 
 #include "bacnet/basic/object/ai.h"
 #include "bacnet/basic/object/ao.h"
@@ -144,11 +142,7 @@ static int set_integer_value (lua_State *L)
   uint32_t object_instance = lua_tonumber (L, 1);
   int32_t value = lua_tonumber (L, 2);
   uint8_t priority = lua_tonumber (L, 3);
-  bool status = Integer_Value_Present_Value_Set (object_instance, value, priority);
-  if (!status)
-  {
-      printf("JJJJ");
-  }
+  Integer_Value_Present_Value_Set (object_instance, value, priority);
   return 0;
 }
 
@@ -280,7 +274,7 @@ static void simulated_init (const char * file_path)
   printf("Loaded lua script sucessfully.\n");
 }
 
-/**---------SIMULATED END ----------**/
+/**---------SIMULATED Device scripting end ----------**/
 
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
@@ -371,24 +365,29 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [device-instance [device-name]]\n", filename);
+    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
 static void print_help(const char *filename)
 {
     printf("Simulate a BACnet server device\n"
-           "device-instance:\n"
+           "--script:\n"
+           "Path to device simulation Lua script\n"
+           "--instance:\n"
            "BACnet Device Object Instance number that you are\n"
            "trying simulate.\n"
-           "device-name:\n"
+           "--name:\n"
            "The Device object-name is the text name for the device.\n"
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
-           "%s 123\n",
+           "%s --instance 123\n",
         filename);
     printf("To simulate Device 123 named Fred, use following command:\n"
-           "%s 123 Fred\n",
+           "%s --instance 123 --name Fred\n", 
+        filename);
+    printf("To simulate Device 123 named Fred using the script example.lua , use following command:\n"
+           "%s --script example.lua --instance 123 --name Fred\n",
         filename);
 }
 
@@ -427,6 +426,10 @@ int main(int argc, char *argv[])
 #endif
     int argi = 0;
     const char *filename = NULL;
+    const char *devicename = NULL;
+    long instance_num = 0;
+    bool instance_set = false;
+    bool using_script = false;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -444,6 +447,36 @@ int main(int argc, char *argv[])
                    "FITNESS FOR A PARTICULAR PURPOSE.\n");
             return 0;
         }
+
+        if (strcmp(argv[argi], "--script") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          simulated_init(argv[argi]);
+          using_script = true;
+        }
+
+        if (strcmp(argv[argi], "--instance") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          instance_num = strtol(argv[argi], NULL, 0);
+          instance_set = true;
+        }
+
+        if (strcmp(argv[argi], "--name") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          devicename = argv[argi]; 
+        }
+
     }
 #if defined(BAC_UCI)
     ctx = ucix_init("bacnet_dev");
@@ -456,16 +489,17 @@ int main(int argc, char *argv[])
     } else {
 #endif /* defined(BAC_UCI) */
         /* allow the device ID to be set */
-        if (argc > 1) {
-            Device_Set_Object_Instance_Number(strtol(argv[1], NULL, 0));
-        }
 
 #if defined(BAC_UCI)
     }
     ucix_cleanup(ctx);
 #endif /* defined(BAC_UCI) */
     
-    
+    if (instance_set)
+    {
+      Device_Set_Object_Instance_Number(instance_num);
+    }
+
 
     printf("BACnet Server Demo\n"
            "BACnet Stack Version %s\n"
@@ -476,17 +510,13 @@ int main(int argc, char *argv[])
        in our device bindings list */
     address_init();
     Init_Service_Handlers();
-    if (argc > 2) {
-        Device_Object_Name_ANSI_Init(argv[2]);
-    }
 
+    if (devicename) {
+        Device_Object_Name_ANSI_Init(devicename);
+    }
 
     dlenv_init();
     atexit(datalink_cleanup);
-
-    /*setup lua */
-    simulated_init("apps/server/test.lua");
-    
 
     /* configure the timeout values */
     last_seconds = time(NULL);
@@ -542,7 +572,12 @@ int main(int argc, char *argv[])
         /* output */
 
         /* blink LEDs, Turn on or off outputs, etc */
-        simulated_update();
+
+        if (using_script)
+        {
+          simulated_update();
+        }
+        
     }
     return 0;
 }
