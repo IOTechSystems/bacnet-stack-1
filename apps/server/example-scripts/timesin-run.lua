@@ -11,7 +11,7 @@ end
 function Run() --Run once
     while true do --every 5 seconds create a new reading
         local val = 42 * math.sin( 0.1 * os.time() )
-        canbus.setAnalogInput(0, val)
+        bacnet.setAnalogInput(0, val)
         io.write("\n".. val )
         sleep(1)
     end

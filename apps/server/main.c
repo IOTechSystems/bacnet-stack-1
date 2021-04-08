@@ -179,7 +179,7 @@ static void setup_lua_callbacks(lua_State *L)
 
   lua_newtable(L);
   luaL_setfuncs(L, callbacks, 0);
-  lua_setglobal(L, "canbus");
+  lua_setglobal(L, "bacnet");
 } 
 
 static void lua_fail (lua_State *L)

@@ -1,7 +1,7 @@
 
 
 function Update() --Run every server tick
-    canbus.setAnalogInput(0, counter)
+    bacnet.setAnalogInput(0, counter)
     counter = (counter + 0.001) % 100
 end
 

@@ -5,15 +5,15 @@ function Update() --Run every server tick
 end
 
 function Run() --Run once
-    canbus.setAnalogInput(0, 1337.00)
-    canbus.setAnalogOutput(0, 1337.00, 1)
-    canbus.setAnalogValue(0, 1337.00, 1)
+    bacnet.setAnalogInput(0, 1337.00)
+    bacnet.setAnalogOutput(0, 1337.00, 1)
+    bacnet.setAnalogValue(0, 1337.00, 1)
 
-    canbus.setBinaryInput(0, 1)
-    canbus.setBinaryOutput(0, 1 )
-    canbus.setBinaryValue(0, 0)
+    bacnet.setBinaryInput(0, 1)
+    bacnet.setBinaryOutput(0, 1 )
+    bacnet.setBinaryValue(0, 0)
 
-    canbus.setIntegerValue(0, -1337, 1)
-    canbus.setPositiveIntegerValue(0, 4201337, 1)
-    canbus.setAccumulatorValue(0, 2222)
+    bacnet.setIntegerValue(0, -1337, 1)
+    bacnet.setPositiveIntegerValue(0, 4201337, 1)
+    bacnet.setAccumulatorValue(0, 2222)
 end
