@@ -1,11 +1,10 @@
 
 
-
-function Update()
+function Update() --Run every server tick
     
 end
 
-function Run()
+function Run() --Run once
     canbus.setAnalogInput(0, 1337.00)
     canbus.setAnalogOutput(0, 1337.00, 1)
     canbus.setAnalogValue(0, 1337.00, 1)

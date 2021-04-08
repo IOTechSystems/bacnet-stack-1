@@ -572,7 +572,6 @@ int main(int argc, char *argv[])
         /* output */
 
         /* blink LEDs, Turn on or off outputs, etc */
-
         if (using_script)
         {
           simulated_update();
