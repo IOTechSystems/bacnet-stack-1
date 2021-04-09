@@ -269,9 +269,13 @@ static void init_thread_runner(const char* file_path)
 static void simulated_init (const char * file_path)
 {
   printf("Loading lua script...\n");
+  fflush(stdout);
+
   init_thread_runner (file_path); 
   init_update (file_path);
+
   printf("Loaded lua script sucessfully.\n");
+  fflush(stdout);
 }
 
 /**---------SIMULATED Device scripting end ----------**/
@@ -506,6 +510,7 @@ int main(int argc, char *argv[])
            "BACnet Device ID: %u\n"
            "Max APDU: %d\n",
         BACnet_Version, Device_Object_Instance_Number(), MAX_APDU);
+    fflush(stdout);
     /* load any static address bindings to show up
        in our device bindings list */
     address_init();
