@@ -27,6 +27,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/config.h"
@@ -42,6 +44,7 @@ struct object_data {
 };
 
 static struct object_data Object_List[MAX_ACCUMULATORS];
+static pthread_mutex_t Acc_Object_List_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -176,7 +179,9 @@ BACNET_UNSIGNED_INTEGER Accumulator_Present_Value(uint32_t object_instance)
     BACNET_UNSIGNED_INTEGER value = 0;
 
     if (object_instance < MAX_ACCUMULATORS) {
+        pthread_mutex_lock(&Acc_Object_List_Mutex);
         value = Object_List[object_instance].Present_Value;
+        pthread_mutex_unlock(&Acc_Object_List_Mutex);
     }
 
     return value;
@@ -196,7 +201,9 @@ bool Accumulator_Present_Value_Set(
     bool status = false;
 
     if (object_instance < MAX_ACCUMULATORS) {
+        pthread_mutex_lock(&Acc_Object_List_Mutex);
         Object_List[object_instance].Present_Value = value;
+        pthread_mutex_unlock(&Acc_Object_List_Mutex);
         status = true;
     }
 
@@ -237,7 +244,9 @@ int32_t Accumulator_Scale_Integer(uint32_t object_instance)
     int32_t scale = 0;
 
     if (object_instance < MAX_ACCUMULATORS) {
+        pthread_mutex_lock(&Acc_Object_List_Mutex);
         scale = Object_List[object_instance].Scale;
+        pthread_mutex_unlock(&Acc_Object_List_Mutex);
     }
 
     return scale;
@@ -260,7 +269,9 @@ bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t scale)
     bool status = false;
 
     if (object_instance < MAX_ACCUMULATORS) {
+        pthread_mutex_lock(&Acc_Object_List_Mutex);
         Object_List[object_instance].Scale = scale;
+        pthread_mutex_unlock(&Acc_Object_List_Mutex);
         status = true;
     }
 

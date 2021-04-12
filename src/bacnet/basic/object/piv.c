@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -45,6 +46,7 @@
 #endif
 
 static POSITIVEINTEGER_VALUE_DESCR PIV_Descr[MAX_POSITIVEINTEGER_VALUES];
+static pthread_mutex_t PIV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int PositiveInteger_Value_Properties_Required[] = {
@@ -78,9 +80,11 @@ void PositiveInteger_Value_Init(void)
 {
     unsigned i;
 
+    pthread_mutex_lock(&PIV_Descr_Mutex);
     for (i = 0; i < MAX_POSITIVEINTEGER_VALUES; i++) {
         memset(&PIV_Descr[i], 0x00, sizeof(POSITIVEINTEGER_VALUE_DESCR));
     }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -142,7 +146,9 @@ bool PositiveInteger_Value_Present_Value_Set(
 
     index = PositiveInteger_Value_Instance_To_Index(object_instance);
     if (index < MAX_POSITIVEINTEGER_VALUES) {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
         PIV_Descr[index].Present_Value = value;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
         status = true;
     }
     return status;
@@ -155,7 +161,9 @@ uint32_t PositiveInteger_Value_Present_Value(uint32_t object_instance)
 
     index = PositiveInteger_Value_Instance_To_Index(object_instance);
     if (index < MAX_POSITIVEINTEGER_VALUES) {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
         value = PIV_Descr[index].Present_Value;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
     }
 
     return value;
@@ -198,7 +206,9 @@ int PositiveInteger_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     object_index =
         PositiveInteger_Value_Instance_To_Index(rpdata->object_instance);
     if (object_index < MAX_POSITIVEINTEGER_VALUES) {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
         CurrentAV = &PIV_Descr[object_index];
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
     } else {
         return BACNET_STATUS_ERROR;
     }
@@ -302,7 +312,9 @@ bool PositiveInteger_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     object_index =
         PositiveInteger_Value_Instance_To_Index(wp_data->object_instance);
     if (object_index < MAX_POSITIVEINTEGER_VALUES) {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
         CurrentAV = &PIV_Descr[object_index];
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
     } else {
         return false;
     }

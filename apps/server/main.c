@@ -431,6 +431,7 @@ int main(int argc, char *argv[])
     int argi = 0;
     const char *filename = NULL;
     const char *devicename = NULL;
+    const char *scriptpath = NULL;
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
@@ -458,7 +459,7 @@ int main(int argc, char *argv[])
             continue;
           }
           argi++;
-          simulated_init(argv[argi]);
+          scriptpath = argv[argi];
           using_script = true;
         }
 
@@ -528,6 +529,11 @@ int main(int argc, char *argv[])
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
     /* loop forever */
+    if (scriptpath != NULL)
+    {
+      simulated_init(scriptpath);
+    }
+
     for (;;) {
         /* input */
         current_seconds = time(NULL);
