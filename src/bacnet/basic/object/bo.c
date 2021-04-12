@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -48,6 +50,7 @@
 /* Here is our Priority Array.*/
 static BACNET_BINARY_PV Binary_Output_Level[MAX_BINARY_OUTPUTS]
                                            [BACNET_MAX_PRIORITY];
+static pthread_mutex_t BO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
 static bool Out_Of_Service[MAX_BINARY_OUTPUTS];
@@ -88,11 +91,14 @@ void Binary_Output_Init(void)
         initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
+        pthread_mutex_lock(&BO_Level_Mutex);
         for (i = 0; i < MAX_BINARY_OUTPUTS; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
+                
                 Binary_Output_Level[i][j] = BINARY_NULL;
             }
         }
+        pthread_mutex_unlock(&BO_Level_Mutex);
     }
 
     return;
@@ -147,15 +153,39 @@ BACNET_BINARY_PV Binary_Output_Present_Value(uint32_t object_instance)
 
     index = Binary_Output_Instance_To_Index(object_instance);
     if (index < MAX_BINARY_OUTPUTS) {
+
+        pthread_mutex_lock(&BO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Binary_Output_Level[index][i] != BINARY_NULL) {
                 value = Binary_Output_Level[index][i];
                 break;
             }
         }
+        pthread_mutex_unlock(&BO_Level_Mutex);
     }
 
     return value;
+}
+
+bool Binary_Output_Present_Value_Set(
+        uint32_t object_instance,
+        BACNET_BINARY_PV binary_value,
+        unsigned priority)
+{
+    unsigned index = 0;
+    bool status = false;
+
+    index = Binary_Output_Instance_To_Index(object_instance);
+    if (index < MAX_BINARY_OUTPUTS) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
+            (priority != 6 /* reserved */)) {
+            pthread_mutex_lock(&BO_Level_Mutex);
+            Binary_Output_Level[index][priority - 1] = binary_value;
+            pthread_mutex_unlock(&BO_Level_Mutex);
+            status = true;
+        }
+    }
+    return status;
 }
 
 bool Binary_Output_Out_Of_Service(uint32_t object_instance)
@@ -262,6 +292,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             } else if (rpdata->array_index == BACNET_ARRAY_ALL) {
                 object_index =
                     Binary_Output_Instance_To_Index(rpdata->object_instance);
+                pthread_mutex_lock(&BO_Level_Mutex);
                 for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
                     /* FIXME: check if we have room before adding it to APDU */
                     if (Binary_Output_Level[object_index][i] == BINARY_NULL) {
@@ -281,10 +312,12 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                         break;
                     }
                 }
+                pthread_mutex_unlock(&BO_Level_Mutex);
             } else {
                 object_index =
                     Binary_Output_Instance_To_Index(rpdata->object_instance);
                 if (rpdata->array_index <= BACNET_MAX_PRIORITY) {
+                    pthread_mutex_lock(&BO_Level_Mutex);
                     if (Binary_Output_Level[object_index][rpdata->array_index -
                             1] == BINARY_NULL) {
                         apdu_len = encode_application_null(&apdu[apdu_len]);
@@ -295,6 +328,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                         apdu_len = encode_application_enumerated(
                             &apdu[apdu_len], present_value);
                     }
+                    pthread_mutex_unlock(&BO_Level_Mutex);
                 } else {
                     rpdata->error_class = ERROR_CLASS_PROPERTY;
                     rpdata->error_code = ERROR_CODE_INVALID_ARRAY_INDEX;
@@ -375,7 +409,9 @@ bool Binary_Output_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     object_index = Binary_Output_Instance_To_Index(
                         wp_data->object_instance);
                     priority--;
+                    pthread_mutex_lock(&BO_Level_Mutex);
                     Binary_Output_Level[object_index][priority] = level;
+                    pthread_mutex_unlock(&BO_Level_Mutex);
                     /* Note: you could set the physical output here if we
                        are the highest priority.
                        However, if Out of Service is TRUE, then don't set the
@@ -403,7 +439,9 @@ bool Binary_Output_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     priority = wp_data->priority;
                     if (priority && (priority <= BACNET_MAX_PRIORITY)) {
                         priority--;
+                        pthread_mutex_lock(&BO_Level_Mutex);
                         Binary_Output_Level[object_index][priority] = level;
+                        pthread_mutex_unlock(&BO_Level_Mutex);
                         /* Note: you could set the physical output here to the
                            next highest priority, or to the relinquish default
                            if no priorities are set. However, if Out of Service

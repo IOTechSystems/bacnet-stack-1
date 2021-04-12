@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -45,6 +47,7 @@
 
 /* stores the current value */
 static BACNET_BINARY_PV Present_Value[MAX_BINARY_INPUTS];
+static pthread_mutex_t BI_Present_Value_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* out of service decouples physical input from Present_Value */
 static bool Out_Of_Service[MAX_BINARY_INPUTS];
 /* Change of Value flag */
@@ -113,9 +116,11 @@ void Binary_Input_Init(void)
         initialized = true;
 
         /* initialize all the values */
+        pthread_mutex_lock(&BI_Present_Value_Mutex);
         for (i = 0; i < MAX_BINARY_INPUTS; i++) {
             Present_Value[i] = BINARY_INACTIVE;
         }
+        pthread_mutex_unlock(&BI_Present_Value_Mutex);
     }
 
     return;
@@ -142,7 +147,9 @@ BACNET_BINARY_PV Binary_Input_Present_Value(uint32_t object_instance)
 
     index = Binary_Input_Instance_To_Index(object_instance);
     if (index < MAX_BINARY_INPUTS) {
+        pthread_mutex_lock(&BI_Present_Value_Mutex);
         value = Present_Value[index];
+        pthread_mutex_unlock(&BI_Present_Value_Mutex);
         if (Polarity[index] != POLARITY_NORMAL) {
             if (value == BINARY_INACTIVE) {
                 value = BINARY_ACTIVE;
@@ -212,8 +219,12 @@ bool Binary_Input_Encode_Value_List(
         value_list->value.context_specific = false;
         value_list->value.tag = BACNET_APPLICATION_TAG_ENUMERATED;
         value_list->value.next = NULL;
+
+        pthread_mutex_lock(&BI_Present_Value_Mutex);
         value_list->value.type.Enumerated =
             Binary_Input_Present_Value(object_instance);
+        pthread_mutex_unlock(&BI_Present_Value_Mutex);
+
         value_list->priority = BACNET_NO_PRIORITY;
         value_list = value_list->next;
     }
@@ -260,10 +271,12 @@ bool Binary_Input_Present_Value_Set(
                 value = BINARY_INACTIVE;
             }
         }
+        pthread_mutex_lock(&BI_Present_Value_Mutex);
         if (Present_Value[index] != value) {
             Change_Of_Value[index] = true;
         }
         Present_Value[index] = value;
+        pthread_mutex_unlock(&BI_Present_Value_Mutex);
         status = true;
     }
 

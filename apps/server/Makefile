@@ -47,11 +47,14 @@ SRCS = $(SRC) $(BACNET_SRC) $(BACNET_BASIC_SRC) $(BACNET_PORT_SRC)
 
 OBJS = ${SRCS:.c=.o}
 
+LUA_FLAGS = -I/usr/include/lua5.3/ -llua5.3
+PTHREADLIB = -lpthread
+
 .PHONY: all
 all: Makefile ${TARGET_BIN}
 
 ${TARGET_BIN}: ${OBJS}
-	${CC} ${PFLAGS} ${OBJS} ${LFLAGS} -o $@
+	${CC} ${PFLAGS} ${OBJS} ${LFLAGS} ${LUA_FLAGS} ${PTHREADLIB} -o $@ 
 	size $@
 	cp $@ ../../bin
 

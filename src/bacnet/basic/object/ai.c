@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
 
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -46,6 +47,7 @@
 #endif
 
 static ANALOG_INPUT_DESCR AI_Descr[MAX_ANALOG_INPUTS];
+static pthread_mutex_t AI_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -85,6 +87,7 @@ void Analog_Input_Init(void)
     unsigned j;
 #endif
 
+    pthread_mutex_lock(&AI_Descr_Mutex);
     for (i = 0; i < MAX_ANALOG_INPUTS; i++) {
         AI_Descr[i].Present_Value = 0.0f;
         AI_Descr[i].Out_Of_Service = false;
@@ -114,6 +117,7 @@ void Analog_Input_Init(void)
             OBJECT_ANALOG_INPUT, Analog_Input_Alarm_Summary);
 #endif
     }
+    pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -167,7 +171,9 @@ float Analog_Input_Present_Value(uint32_t object_instance)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].Present_Value;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 
     return value;
@@ -180,6 +186,8 @@ static void Analog_Input_COV_Detect(unsigned int index, float value)
     float cov_delta = 0.0;
 
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
+
         prior_value = AI_Descr[index].Prior_Value;
         cov_increment = AI_Descr[index].COV_Increment;
         if (prior_value > value) {
@@ -191,6 +199,8 @@ static void Analog_Input_COV_Detect(unsigned int index, float value)
             AI_Descr[index].Changed = true;
             AI_Descr[index].Prior_Value = value;
         }
+
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 }
 
@@ -201,7 +211,10 @@ void Analog_Input_Present_Value_Set(uint32_t object_instance, float value)
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
         Analog_Input_COV_Detect(index, value);
+
+        pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[index].Present_Value = value;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 }
 
@@ -228,7 +241,9 @@ bool Analog_Input_Change_Of_Value(uint32_t object_instance)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         changed = AI_Descr[index].Changed;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 
     return changed;
@@ -240,7 +255,9 @@ void Analog_Input_Change_Of_Value_Clear(uint32_t object_instance)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[index].Changed = false;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 }
 
@@ -303,7 +320,9 @@ float Analog_Input_COV_Increment(uint32_t object_instance)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].COV_Increment;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 
     return value;
@@ -315,7 +334,10 @@ void Analog_Input_COV_Increment_Set(uint32_t object_instance, float value)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[index].COV_Increment = value;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+
         Analog_Input_COV_Detect(index, AI_Descr[index].Present_Value);
     }
 }
@@ -327,7 +349,9 @@ bool Analog_Input_Out_Of_Service(uint32_t object_instance)
 
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].Out_Of_Service;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 
     return value;
@@ -347,10 +371,12 @@ void Analog_Input_Out_Of_Service_Set(uint32_t object_instance, bool value)
         Please feel free to remove this comment when my changes accepted after
         suitable time for review by all interested parties. Say 6 months ->
         September 2016 */
+        pthread_mutex_lock(&AI_Descr_Mutex);
         if (AI_Descr[index].Out_Of_Service != value) {
             AI_Descr[index].Changed = true;
         }
         AI_Descr[index].Out_Of_Service = value;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     }
 }
 
@@ -376,7 +402,9 @@ int Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
 
     object_index = Analog_Input_Instance_To_Index(rpdata->object_instance);
     if (object_index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     } else {
         return BACNET_STATUS_ERROR;
     }
@@ -622,7 +650,9 @@ bool Analog_Input_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     }
     object_index = Analog_Input_Instance_To_Index(wp_data->object_instance);
     if (object_index < MAX_ANALOG_INPUTS) {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     } else {
         return false;
     }
@@ -821,10 +851,15 @@ void Analog_Input_Intrinsic_Reporting(uint32_t object_instance)
 
     object_index = Analog_Input_Instance_To_Index(object_instance);
     if (object_index < MAX_ANALOG_INPUTS)
+    {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+    }
     else
+    {
         return;
-
+    }
     /* check limits */
     if (!CurrentAI->Limit_Enable)
         return; /* limits are not configured */
@@ -1124,6 +1159,7 @@ int Analog_Input_Event_Information(
     /* check index */
     if (index < MAX_ANALOG_INPUTS) {
         /* Event_State not equal to NORMAL */
+        pthread_mutex_lock(&AI_Descr_Mutex);
         IsActiveEvent = (AI_Descr[index].Event_State != EVENT_STATE_NORMAL);
 
         /* Acked_Transitions property, which has at least one of the bits
@@ -1136,6 +1172,7 @@ int Analog_Input_Event_Information(
                 false) |
             (AI_Descr[index].Acked_Transitions[TRANSITION_TO_NORMAL].bIsAcked ==
                 false);
+        pthread_mutex_unlock(&AI_Descr_Mutex);
     } else
         return -1; /* end of list  */
 
@@ -1145,6 +1182,7 @@ int Analog_Input_Event_Information(
         getevent_data->objectIdentifier.instance =
             Analog_Input_Index_To_Instance(index);
         /* Event State */
+        pthread_mutex_lock(&AI_Descr_Mutex);
         getevent_data->eventState = AI_Descr[index].Event_State;
         /* Acknowledged Transitions */
         bitstring_init(&getevent_data->acknowledgedTransitions);
@@ -1181,7 +1219,7 @@ int Analog_Input_Event_Information(
         /* Event Priorities */
         Notification_Class_Get_Priorities(
             AI_Descr[index].Notification_Class, getevent_data->eventPriorities);
-
+        pthread_mutex_unlock(&AI_Descr_Mutex);
         return 1; /* active event */
     } else
         return 0; /* no active event at this index */
@@ -1197,7 +1235,11 @@ int Analog_Input_Alarm_Ack(
         alarmack_data->eventObjectIdentifier.instance);
 
     if (object_index < MAX_ANALOG_INPUTS)
+    {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+    }
     else {
         *error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return -1;
@@ -1294,6 +1336,7 @@ int Analog_Input_Alarm_Summary(
     if (index < MAX_ANALOG_INPUTS) {
         /* Event_State is not equal to NORMAL  and
            Notify_Type property value is ALARM */
+        pthread_mutex_lock(&AI_Descr_Mutex);
         if ((AI_Descr[index].Event_State != EVENT_STATE_NORMAL) &&
             (AI_Descr[index].Notify_Type == NOTIFY_ALARM)) {
             /* Object Identifier */
@@ -1319,10 +1362,14 @@ int Analog_Input_Alarm_Summary(
                 AI_Descr[index]
                     .Acked_Transitions[TRANSITION_TO_NORMAL]
                     .bIsAcked);
-
+            pthread_mutex_unlock(&AI_Descr_Mutex);
             return 1; /* active alarm */
-        } else
+        }
+        else
+        {
+            pthread_mutex_unlock(&AI_Descr_Mutex);
             return 0; /* no active alarm at this index */
+        }
     } else
         return -1; /* end of list  */
 }
