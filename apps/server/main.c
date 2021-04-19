@@ -299,14 +299,6 @@ static uint8_t Rx_Buf[MAX_MPDU] = { 0 };
 
 
 
-static void test_cov_handle( uint8_t *service_request, uint16_t service_len,
-    BACNET_ADDRESS *src,
-    BACNET_CONFIRMED_SERVICE_DATA *service_data)
-{
-  printf("JAJAJJAJAJAJJAJ\n");
-  handler_cov_subscribe(service_request, service_len, src, service_data);
-}
-
 /** Initialize the handlers we will utilize.
  * @see Device_Init, apdu_set_unconfirmed_handler, apdu_set_confirmed_handler
  */
@@ -317,7 +309,7 @@ static void Init_Service_Handlers(void)
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_IS, handler_who_is);
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_HAS, handler_who_has);
 
-    apdu_set_confirmed_handler( SERVICE_CONFIRMED_SUBSCRIBE_COV, test_cov_handle);
+    apdu_set_confirmed_handler( SERVICE_CONFIRMED_SUBSCRIBE_COV, handler_cov_subscribe);
 
 #if 0
 	/* 	BACnet Testing Observed Incident oi00107
@@ -451,8 +443,6 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
-
-    printf("USING MAX_SUBSCRIPTIONS %u", MAX_COV_SUBCRIPTIONS);
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {

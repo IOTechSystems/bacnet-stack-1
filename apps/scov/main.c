@@ -32,7 +32,6 @@
 #include <ctype.h> /* for toupper */
 
 #define PRINT_ENABLED 1
-#define MAX_COV_SUBCRIPTIONS 100000
 
 #include "bacnet/bacdef.h"
 #include "bacnet/config.h"
@@ -429,9 +428,6 @@ int main(int argc, char *argv[])
             } 
         }
           
-
-
-
         /* returns 0 bytes on timeout */
         pdu_len = datalink_receive(&src, &Rx_Buf[0], MAX_MPDU, timeout);
         /* process */
