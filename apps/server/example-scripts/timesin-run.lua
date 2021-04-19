@@ -9,6 +9,9 @@ function sleep(time)
 end
 
 function Run() --Run once
+
+    bacnet.resizeAnalogInputObjectArray(5000) 
+    
     while true do --every 1 seconds create a new reading
 
         local val = 42 * math.sin( 0.1 * os.time() )

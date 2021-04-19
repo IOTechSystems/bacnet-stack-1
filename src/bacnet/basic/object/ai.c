@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -46,7 +47,8 @@
 #define MAX_ANALOG_INPUTS 4
 #endif
 
-static ANALOG_INPUT_DESCR AI_Descr[MAX_ANALOG_INPUTS];
+static ANALOG_INPUT_DESCR *AI_Descr = NULL;
+static size_t AI_Descr_Size = MAX_ANALOG_INPUTS;
 static pthread_mutex_t AI_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -80,15 +82,41 @@ void Analog_Input_Property_Lists(
     return;
 }
 
-void Analog_Input_Init(void)
+void Analog_Input_Object_Array_Resize(size_t new_size)
+{
+    AI_Descr_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Analog_Input_Object_Array_Free();
+    Analog_Input_Object_Array_Alloc(AI_Descr_Size);
+    Analog_Input_Object_Array_Init();
+}
+
+void Analog_Input_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    AI_Descr = calloc(AI_Descr_Size, sizeof(*AI_Descr));
+    pthread_mutex_unlock(&AI_Descr_Mutex);
+}
+
+void Analog_Input_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    if(NULL != AI_Descr)
+    {
+        free(AI_Descr);
+    }
+    pthread_mutex_unlock(&AI_Descr_Mutex);
+}
+
+void Analog_Input_Object_Array_Init(void)
 {
     unsigned i;
 #if defined(INTRINSIC_REPORTING)
     unsigned j;
 #endif
-
     pthread_mutex_lock(&AI_Descr_Mutex);
-    for (i = 0; i < MAX_ANALOG_INPUTS; i++) {
+
+    for (i = 0; i < AI_Descr_Size; i++) {
         AI_Descr[i].Present_Value = 0.0f;
         AI_Descr[i].Out_Of_Service = false;
         AI_Descr[i].Units = UNITS_PERCENT;
@@ -120,6 +148,17 @@ void Analog_Input_Init(void)
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
+void Analog_Input_Init(void)
+{
+    Analog_Input_Object_Array_Alloc(AI_Descr_Size);
+    Analog_Input_Object_Array_Init();   
+}
+
+void Analog_Input_Cleanup(void)
+{
+    Analog_Input_Object_Array_Free();
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
 /* given instance exists */
@@ -128,7 +167,7 @@ bool Analog_Input_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         return true;
     }
 
@@ -139,7 +178,7 @@ bool Analog_Input_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Analog_Input_Count(void)
 {
-    return MAX_ANALOG_INPUTS;
+    return AI_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -155,9 +194,9 @@ uint32_t Analog_Input_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Analog_Input_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_ANALOG_INPUTS;
+    unsigned index = AI_Descr_Size;
 
-    if (object_instance < MAX_ANALOG_INPUTS) {
+    if (object_instance < AI_Descr_Size) {
         index = object_instance;
     }
 
@@ -170,7 +209,7 @@ float Analog_Input_Present_Value(uint32_t object_instance)
     unsigned int index;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].Present_Value;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -185,7 +224,7 @@ static void Analog_Input_COV_Detect(unsigned int index, float value)
     float cov_increment = 0.0;
     float cov_delta = 0.0;
 
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
 
         prior_value = AI_Descr[index].Prior_Value;
@@ -209,7 +248,7 @@ void Analog_Input_Present_Value_Set(uint32_t object_instance, float value)
     unsigned int index = 0;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         Analog_Input_COV_Detect(index, value);
 
         pthread_mutex_lock(&AI_Descr_Mutex);
@@ -226,7 +265,7 @@ bool Analog_Input_Object_Name(
     bool status = false;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         sprintf(text_string, "ANALOG INPUT %lu", (unsigned long)index);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -240,7 +279,7 @@ bool Analog_Input_Change_Of_Value(uint32_t object_instance)
     bool changed = false;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         changed = AI_Descr[index].Changed;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -254,7 +293,7 @@ void Analog_Input_Change_Of_Value_Clear(uint32_t object_instance)
     unsigned index = 0;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[index].Changed = false;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -319,7 +358,7 @@ float Analog_Input_COV_Increment(uint32_t object_instance)
     float value = 0;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].COV_Increment;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -333,7 +372,7 @@ void Analog_Input_COV_Increment_Set(uint32_t object_instance, float value)
     unsigned index = 0;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[index].COV_Increment = value;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -348,7 +387,7 @@ bool Analog_Input_Out_Of_Service(uint32_t object_instance)
     bool value = false;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         value = AI_Descr[index].Out_Of_Service;
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -362,7 +401,7 @@ void Analog_Input_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         /* 	BACnet Testing Observed Incident oi00104
                 The Changed flag was not being set when a client wrote to the
         Out-of-Service bit. Revealed by BACnet Test Client v1.8.16 (
@@ -401,7 +440,7 @@ int Analog_Input_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     }
 
     object_index = Analog_Input_Instance_To_Index(rpdata->object_instance);
-    if (object_index < MAX_ANALOG_INPUTS) {
+    if (object_index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -649,7 +688,7 @@ bool Analog_Input_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
         return false;
     }
     object_index = Analog_Input_Instance_To_Index(wp_data->object_instance);
-    if (object_index < MAX_ANALOG_INPUTS) {
+    if (object_index < AI_Descr_Size) {
         pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
         pthread_mutex_unlock(&AI_Descr_Mutex);
@@ -850,7 +889,7 @@ void Analog_Input_Intrinsic_Reporting(uint32_t object_instance)
     bool SendNotify = false;
 
     object_index = Analog_Input_Instance_To_Index(object_instance);
-    if (object_index < MAX_ANALOG_INPUTS)
+    if (object_index < AI_Descr_Size)
     {
         pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
@@ -1157,7 +1196,7 @@ int Analog_Input_Event_Information(
     int i;
 
     /* check index */
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         /* Event_State not equal to NORMAL */
         pthread_mutex_lock(&AI_Descr_Mutex);
         IsActiveEvent = (AI_Descr[index].Event_State != EVENT_STATE_NORMAL);
@@ -1234,7 +1273,7 @@ int Analog_Input_Alarm_Ack(
     object_index = Analog_Input_Instance_To_Index(
         alarmack_data->eventObjectIdentifier.instance);
 
-    if (object_index < MAX_ANALOG_INPUTS)
+    if (object_index < AI_Descr_Size)
     {
         pthread_mutex_lock(&AI_Descr_Mutex);
         CurrentAI = &AI_Descr[object_index];
@@ -1333,7 +1372,7 @@ int Analog_Input_Alarm_Summary(
     unsigned index, BACNET_GET_ALARM_SUMMARY_DATA *getalarm_data)
 {
     /* check index */
-    if (index < MAX_ANALOG_INPUTS) {
+    if (index < AI_Descr_Size) {
         /* Event_State is not equal to NORMAL  and
            Notify_Type property value is ALARM */
         pthread_mutex_lock(&AI_Descr_Mutex);
