@@ -11,9 +11,6 @@
 BACNET_DEFINES ?=
 BACNET_LIB ?=
 
-
-
-
 # choose a datalink to build the example applications
 # Use BACDL=mstp or BACDL=bip and BBMD=server when invoking make
 

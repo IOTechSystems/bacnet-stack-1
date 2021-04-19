@@ -297,8 +297,6 @@ static const char *BACnet_Version = BACNET_VERSION_TEXT;
 /** Buffer used for receiving */
 static uint8_t Rx_Buf[MAX_MPDU] = { 0 };
 
-
-
 /** Initialize the handlers we will utilize.
  * @see Device_Init, apdu_set_unconfirmed_handler, apdu_set_confirmed_handler
  */
@@ -591,9 +589,6 @@ int main(int argc, char *argv[])
         }
 #endif
         /* output */
-
-
-
         if (using_script)
         {
           simulated_update();
