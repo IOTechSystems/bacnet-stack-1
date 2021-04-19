@@ -45,10 +45,14 @@
 #include "bacnet/basic/tsm/tsm.h"
 #include "bacnet/datalink/datalink.h"
 #include "bacnet/basic/binding/address.h"
+
+#include "bacnet/basic/service/h_cov.h"
+
 /* include the device object */
 #include "bacnet/basic/object/device.h"
 #include "bacnet/basic/object/lc.h"
 #include "bacnet/basic/object/trendlog.h"
+
 #if defined(INTRINSIC_REPORTING)
 #include "bacnet/basic/object/nc.h"
 #endif /* defined(INTRINSIC_REPORTING) */
@@ -293,6 +297,16 @@ static const char *BACnet_Version = BACNET_VERSION_TEXT;
 /** Buffer used for receiving */
 static uint8_t Rx_Buf[MAX_MPDU] = { 0 };
 
+
+
+static void test_cov_handle( uint8_t *service_request, uint16_t service_len,
+    BACNET_ADDRESS *src,
+    BACNET_CONFIRMED_SERVICE_DATA *service_data)
+{
+  printf("JAJAJJAJAJAJJAJ\n");
+  handler_cov_subscribe(service_request, service_len, src, service_data);
+}
+
 /** Initialize the handlers we will utilize.
  * @see Device_Init, apdu_set_unconfirmed_handler, apdu_set_confirmed_handler
  */
@@ -302,6 +316,8 @@ static void Init_Service_Handlers(void)
     /* we need to handle who-is to support dynamic device binding */
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_IS, handler_who_is);
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_HAS, handler_who_has);
+
+    apdu_set_confirmed_handler( SERVICE_CONFIRMED_SUBSCRIBE_COV, test_cov_handle);
 
 #if 0
 	/* 	BACnet Testing Observed Incident oi00107
@@ -344,8 +360,7 @@ static void Init_Service_Handlers(void)
         SERVICE_UNCONFIRMED_UTC_TIME_SYNCHRONIZATION, handler_timesync_utc);
     apdu_set_unconfirmed_handler(
         SERVICE_UNCONFIRMED_TIME_SYNCHRONIZATION, handler_timesync);
-    apdu_set_confirmed_handler(
-        SERVICE_CONFIRMED_SUBSCRIBE_COV, handler_cov_subscribe);
+
     apdu_set_unconfirmed_handler(
         SERVICE_UNCONFIRMED_COV_NOTIFICATION, handler_ucov_notification);
     /* handle communication so we can shutup when asked */
@@ -395,6 +410,7 @@ static void print_help(const char *filename)
         filename);
 }
 
+
 /** Main function of server demo.
  *
  * @see Device_Set_Object_Instance_Number, dlenv_init, Send_I_Am,
@@ -435,6 +451,8 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
+
+    printf("USING MAX_SUBSCRIPTIONS %u", MAX_COV_SUBCRIPTIONS);
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -528,12 +546,14 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
-    /* loop forever */
+  
     if (scriptpath != NULL)
     {
       simulated_init(scriptpath);
     }
 
+
+    /* loop forever */
     for (;;) {
         /* input */
         current_seconds = time(NULL);
@@ -582,7 +602,8 @@ int main(int argc, char *argv[])
 #endif
         /* output */
 
-        /* blink LEDs, Turn on or off outputs, etc */
+
+
         if (using_script)
         {
           simulated_update();
