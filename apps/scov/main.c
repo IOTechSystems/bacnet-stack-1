@@ -340,6 +340,12 @@ int main(int argc, char *argv[])
     }
     /* start at the beginning of the subscribe list */
     cov_data = COV_Subscribe_Data;
+
+    bool can_send_subs = false;
+
+    unsigned subs = 0;
+    unsigned desired_subs = 5000;
+
     /* loop forever */
     for (;;) {
         /* increment timer - exit if timed out */
@@ -361,6 +367,7 @@ int main(int argc, char *argv[])
             found = address_bind_request(
                 Target_Device_Object_Instance, &max_apdu, &Target_Address);
         }
+
         if (found) {
             if (Request_Invoke_ID == 0) {
                 Simple_Ack_Detected = false;
@@ -369,10 +376,10 @@ int main(int argc, char *argv[])
                 } else {
                     Cancel_Requested = false;
                 }
-                Target_Device_Process_Identifier =
-                    cov_data->subscriberProcessIdentifier;
-                Request_Invoke_ID =
-                    Send_COV_Subscribe(Target_Device_Object_Instance, cov_data);
+                Target_Device_Process_Identifier = cov_data->subscriberProcessIdentifier;
+                
+                can_send_subs = true;
+                                   
                 if (!cov_data->cancellationRequest &&
                     (timeout_seconds < cov_data->lifetime)) {
                     /* increase the timeout to the longest lifetime */
@@ -404,6 +411,23 @@ int main(int argc, char *argv[])
                 break;
             }
         }
+
+        if(can_send_subs)
+        {
+            while(tsm_transaction_available() && subs < desired_subs)
+            {
+                cov_data->monitoredObjectIdentifier.instance = subs;
+                Request_Invoke_ID = Send_COV_Subscribe(Target_Device_Object_Instance, cov_data);
+                if(Request_Invoke_ID != 0)
+                {
+                    //return 0;
+                    subs++;
+                }
+                printf("%u/%u\n",subs,desired_subs);
+            
+            } 
+        }
+          
         /* returns 0 bytes on timeout */
         pdu_len = datalink_receive(&src, &Rx_Buf[0], MAX_MPDU, timeout);
         /* process */

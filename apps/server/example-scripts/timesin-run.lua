@@ -10,9 +10,12 @@ end
 
 function Run() --Run once
     while true do --every 1 seconds create a new reading
+
         local val = 42 * math.sin( 0.1 * os.time() )
-        bacnet.setAnalogInput(0, val)
-        io.write("\n".. val )
+        for i=0,5000 do
+            
+            bacnet.setAnalogInput(i, val)
+        end
         sleep(1)
     end
 
