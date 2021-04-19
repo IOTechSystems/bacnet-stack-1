@@ -97,6 +97,13 @@ static int set_analog_input (lua_State *L)
   return 0;
 }
 
+static int resize_analog_input_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Analog_Input_Object_Array_Resize(size);
+  return 0;
+}
+
 static int set_analog_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -171,6 +178,8 @@ static void setup_lua_callbacks(lua_State *L)
 {
   static const struct luaL_Reg callbacks [] = {
       {"setAnalogInput", set_analog_input},
+      {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
+
       {"setAnalogOutput", set_analog_output},
       {"setAnalogValue", set_analog_value},
       {"setBinaryInput", set_binary_input},
