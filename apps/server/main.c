@@ -83,11 +83,16 @@
 
 #include <pthread.h>
 
-lua_State *lua_update_state = NULL; //lua state for the update loop
-lua_State *lua_thread_state = NULL; //lua state for the thread
 
-pthread_t script_runner_pthread;
-bool script_running = false;
+static void cleanup(void);
+
+static bool running = true;
+
+static lua_State *lua_update_state = NULL; //lua state for the update loop
+static lua_State *lua_thread_state = NULL; //lua state for the thread
+
+static pthread_t script_runner_pthread;
+static bool script_running = false;
 
 static int set_analog_input (lua_State *L)
 {
@@ -228,20 +233,18 @@ static bool lua_init_state(lua_State **L, const char* file_path)
 }
 
 //cleanup and exit
-static void simulated_exit(void) 
+static void simulated_cleanup(void) 
 {
-  if (script_running)
-  {
-    pthread_join (script_runner_pthread, NULL);   
-  }
+  // if (script_running)
+  // {
+  //   pthread_join (script_runner_pthread, NULL);   
+  // }
 
   if (NULL != lua_update_state)
   {
     lua_close (lua_update_state);
   }
 
-  printf("Exiting...\n");
-  exit(1);
 }
 
 //calls update function in lua script
@@ -249,7 +252,7 @@ static void simulated_update(void)
 {
   if(!lua_call_function (lua_update_state, "Update"))
   {
-    simulated_exit();
+    cleanup();
   }
 }
 
@@ -264,7 +267,7 @@ static void init_update(const char* file_path)
 {
   if (!lua_init_state (&lua_update_state, file_path))
   {
-    simulated_exit();
+    cleanup();
   }
 }
 
@@ -272,7 +275,7 @@ static void init_thread_runner(const char* file_path)
 {
   if (!lua_init_state (&lua_thread_state, file_path))
   {
-    simulated_exit();
+    cleanup();
   }
 
   script_running = true;
@@ -409,6 +412,17 @@ static void print_help(const char *filename)
         filename);
 }
 
+static void sigint(int a)
+{
+  running = false;
+}
+
+static void cleanup(void)
+{
+    datalink_cleanup();
+    simulated_cleanup();
+    exit(0);
+}
 
 /** Main function of server demo.
  *
@@ -549,9 +563,10 @@ int main(int argc, char *argv[])
       simulated_init(scriptpath);
     }
 
+    signal(SIGINT, sigint);
 
     /* loop forever */
-    for (;;) {
+    while (running) {    
         /* input */
         current_seconds = time(NULL);
 
@@ -604,7 +619,8 @@ int main(int argc, char *argv[])
         }
         
     }
-    return 0;
+
+    cleanup();
 }
 
 /* @} */
