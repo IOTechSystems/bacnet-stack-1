@@ -101,11 +101,10 @@ void Analog_Input_Object_Array_Alloc(size_t size)
 void Analog_Input_Object_Array_Free(void)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
-    if(NULL != AI_Descr)
-    {
-        free(AI_Descr);
-        AI_Descr = NULL;
-    }
+
+    free(AI_Descr);
+    AI_Descr = NULL;
+
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 

@@ -109,11 +109,10 @@ void Analog_Value_Object_Array_Alloc(size_t size)
 void Analog_Value_Object_Array_Free(void)
 {
     pthread_mutex_lock(&AV_Descr_Mutex);
-    if(NULL != AV_Descr)
-    {
-        free(AV_Descr);
-        AV_Descr = NULL;
-    }
+
+    free(AV_Descr);
+    AV_Descr = NULL;
+
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
@@ -176,7 +175,7 @@ void Analog_Value_Init(void)
  */
 bool Analog_Value_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_ANALOG_VALUES) {
+    if (object_instance < AV_Descr_Size) {
         return true;
     }
 
@@ -190,7 +189,7 @@ bool Analog_Value_Valid_Instance(uint32_t object_instance)
  */
 unsigned Analog_Value_Count(void)
 {
-    return MAX_ANALOG_VALUES;
+    return AV_Descr_Size;
 }
 
 /**
@@ -218,9 +217,9 @@ uint32_t Analog_Value_Index_To_Instance(unsigned index)
  */
 unsigned Analog_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_ANALOG_VALUES;
+    unsigned index = AV_Descr_Size;
 
-    if (object_instance < MAX_ANALOG_VALUES) {
+    if (object_instance < AV_Descr_Size) {
         index = object_instance;
     }
 
@@ -243,7 +242,7 @@ static void Analog_Value_COV_Detect(unsigned int index, float value)
     float cov_increment = 0.0;
     float cov_delta = 0.0;
 
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         prior_value = AV_Descr[index].Prior_Value;
         cov_increment = AV_Descr[index].COV_Increment;
@@ -277,7 +276,7 @@ bool Analog_Value_Present_Value_Set(
     bool status = false;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         Analog_Value_COV_Detect(index, value);
         pthread_mutex_lock(&AV_Descr_Mutex);
         AV_Descr[index].Present_Value = value;
@@ -300,7 +299,7 @@ float Analog_Value_Present_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         value = AV_Descr[index].Present_Value;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -325,7 +324,7 @@ bool Analog_Value_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_ANALOG_VALUES) {
+    if (object_instance < AV_Descr_Size) {
         sprintf(
             text_string, "ANALOG VALUE %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -348,7 +347,7 @@ bool Analog_Value_Change_Of_Value(uint32_t object_instance)
     bool changed = false;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         changed = AV_Descr[index].Changed;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -367,7 +366,7 @@ void Analog_Value_Change_Of_Value_Clear(uint32_t object_instance)
     unsigned index = 0;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         AV_Descr[index].Changed = false;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -432,7 +431,7 @@ float Analog_Value_COV_Increment(uint32_t object_instance)
     float value = 0;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         value = AV_Descr[index].COV_Increment;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -446,7 +445,7 @@ void Analog_Value_COV_Increment_Set(uint32_t object_instance, float value)
     unsigned index = 0;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         AV_Descr[index].COV_Increment = value;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -460,7 +459,7 @@ bool Analog_Value_Out_Of_Service(uint32_t object_instance)
     bool value = false;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         value = AV_Descr[index].Out_Of_Service;
         pthread_mutex_unlock(&AV_Descr_Mutex);
@@ -474,7 +473,7 @@ void Analog_Value_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Analog_Value_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         pthread_mutex_lock(&AV_Descr_Mutex);
         if (AV_Descr[index].Out_Of_Service != value) {
             AV_Descr[index].Changed = true;
@@ -518,7 +517,7 @@ int Analog_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     apdu = rpdata->application_data;
 
     object_index = Analog_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index >= MAX_ANALOG_VALUES) {
+    if (object_index >= AV_Descr_Size) {
         rpdata->error_class = ERROR_CLASS_OBJECT;
         rpdata->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return BACNET_STATUS_ERROR;
@@ -769,7 +768,7 @@ bool Analog_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 
     /* Valid object? */
     object_index = Analog_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= MAX_ANALOG_VALUES) {
+    if (object_index >= AV_Descr_Size) {
         wp_data->error_class = ERROR_CLASS_OBJECT;
         wp_data->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return false;
@@ -978,7 +977,7 @@ void Analog_Value_Intrinsic_Reporting(uint32_t object_instance)
     bool SendNotify = false;
 
     object_index = Analog_Value_Instance_To_Index(object_instance);
-    if (object_index < MAX_ANALOG_VALUES)
+    if (object_index < AV_Descr_Size)
     {
         pthread_mutex_lock(&AV_Descr_Mutex);
         CurrentAV = &AV_Descr[object_index];
@@ -1285,7 +1284,7 @@ int Analog_Value_Event_Information(
     int i;
 
     /* check index */
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         /* Event_State not equal to NORMAL */
         pthread_mutex_lock (&AV_Descr_Mutex);
         IsActiveEvent = (AV_Descr[index].Event_State != EVENT_STATE_NORMAL);
@@ -1362,7 +1361,7 @@ int Analog_Value_Alarm_Ack(
     object_index = Analog_Value_Instance_To_Index(
         alarmack_data->eventObjectIdentifier.instance);
 
-    if (object_index < MAX_ANALOG_VALUES)
+    if (object_index < AV_Descr_Size)
     {
         pthread_mutex_lock (&AV_Descr_Mutex);
         CurrentAV = &AV_Descr[object_index];
@@ -1464,7 +1463,7 @@ int Analog_Value_Alarm_Summary(
     unsigned index, BACNET_GET_ALARM_SUMMARY_DATA *getalarm_data)
 {
     /* check index */
-    if (index < MAX_ANALOG_VALUES) {
+    if (index < AV_Descr_Size) {
         /* Event_State is not equal to NORMAL  and
            Notify_Type property value is ALARM */
         pthread_mutex_lock (&AV_Descr_Mutex);

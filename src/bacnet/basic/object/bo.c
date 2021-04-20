@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -48,12 +49,12 @@
 /* the Relinquish Default value */
 #define RELINQUISH_DEFAULT BINARY_INACTIVE
 /* Here is our Priority Array.*/
-static BACNET_BINARY_PV Binary_Output_Level[MAX_BINARY_OUTPUTS]
-                                           [BACNET_MAX_PRIORITY];
+static BACNET_BINARY_PV (*Binary_Output_Level)[BACNET_MAX_PRIORITY] = NULL;
+static size_t BO_Level_Size = MAX_BINARY_OUTPUTS;
 static pthread_mutex_t BO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
-static bool Out_Of_Service[MAX_BINARY_OUTPUTS];
+static bool *Out_Of_Service = NULL;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Binary_Output_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -82,7 +83,40 @@ void Binary_Output_Property_Lists(
     return;
 }
 
-void Binary_Output_Init(void)
+void Binary_Output_Object_Array_Resize(size_t new_size)
+{
+    BO_Level_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Binary_Output_Object_Array_Free();
+    Binary_Output_Object_Array_Alloc(BO_Level_Size);
+    Binary_Output_Object_Array_Init();
+}
+
+void Binary_Output_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&BO_Level_Mutex);
+    
+    Binary_Output_Level = calloc(size, sizeof (*Binary_Output_Level));
+    Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
+
+
+    pthread_mutex_unlock(&BO_Level_Mutex);
+}
+
+void Binary_Output_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&BO_Level_Mutex);
+
+    free(Binary_Output_Level);
+    Binary_Output_Level = NULL;
+
+    free(Out_Of_Service);
+    Out_Of_Service = NULL;
+    
+    pthread_mutex_unlock(&BO_Level_Mutex);
+}
+
+void Binary_Output_Object_Array_Init(void)
 {
     unsigned i, j;
     static bool initialized = false;
@@ -100,6 +134,13 @@ void Binary_Output_Init(void)
         }
         pthread_mutex_unlock(&BO_Level_Mutex);
     }
+}
+
+
+void Binary_Output_Init(void)
+{
+    Binary_Output_Object_Array_Alloc(BO_Level_Size);
+    Binary_Output_Object_Array_Init();   
 
     return;
 }

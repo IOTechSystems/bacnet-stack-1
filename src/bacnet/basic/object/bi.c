@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -46,14 +47,16 @@
 #endif
 
 /* stores the current value */
-static BACNET_BINARY_PV Present_Value[MAX_BINARY_INPUTS];
+static BACNET_BINARY_PV *Present_Value = NULL;
+static size_t Present_Value_Size = MAX_BINARY_INPUTS;
 static pthread_mutex_t BI_Present_Value_Mutex = PTHREAD_MUTEX_INITIALIZER;
+
 /* out of service decouples physical input from Present_Value */
-static bool Out_Of_Service[MAX_BINARY_INPUTS];
+static bool *Out_Of_Service;
 /* Change of Value flag */
-static bool Change_Of_Value[MAX_BINARY_INPUTS];
+static bool *Change_Of_Value;
 /* Polarity of Input */
-static BACNET_POLARITY Polarity[MAX_BINARY_INPUTS];
+static BACNET_POLARITY *Polarity;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Binary_Input_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -85,7 +88,7 @@ void Binary_Input_Property_Lists(
 /* given instance exists */
 bool Binary_Input_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_BINARY_INPUTS) {
+    if (object_instance < Present_Value_Size) {
         return true;
     }
 
@@ -96,7 +99,7 @@ bool Binary_Input_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Binary_Input_Count(void)
 {
-    return MAX_BINARY_INPUTS;
+    return Present_Value_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -107,7 +110,48 @@ uint32_t Binary_Input_Index_To_Instance(unsigned index)
     return index;
 }
 
-void Binary_Input_Init(void)
+
+void Binary_Input_Object_Array_Resize(size_t new_size)
+{
+    Present_Value_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Binary_Input_Object_Array_Free();
+    Binary_Input_Object_Array_Alloc(Present_Value_Size);
+    Binary_Input_Object_Array_Init();
+}
+
+void Binary_Input_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&BI_Present_Value_Mutex);
+    
+    Present_Value = calloc(size, sizeof (*Present_Value));
+    Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
+    Change_Of_Value = calloc(size, sizeof(*Change_Of_Value));
+    Polarity = calloc(size, sizeof(*Polarity));
+
+    pthread_mutex_unlock(&BI_Present_Value_Mutex);
+}
+
+void Binary_Input_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&BI_Present_Value_Mutex);
+
+    free(Present_Value);
+    Present_Value = NULL;
+
+    free(Out_Of_Service);
+    Out_Of_Service = NULL;
+    
+    free(Change_Of_Value);
+    Change_Of_Value = NULL;
+    
+    free(Polarity);
+    Polarity = NULL;
+
+    pthread_mutex_unlock(&BI_Present_Value_Mutex);
+}
+
+void Binary_Input_Object_Array_Init(void)
 {
     static bool initialized = false;
     unsigned i;
@@ -117,11 +161,17 @@ void Binary_Input_Init(void)
 
         /* initialize all the values */
         pthread_mutex_lock(&BI_Present_Value_Mutex);
-        for (i = 0; i < MAX_BINARY_INPUTS; i++) {
+        for (i = 0; i < Present_Value_Size; i++) {
             Present_Value[i] = BINARY_INACTIVE;
         }
         pthread_mutex_unlock(&BI_Present_Value_Mutex);
     }
+}
+
+void Binary_Input_Init(void)
+{
+    Binary_Input_Object_Array_Alloc(Present_Value_Size);
+    Binary_Input_Object_Array_Init();  
 
     return;
 }
@@ -131,9 +181,9 @@ void Binary_Input_Init(void)
 /* that correlates to the correct instance number */
 unsigned Binary_Input_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_BINARY_INPUTS;
+    unsigned index = Present_Value_Size;
 
-    if (object_instance < MAX_BINARY_INPUTS) {
+    if (object_instance < Present_Value_Size) {
         index = object_instance;
     }
 
@@ -146,7 +196,7 @@ BACNET_BINARY_PV Binary_Input_Present_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         pthread_mutex_lock(&BI_Present_Value_Mutex);
         value = Present_Value[index];
         pthread_mutex_unlock(&BI_Present_Value_Mutex);
@@ -168,7 +218,7 @@ bool Binary_Input_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         value = Out_Of_Service[index];
     }
 
@@ -181,7 +231,7 @@ bool Binary_Input_Change_Of_Value(uint32_t object_instance)
     unsigned index;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         status = Change_Of_Value[index];
     }
 
@@ -193,7 +243,7 @@ void Binary_Input_Change_Of_Value_Clear(uint32_t object_instance)
     unsigned index;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         Change_Of_Value[index] = false;
     }
 
@@ -263,7 +313,7 @@ bool Binary_Input_Present_Value_Set(
     bool status = false;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         if (Polarity[index] != POLARITY_NORMAL) {
             if (value == BINARY_INACTIVE) {
                 value = BINARY_ACTIVE;
@@ -288,7 +338,7 @@ void Binary_Input_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         if (Out_Of_Service[index] != value) {
             Change_Of_Value[index] = true;
         }
@@ -306,7 +356,7 @@ bool Binary_Input_Object_Name(
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         sprintf(
             text_string, "BINARY INPUT %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -321,7 +371,7 @@ BACNET_POLARITY Binary_Input_Polarity(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         polarity = Polarity[index];
     }
 
@@ -335,7 +385,7 @@ bool Binary_Input_Polarity_Set(
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
+    if (index < Present_Value_Size) {
         Polarity[index] = polarity;
     }
 

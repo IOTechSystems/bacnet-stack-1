@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -48,12 +49,12 @@
 /* the Relinquish Default value */
 #define RELINQUISH_DEFAULT BINARY_INACTIVE
 /* Here is our Priority Array.*/
-static BACNET_BINARY_PV Binary_Value_Level[MAX_BINARY_VALUES]
-                                          [BACNET_MAX_PRIORITY];
+static BACNET_BINARY_PV (*Binary_Value_Level)[BACNET_MAX_PRIORITY];
+static size_t Binary_Value_Level_Size = MAX_BINARY_VALUES;
 static pthread_mutex_t BV_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
-static bool Out_Of_Service[MAX_BINARY_VALUES];
+static bool *Out_Of_Service;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Binary_Value_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -89,10 +90,40 @@ void Binary_Value_Property_Lists(
     return;
 }
 
-/**
- * Initialize the binary values.
- */
-void Binary_Value_Init(void)
+void Binary_Value_Object_Array_Resize(size_t new_size)
+{
+    Binary_Value_Level_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Binary_Value_Object_Array_Free();
+    Binary_Value_Object_Array_Alloc(Binary_Value_Level_Size);
+    Binary_Value_Object_Array_Init();
+}
+
+void Binary_Value_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&BV_Level_Mutex);
+    
+    Binary_Value_Level = calloc(size, sizeof (*Binary_Value_Level));
+    Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
+
+
+    pthread_mutex_unlock(&BV_Level_Mutex);
+}
+
+void Binary_Value_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&BV_Level_Mutex);
+
+    free(Binary_Value_Level);
+    Binary_Value_Level = NULL;
+
+    free(Out_Of_Service);
+    Out_Of_Service = NULL;
+    
+    pthread_mutex_unlock(&BV_Level_Mutex);
+}
+
+void Binary_Value_Object_Array_Init(void)
 {
     unsigned i, j;
     static bool initialized = false;
@@ -102,7 +133,7 @@ void Binary_Value_Init(void)
 
         /* initialize all the analog output priority arrays to NULL */
         pthread_mutex_lock(&BV_Level_Mutex);
-        for (i = 0; i < MAX_BINARY_VALUES; i++) {
+        for (i = 0; i < Binary_Value_Level_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
                 Binary_Value_Level[i][j] = BINARY_NULL;
             }
@@ -110,7 +141,15 @@ void Binary_Value_Init(void)
         pthread_mutex_unlock(&BV_Level_Mutex);
     }
 
-    return;
+}
+
+/**
+ * Initialize the binary values.
+ */
+void Binary_Value_Init(void)
+{
+    Binary_Value_Object_Array_Alloc(Binary_Value_Level_Size);
+    Binary_Value_Object_Array_Init();
 }
 
 /**
@@ -124,7 +163,7 @@ void Binary_Value_Init(void)
  */
 bool Binary_Value_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_BINARY_VALUES) {
+    if (object_instance < Binary_Value_Level_Size) {
         return true;
     }
 
@@ -138,7 +177,7 @@ bool Binary_Value_Valid_Instance(uint32_t object_instance)
  */
 unsigned Binary_Value_Count(void)
 {
-    return MAX_BINARY_VALUES;
+    return Binary_Value_Level_Size;
 }
 
 /**
@@ -166,9 +205,9 @@ uint32_t Binary_Value_Index_To_Instance(unsigned index)
  */
 unsigned Binary_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_BINARY_VALUES;
+    unsigned index = Binary_Value_Level_Size;
 
-    if (object_instance < MAX_BINARY_VALUES) {
+    if (object_instance < Binary_Value_Level_Size) {
         index = object_instance;
     }
 
@@ -189,7 +228,7 @@ BACNET_BINARY_PV Binary_Value_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Binary_Value_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_VALUES) {
+    if (index < Binary_Value_Level_Size) {
         pthread_mutex_lock(&BV_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Binary_Value_Level[index][i] != BINARY_NULL) {
@@ -212,7 +251,7 @@ bool Binary_Value_Present_Value_Set(
     bool status = false;
 
     index = Binary_Value_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_VALUES) {
+    if (index < Binary_Value_Level_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
             pthread_mutex_lock(&BV_Level_Mutex);
@@ -241,7 +280,7 @@ bool Binary_Value_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_BINARY_VALUES) {
+    if (object_instance < Binary_Value_Level_Size) {
         sprintf(
             text_string, "BINARY VALUE %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -263,7 +302,7 @@ bool Binary_Value_Out_Of_Service(uint32_t instance)
     bool oos_flag = false;
 
     index = Binary_Value_Instance_To_Index(instance);
-    if (index < MAX_BINARY_VALUES) {
+    if (index < Binary_Value_Level_Size) {
         oos_flag = Out_Of_Service[index];
     }
 
@@ -281,7 +320,7 @@ void Binary_Value_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     unsigned index = 0;
 
     index = Binary_Value_Instance_To_Index(instance);
-    if (index < MAX_BINARY_VALUES) {
+    if (index < Binary_Value_Level_Size) {
         Out_Of_Service[index] = oos_flag;
     }
 }
@@ -316,7 +355,7 @@ int Binary_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
 
     /* Valid object index? */
     object_index = Binary_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index >= MAX_BINARY_VALUES) {
+    if (object_index >= Binary_Value_Level_Size) {
         rpdata->error_class = ERROR_CLASS_OBJECT;
         rpdata->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return BACNET_STATUS_ERROR;
@@ -486,7 +525,7 @@ bool Binary_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 
     /* Valid object index? */
     object_index = Binary_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= MAX_BINARY_VALUES) {
+    if (object_index >= Binary_Value_Level_Size) {
         wp_data->error_class = ERROR_CLASS_OBJECT;
         wp_data->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return false;

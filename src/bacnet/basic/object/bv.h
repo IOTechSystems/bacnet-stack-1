@@ -169,6 +169,16 @@ extern "C" {
     bool Binary_Value_Polarity_Set(
         uint32_t object_instance,
         BACNET_POLARITY polarity);
+
+    BACNET_STACK_EXPORT
+    void Binary_Value_Object_Array_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Object_Array_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Object_Array_Free(void);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Object_Array_Init(void);
+
     BACNET_STACK_EXPORT
     bool Binary_Value_Create(
         uint32_t object_instance);

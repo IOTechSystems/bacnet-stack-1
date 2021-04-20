@@ -149,6 +149,13 @@ static int set_binary_input (lua_State *L)
   return 0;
 }
 
+static int resize_binary_input_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Binary_Input_Object_Array_Resize(size);
+  return 0;
+}
+
 static int set_binary_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -158,12 +165,26 @@ static int set_binary_output (lua_State *L)
   return 0;
 }
 
+static int resize_binary_output_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Binary_Output_Object_Array_Resize(size);
+  return 0;
+}
+
 static int set_binary_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
   unsigned int priority = lua_tonumber(L,3);
   Binary_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int resize_binary_value_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Binary_Value_Object_Array_Resize(size);
   return 0;
 }
 
@@ -199,17 +220,21 @@ static void setup_lua_callbacks(lua_State *L)
       {"setAnalogInput", set_analog_input},
       {"setAnalogOutput", set_analog_output},
       {"setAnalogValue", set_analog_value},
+      {"setBinaryInput", set_binary_input},
+      {"setBinaryOutput", set_binary_output},
+      {"setBinaryValue", set_binary_value},
 
       {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
       {"resizeAnalogOutputObjectArray", resize_analog_output_object_array},
       {"resizeAnalogValueObjectArray", resize_analog_value_object_array},
+      {"resizeBinaryInputObjectArray", resize_binary_input_object_array},
+      {"resizeBinaryOutputObjectArray", resize_binary_output_object_array},
+      {"resizeBinaryValueObjectArray", resize_binary_value_object_array},
       
 
       
 
-      {"setBinaryInput", set_binary_input},
-      {"setBinaryOutput", set_binary_output},
-      {"setBinaryValue", set_binary_value},
+      
       {"setIntegerValue", set_integer_value},
       {"setPositiveIntegerValue", set_positive_integer_value},
       {"setAccumulatorValue", set_accumulator_value}
