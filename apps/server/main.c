@@ -118,12 +118,26 @@ static int set_analog_output (lua_State *L)
   return 0;
 }
 
+static int resize_analog_output_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Analog_Output_Object_Array_Resize(size);
+  return 0;
+}
+
 static int set_analog_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
   unsigned int priority = lua_tonumber(L,3);
   Analog_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int resize_analog_value_object_array(lua_State *L)
+{
+  size_t size = lua_tonumber(L, 1);
+  Analog_Value_Object_Array_Resize(size);
   return 0;
 }
 
@@ -183,10 +197,16 @@ static void setup_lua_callbacks(lua_State *L)
 {
   static const struct luaL_Reg callbacks [] = {
       {"setAnalogInput", set_analog_input},
-      {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
-
       {"setAnalogOutput", set_analog_output},
       {"setAnalogValue", set_analog_value},
+
+      {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
+      {"resizeAnalogOutputObjectArray", resize_analog_output_object_array},
+      {"resizeAnalogValueObjectArray", resize_analog_value_object_array},
+      
+
+      
+
       {"setBinaryInput", set_binary_input},
       {"setBinaryOutput", set_binary_output},
       {"setBinaryValue", set_binary_value},

@@ -29,6 +29,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
@@ -46,7 +47,8 @@
 #define MAX_ANALOG_VALUES 4
 #endif
 
-static ANALOG_VALUE_DESCR AV_Descr[MAX_ANALOG_VALUES];
+static ANALOG_VALUE_DESCR *AV_Descr = NULL;
+static size_t AV_Descr_Size = MAX_ANALOG_VALUES;
 static pthread_mutex_t AV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -88,10 +90,34 @@ void Analog_Value_Property_Lists(
     return;
 }
 
-/**
- * Initialize the analog values.
- */
-void Analog_Value_Init(void)
+void Analog_Value_Object_Array_Resize(size_t new_size)
+{
+    AV_Descr_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Analog_Value_Object_Array_Free();
+    Analog_Value_Object_Array_Alloc(AV_Descr_Size);
+    Analog_Value_Object_Array_Init();
+}
+
+void Analog_Value_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    AV_Descr = calloc(size, sizeof (*AV_Descr));
+    pthread_mutex_unlock(&AV_Descr_Mutex);
+}
+
+void Analog_Value_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    if(NULL != AV_Descr)
+    {
+        free(AV_Descr);
+        AV_Descr = NULL;
+    }
+    pthread_mutex_unlock(&AV_Descr_Mutex);
+}
+
+void Analog_Value_Object_Array_Init(void)
 {
     unsigned i;
 #if defined(INTRINSIC_REPORTING)
@@ -99,7 +125,7 @@ void Analog_Value_Init(void)
 #endif
 
     pthread_mutex_lock(&AV_Descr_Mutex);
-    for (i = 0; i < MAX_ANALOG_VALUES; i++) {
+    for (i = 0; i < AV_Descr_Size; i++) {
         memset(&AV_Descr[i], 0x00, sizeof(ANALOG_VALUE_DESCR));
         AV_Descr[i].Present_Value = 0.0;
         AV_Descr[i].Units = UNITS_NO_UNITS;
@@ -128,6 +154,15 @@ void Analog_Value_Init(void)
 #endif
     }
     pthread_mutex_unlock(&AV_Descr_Mutex);
+}
+
+/**
+ * Initialize the analog values.
+ */
+void Analog_Value_Init(void)
+{
+    Analog_Value_Object_Array_Alloc(AV_Descr_Size);
+    Analog_Value_Object_Array_Init();
 }
 
 /**

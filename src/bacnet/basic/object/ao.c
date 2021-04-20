@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -53,7 +54,8 @@
 /* Here is our Priority Array.  They are supposed to be Real, but */
 /* we don't have that kind of memory, so we will use a single byte */
 /* and load a Real for returning the value when asked. */
-static uint8_t Analog_Output_Level[MAX_ANALOG_OUTPUTS][BACNET_MAX_PRIORITY];
+static uint8_t (*Analog_Output_Level)[BACNET_MAX_PRIORITY] = NULL;
+static size_t AO_Level_Size = MAX_ANALOG_OUTPUTS;
 static pthread_mutex_t AO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
@@ -88,7 +90,34 @@ void Analog_Output_Property_Lists(
     return;
 }
 
-void Analog_Output_Init(void)
+void Analog_Output_Object_Array_Resize(size_t new_size)
+{
+    AO_Level_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Analog_Output_Object_Array_Free();
+    Analog_Output_Object_Array_Alloc(AO_Level_Size);
+    Analog_Output_Object_Array_Init();
+}
+
+void Analog_Output_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&AO_Level_Mutex);
+    Analog_Output_Level = calloc(size, sizeof (*Analog_Output_Level));
+    pthread_mutex_unlock(&AO_Level_Mutex);
+}
+
+void Analog_Output_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&AO_Level_Mutex);
+    if(NULL != Analog_Output_Level)
+    {
+        free(Analog_Output_Level);
+        Analog_Output_Level = NULL;
+    }
+    pthread_mutex_unlock(&AO_Level_Mutex);
+}
+
+void Analog_Output_Object_Array_Init(void)
 {
     unsigned i, j;
 
@@ -96,16 +125,21 @@ void Analog_Output_Init(void)
         Analog_Output_Initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        for (i = 0; i < MAX_ANALOG_OUTPUTS; i++) {
+        pthread_mutex_lock(&AO_Level_Mutex);
+        for (i = 0; i < AO_Level_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
-                pthread_mutex_lock(&AO_Level_Mutex);
                 Analog_Output_Level[i][j] = AO_LEVEL_NULL;
-                pthread_mutex_unlock(&AO_Level_Mutex);
             }
         }
+        pthread_mutex_unlock(&AO_Level_Mutex);
     }
-
     return;
+}
+
+void Analog_Output_Init(void)
+{
+    Analog_Output_Object_Array_Alloc(AO_Level_Size);
+    Analog_Output_Object_Array_Init();
 }
 
 /* we simply have 0-n object instances.  Yours might be */

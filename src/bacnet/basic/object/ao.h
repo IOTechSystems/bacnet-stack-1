@@ -149,6 +149,15 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
+    void Analog_Output_Object_Array_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Object_Array_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Object_Array_Free(void);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Object_Array_Init(void);
+
+    BACNET_STACK_EXPORT
     bool Analog_Output_Create(
         uint32_t object_instance);
     BACNET_STACK_EXPORT

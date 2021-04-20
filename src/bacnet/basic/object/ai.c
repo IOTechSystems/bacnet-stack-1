@@ -94,7 +94,7 @@ void Analog_Input_Object_Array_Resize(size_t new_size)
 void Analog_Input_Object_Array_Alloc(size_t size)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
-    AI_Descr = calloc(AI_Descr_Size, sizeof(*AI_Descr));
+    AI_Descr = calloc(size, sizeof(*AI_Descr));
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
@@ -104,6 +104,7 @@ void Analog_Input_Object_Array_Free(void)
     if(NULL != AI_Descr)
     {
         free(AI_Descr);
+        AI_Descr = NULL;
     }
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }

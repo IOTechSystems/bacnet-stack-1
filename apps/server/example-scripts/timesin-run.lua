@@ -11,6 +11,8 @@ end
 function Run() --Run once
 
     bacnet.resizeAnalogInputObjectArray(5000) 
+    bacnet.resizeAnalogOutputObjectArray(5000) 
+    bacnet.resizeAnalogValueObjectArray(5000) 
     
     while true do --every 1 seconds create a new reading
 
@@ -18,6 +20,7 @@ function Run() --Run once
         for i=0,5000 do
             
             bacnet.setAnalogInput(i, val)
+            bacnet.setAnalogValue(i, val)
         end
         sleep(1)
     end
