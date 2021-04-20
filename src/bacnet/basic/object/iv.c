@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
@@ -57,7 +58,9 @@ struct integer_object {
     int32_t Present_Value;
     uint16_t Units;
 };
-static struct integer_object Integer_Value[MAX_INTEGER_VALUES];
+
+static struct integer_object *Integer_Value = NULL;
+static size_t Integer_Value_Size = MAX_INTEGER_VALUES;
 static pthread_mutex_t IV_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -109,7 +112,7 @@ bool Integer_Value_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         return true;
     }
 
@@ -123,14 +126,14 @@ bool Integer_Value_Valid_Instance(uint32_t object_instance)
  */
 unsigned Integer_Value_Count(void)
 {
-    return MAX_INTEGER_VALUES;
+    return Integer_Value_Size;
 }
 
 /**
  * Determines the object instance-number for a given 0..N index
  * of Analog Value objects where N is Integer_Value_Count().
  *
- * @param  index - 0..MAX_INTEGER_VALUES value
+ * @param  index - 0..Integer_Value_Size value
  *
  * @return  object instance-number for the given index
  */
@@ -154,9 +157,9 @@ uint32_t Integer_Value_Index_To_Instance(unsigned index)
  */
 unsigned Integer_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_INTEGER_VALUES;
+    unsigned index = Integer_Value_Size;
 
-     if (object_instance < MAX_INTEGER_VALUES) {
+     if (object_instance < Integer_Value_Size) {
         index = object_instance;
     }
 
@@ -176,7 +179,7 @@ int32_t Integer_Value_Present_Value(uint32_t object_instance)
     unsigned int index;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         value = Integer_Value[index].Present_Value;
         pthread_mutex_unlock(&IV_Mutex);
@@ -201,7 +204,7 @@ bool Integer_Value_Present_Value_Set(
 
     (void)priority;
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         Integer_Value[index].Present_Value = value;
         pthread_mutex_unlock(&IV_Mutex);
@@ -229,7 +232,7 @@ bool Integer_Value_Object_Name(
     bool status = false;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         sprintf(
             text_string, "ANALOG VALUE %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -251,7 +254,7 @@ uint16_t Integer_Value_Units(uint32_t instance)
     uint16_t units = UNITS_NO_UNITS;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         units = Integer_Value[index].Units;
         pthread_mutex_unlock(&IV_Mutex);
@@ -274,7 +277,7 @@ bool Integer_Value_Units_Set(uint32_t instance, uint16_t units)
     bool status = false;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         Integer_Value[index].Units = units;
         pthread_mutex_unlock(&IV_Mutex);
@@ -298,7 +301,7 @@ bool Integer_Value_Out_Of_Service(uint32_t instance)
     bool value = false;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         value = Integer_Value[index].Out_Of_Service;
         pthread_mutex_unlock(&IV_Mutex);
@@ -320,7 +323,7 @@ void Integer_Value_Out_Of_Service_Set(uint32_t instance, bool value)
     unsigned int index = 0;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < MAX_INTEGER_VALUES) {
+    if (index < Integer_Value_Size) {
         pthread_mutex_lock(&IV_Mutex);
         Integer_Value[index].Out_Of_Service = value;
         pthread_mutex_unlock(&IV_Mutex);
@@ -475,18 +478,52 @@ bool Integer_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return status;
 }
 
-/**
- * Initializes the Integer Value object data
- */
-void Integer_Value_Init(void)
+void Integer_Value_Object_Array_Resize(size_t new_size)
+{
+    Integer_Value_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Integer_Value_Object_Array_Free();
+    Integer_Value_Object_Array_Alloc(Integer_Value_Size);
+    Integer_Value_Object_Array_Init();
+}
+
+void Integer_Value_Object_Array_Alloc(size_t size)
+{
+    pthread_mutex_lock(&IV_Mutex);
+    
+    Integer_Value = calloc(size, sizeof (*Integer_Value));
+  
+    pthread_mutex_unlock(&IV_Mutex);
+}
+
+void Integer_Value_Object_Array_Free(void)
+{
+    pthread_mutex_lock(&IV_Mutex);
+
+    free(Integer_Value);
+    Integer_Value = NULL;
+    
+    pthread_mutex_unlock(&IV_Mutex);
+}
+
+void Integer_Value_Object_Array_Init(void)
 {
     unsigned index = 0;
 
     pthread_mutex_lock(&IV_Mutex);
-    for (index = 0; index < MAX_INTEGER_VALUES; index++) {
+    for (index = 0; index < Integer_Value_Size; index++) {
         Integer_Value[index].Present_Value = 0;
         Integer_Value[index].Out_Of_Service = false;
         Integer_Value[index].Units = UNITS_NO_UNITS;
     }
     pthread_mutex_unlock(&IV_Mutex);
+}
+
+/**
+ * Initializes the Integer Value object data
+ */
+void Integer_Value_Init(void)
+{
+    Integer_Value_Object_Array_Alloc(Integer_Value_Size);
+    Integer_Value_Object_Array_Init();
 }

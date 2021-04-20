@@ -126,7 +126,7 @@ void Binary_Output_Object_Array_Init(void)
 
         /* initialize all the analog output priority arrays to NULL */
         pthread_mutex_lock(&BO_Level_Mutex);
-        for (i = 0; i < MAX_BINARY_OUTPUTS; i++) {
+        for (i = 0; i < BO_Level_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
                 
                 Binary_Output_Level[i][j] = BINARY_NULL;
@@ -135,7 +135,6 @@ void Binary_Output_Object_Array_Init(void)
         pthread_mutex_unlock(&BO_Level_Mutex);
     }
 }
-
 
 void Binary_Output_Init(void)
 {
@@ -150,7 +149,7 @@ void Binary_Output_Init(void)
 /* given instance exists */
 bool Binary_Output_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_BINARY_OUTPUTS) {
+    if (object_instance < BO_Level_Size) {
         return true;
     }
 
@@ -161,7 +160,7 @@ bool Binary_Output_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Binary_Output_Count(void)
 {
-    return MAX_BINARY_OUTPUTS;
+    return BO_Level_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -177,9 +176,9 @@ uint32_t Binary_Output_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Binary_Output_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_BINARY_OUTPUTS;
+    unsigned index = BO_Level_Size;
 
-    if (object_instance < MAX_BINARY_OUTPUTS) {
+    if (object_instance < BO_Level_Size) {
         index = object_instance;
     }
 
@@ -193,7 +192,7 @@ BACNET_BINARY_PV Binary_Output_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Binary_Output_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_OUTPUTS) {
+    if (index < BO_Level_Size) {
 
         pthread_mutex_lock(&BO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
@@ -217,7 +216,7 @@ bool Binary_Output_Present_Value_Set(
     bool status = false;
 
     index = Binary_Output_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_OUTPUTS) {
+    if (index < BO_Level_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
             pthread_mutex_lock(&BO_Level_Mutex);
@@ -235,7 +234,7 @@ bool Binary_Output_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Output_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_OUTPUTS) {
+    if (index < BO_Level_Size) {
         value = Out_Of_Service[index];
     }
 
@@ -249,7 +248,7 @@ bool Binary_Output_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_BINARY_OUTPUTS) {
+    if (object_instance < BO_Level_Size) {
         sprintf(
             text_string, "BINARY OUTPUT %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);

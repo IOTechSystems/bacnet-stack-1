@@ -128,6 +128,15 @@ extern "C" {
         bool oos_flag);
 
     BACNET_STACK_EXPORT
+    void Integer_Value_Object_Array_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Integer_Value_Object_Array_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Integer_Value_Object_Array_Free(void);
+    BACNET_STACK_EXPORT
+    void Integer_Value_Object_Array_Init(void);
+
+    BACNET_STACK_EXPORT
     void Integer_Value_Init(
         void);
 
