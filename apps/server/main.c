@@ -235,6 +235,11 @@ static int create_accumulators(lua_State *L)
   return 0;
 }
 
+static int is_server_running(lua_State *L)
+{
+  lua_pushboolean(L, running);
+  return 1;
+}
 
 static void setup_lua_callbacks(lua_State *L)
 {
@@ -258,12 +263,14 @@ static void setup_lua_callbacks(lua_State *L)
       {"createIntegerValues", create_integer_values},
       {"createPositiveIntegerValues", create_positive_integer_values},
       {"createAccumulators", create_accumulators}
-      
   };
 
   lua_newtable(L);
   luaL_setfuncs(L, callbacks, 0);
   lua_setglobal(L, "bacnet");
+
+  //register a function so that the script can check if the server is running
+  lua_register(L, "isBacnetRunning", is_server_running);
 } 
 
 static void lua_fail (lua_State *L)
@@ -301,10 +308,10 @@ static bool lua_init_state(lua_State **L, const char* file_path)
 //cleanup and exit
 static void simulated_cleanup(void) 
 {
-  // if (script_running)
-  // {
-  //   pthread_join (script_runner_pthread, NULL);   
-  // }
+  if (script_running)
+  {
+    pthread_join (script_runner_pthread, NULL);   
+  }
 
   if (NULL != lua_update_state)
   {
