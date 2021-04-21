@@ -124,6 +124,11 @@ void PositiveInteger_Value_Init(void)
 
 }
 
+void PositiveInteger_Value_Cleanup(void)
+{
+    PositiveInteger_Value_Free();
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
 /* given instance exists */

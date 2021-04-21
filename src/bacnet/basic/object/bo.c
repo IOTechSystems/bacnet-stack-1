@@ -141,6 +141,11 @@ void Binary_Output_Init(void)
 
 }
 
+void Binary_Output_Cleanup(void)
+{
+    Binary_Output_Free();
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
 /* given instance exists */

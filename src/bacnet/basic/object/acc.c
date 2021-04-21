@@ -489,6 +489,11 @@ void Accumulator_Init(void)
 
 }
 
+void Accumulator_Cleanup(void)
+{
+    Accumulator_Free();
+}
+
 #ifdef TEST_ACCUMULATOR
 #include <assert.h>
 #include <string.h>

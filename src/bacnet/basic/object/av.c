@@ -164,6 +164,11 @@ void Analog_Value_Init(void)
 
 }
 
+void Analog_Value_Cleanup(void)
+{
+    Analog_Value_Free();
+}
+
 /**
  * We simply have 0-n object instances. Yours might be
  * more complex, and then you need validate that the

@@ -163,6 +163,11 @@ void Binary_Input_Init(void)
 
 }
 
+void Binary_Input_Cleanup(void)
+{
+    Binary_Input_Free();
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need to return the index */
 /* that correlates to the correct instance number */

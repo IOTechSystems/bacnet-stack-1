@@ -102,9 +102,12 @@ extern "C" {
     BACNET_STACK_EXPORT
     void Accumulator_Objects_Init(void);
 
+
     BACNET_STACK_EXPORT
     void Accumulator_Init(
         void);
+    BACNET_STACK_EXPORT
+    void Accumulator_Cleanup(void);
 
 #ifdef __cplusplus
 }

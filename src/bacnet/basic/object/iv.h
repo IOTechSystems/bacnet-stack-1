@@ -141,6 +141,9 @@ extern "C" {
     BACNET_STACK_EXPORT
     void Integer_Value_Init(
         void);
+    BACNET_STACK_EXPORT
+    void Integer_Value_Cleanup(void);
+
 
 #ifdef BAC_TEST
 #include "ctest.h"

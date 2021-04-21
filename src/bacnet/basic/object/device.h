@@ -47,6 +47,11 @@ typedef void (
     *object_init_function) (
     void);
 
+typedef void (
+    *object_cleanup_function) (
+    void);
+
+
 /** Counts the number of objects of this type.
  * @ingroup ObjHelpers
  * @return Count of implemented objects of this type.
@@ -152,6 +157,7 @@ typedef void (
 typedef struct object_functions {
     BACNET_OBJECT_TYPE Object_Type;
     object_init_function Object_Init;
+    object_cleanup_function Object_Cleanup;
     object_count_function Object_Count;
     object_index_to_instance_function Object_Index_To_Instance;
     object_valid_instance_function Object_Valid_Instance;
@@ -225,7 +231,8 @@ extern "C" {
     BACNET_STACK_EXPORT
     void Device_Init(
         object_functions_t * object_table);
-
+    BACNET_STACK_EXPORT
+    void Device_Cleanup (void);
     BACNET_STACK_EXPORT
     bool Device_Reinitialize(
         BACNET_REINITIALIZE_DEVICE_DATA * rd_data);

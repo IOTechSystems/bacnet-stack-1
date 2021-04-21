@@ -527,3 +527,8 @@ void Integer_Value_Init(void)
 {
 
 }
+
+void Integer_Value_Cleanup(void)
+{
+    Integer_Value_Free();
+}

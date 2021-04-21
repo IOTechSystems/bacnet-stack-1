@@ -311,6 +311,7 @@ static void simulated_cleanup(void)
   if (script_running)
   {
     pthread_join (script_runner_pthread, NULL);   
+    script_running = false;
   }
 
   if (NULL != lua_update_state)
@@ -494,6 +495,7 @@ static void cleanup(void)
 {
     datalink_cleanup();
     simulated_cleanup();
+    Device_Cleanup();
     exit(0);
 }
 
