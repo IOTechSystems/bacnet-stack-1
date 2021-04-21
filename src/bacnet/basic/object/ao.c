@@ -40,9 +40,6 @@
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_ANALOG_OUTPUTS
-#define MAX_ANALOG_OUTPUTS 4
-#endif
 
 /* we choose to have a NULL level in our system represented by */
 /* a particular value.  When the priorities are not in use, they */
@@ -55,7 +52,7 @@
 /* we don't have that kind of memory, so we will use a single byte */
 /* and load a Real for returning the value when asked. */
 static uint8_t (*Analog_Output_Level)[BACNET_MAX_PRIORITY] = NULL;
-static size_t AO_Level_Size = MAX_ANALOG_OUTPUTS;
+static size_t AO_Level_Size = 0;
 static pthread_mutex_t AO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
@@ -91,16 +88,21 @@ void Analog_Output_Property_Lists(
     return;
 }
 
-void Analog_Output_Object_Array_Resize(size_t new_size)
+void Analog_Output_Resize(size_t new_size)
 {
     AO_Level_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    Analog_Output_Object_Array_Free();
-    Analog_Output_Object_Array_Alloc(AO_Level_Size);
-    Analog_Output_Object_Array_Init();
+    Analog_Output_Free();
+    Analog_Output_Alloc(AO_Level_Size);
+    Analog_Output_Objects_Init();
 }
 
-void Analog_Output_Object_Array_Alloc(size_t size)
+void Analog_Output_Add(size_t count)
+{
+    Analog_Output_Resize(AO_Level_Size + count);
+}
+
+void Analog_Output_Alloc(size_t size)
 {
     pthread_mutex_lock(&AO_Level_Mutex);
     
@@ -110,7 +112,7 @@ void Analog_Output_Object_Array_Alloc(size_t size)
     pthread_mutex_unlock(&AO_Level_Mutex);
 }
 
-void Analog_Output_Object_Array_Free(void)
+void Analog_Output_Free(void)
 {
     pthread_mutex_lock(&AO_Level_Mutex);
 
@@ -123,7 +125,7 @@ void Analog_Output_Object_Array_Free(void)
     pthread_mutex_unlock(&AO_Level_Mutex);
 }
 
-void Analog_Output_Object_Array_Init(void)
+void Analog_Output_Objects_Init(void)
 {
     unsigned i, j;
 
@@ -144,8 +146,7 @@ void Analog_Output_Object_Array_Init(void)
 
 void Analog_Output_Init(void)
 {
-    Analog_Output_Object_Array_Alloc(AO_Level_Size);
-    Analog_Output_Object_Array_Init();
+
 }
 
 /* we simply have 0-n object instances.  Yours might be */

@@ -49,10 +49,6 @@
 /* me! */
 #include "bacnet/basic/object/iv.h"
 
-#ifndef MAX_INTEGER_VALUES
-#define MAX_INTEGER_VALUES 1
-#endif
-
 struct integer_object {
     bool Out_Of_Service : 1;
     int32_t Present_Value;
@@ -60,7 +56,7 @@ struct integer_object {
 };
 
 static struct integer_object *Integer_Value = NULL;
-static size_t Integer_Value_Size = MAX_INTEGER_VALUES;
+static size_t Integer_Value_Size = 0;
 static pthread_mutex_t IV_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -478,16 +474,21 @@ bool Integer_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return status;
 }
 
-void Integer_Value_Object_Array_Resize(size_t new_size)
+void Integer_Value_Resize(size_t new_size)
 {
     Integer_Value_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    Integer_Value_Object_Array_Free();
-    Integer_Value_Object_Array_Alloc(Integer_Value_Size);
-    Integer_Value_Object_Array_Init();
+    Integer_Value_Free();
+    Integer_Value_Alloc(Integer_Value_Size);
+    Integer_Value_Objects_Init();
 }
 
-void Integer_Value_Object_Array_Alloc(size_t size)
+void Integer_Value_Add(size_t count)
+{
+    Integer_Value_Resize(Integer_Value_Size + count);
+}
+
+void Integer_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&IV_Mutex);
     
@@ -496,7 +497,7 @@ void Integer_Value_Object_Array_Alloc(size_t size)
     pthread_mutex_unlock(&IV_Mutex);
 }
 
-void Integer_Value_Object_Array_Free(void)
+void Integer_Value_Free(void)
 {
     pthread_mutex_lock(&IV_Mutex);
 
@@ -506,7 +507,7 @@ void Integer_Value_Object_Array_Free(void)
     pthread_mutex_unlock(&IV_Mutex);
 }
 
-void Integer_Value_Object_Array_Init(void)
+void Integer_Value_Objects_Init(void)
 {
     unsigned index = 0;
 
@@ -524,6 +525,5 @@ void Integer_Value_Object_Array_Init(void)
  */
 void Integer_Value_Init(void)
 {
-    Integer_Value_Object_Array_Alloc(Integer_Value_Size);
-    Integer_Value_Object_Array_Init();
+
 }

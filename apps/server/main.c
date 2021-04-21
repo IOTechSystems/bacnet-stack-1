@@ -102,10 +102,10 @@ static int set_analog_input (lua_State *L)
   return 0;
 }
 
-static int resize_analog_input_object_array(lua_State *L)
+static int create_analog_inputs(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Analog_Input_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Analog_Input_Add(count);
   return 0;
 }
 
@@ -118,10 +118,10 @@ static int set_analog_output (lua_State *L)
   return 0;
 }
 
-static int resize_analog_output_object_array(lua_State *L)
+static int create_analog_outputs(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Analog_Output_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Analog_Output_Add(count);
   return 0;
 }
 
@@ -134,10 +134,10 @@ static int set_analog_value (lua_State *L)
   return 0;
 }
 
-static int resize_analog_value_object_array(lua_State *L)
+static int create_analog_values(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Analog_Value_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Analog_Value_Add(count);
   return 0;
 }
 
@@ -149,10 +149,10 @@ static int set_binary_input (lua_State *L)
   return 0;
 }
 
-static int resize_binary_input_object_array(lua_State *L)
+static int create_binary_inputs(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Binary_Input_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Binary_Input_Add(count);
   return 0;
 }
 
@@ -165,10 +165,10 @@ static int set_binary_output (lua_State *L)
   return 0;
 }
 
-static int resize_binary_output_object_array(lua_State *L)
+static int create_binary_outputs(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Binary_Output_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Binary_Output_Add(count);
   return 0;
 }
 
@@ -181,10 +181,10 @@ static int set_binary_value (lua_State *L)
   return 0;
 }
 
-static int resize_binary_value_object_array(lua_State *L)
+static int create_binary_values(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Binary_Value_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Binary_Value_Add(count);
   return 0;
 }
 
@@ -197,10 +197,10 @@ static int set_integer_value (lua_State *L)
   return 0;
 }
 
-static int resize_integer_value_object_array(lua_State *L)
+static int create_integer_values (lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Integer_Value_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Integer_Value_Add(count);
   return 0;
 }
 
@@ -213,10 +213,10 @@ static int set_positive_integer_value (lua_State *L)
   return 0;
 }
 
-static int resize_positive_integer_value_object_array(lua_State *L)
+static int create_positive_integer_values (lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  PositiveInteger_Value_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  PositiveInteger_Value_Add(count);
   return 0;
 }
 
@@ -228,10 +228,10 @@ static int set_accumulator_value (lua_State *L)
   return 0;
 }
 
-static int resize_accumulator_object_array(lua_State *L)
+static int create_accumulators(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Accumulator_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Accumulator_Add(count);
   return 0;
 }
 
@@ -249,15 +249,15 @@ static void setup_lua_callbacks(lua_State *L)
       {"setPositiveIntegerValue", set_positive_integer_value},
       {"setAccumulatorValue", set_accumulator_value},
 
-      {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
-      {"resizeAnalogOutputObjectArray", resize_analog_output_object_array},
-      {"resizeAnalogValueObjectArray", resize_analog_value_object_array},
-      {"resizeBinaryInputObjectArray", resize_binary_input_object_array},
-      {"resizeBinaryOutputObjectArray", resize_binary_output_object_array},
-      {"resizeBinaryValueObjectArray", resize_binary_value_object_array},
-      {"resizeIntegerValueObjectArray", resize_integer_value_object_array},
-      {"resizePositiveIntegerValueObjectArray", resize_positive_integer_value_object_array},
-      {"resizeAccumulatorObjectArray", resize_accumulator_object_array}
+      {"createAnalogInputs", create_analog_inputs},
+      {"createAnalogOutputs", create_analog_outputs},
+      {"createAnalogValues", create_analog_values},
+      {"createBinaryInputs", create_binary_inputs},
+      {"createBinaryOutputs", create_binary_outputs},
+      {"createBinaryValues", create_binary_values},
+      {"createIntegerValues", create_integer_values},
+      {"createPositiveIntegerValues", create_positive_integer_values},
+      {"createAccumulators", create_accumulators}
       
   };
 

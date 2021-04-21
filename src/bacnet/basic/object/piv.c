@@ -42,12 +42,8 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/object/piv.h"
 
-#ifndef MAX_POSITIVEINTEGER_VALUES
-#define MAX_POSITIVEINTEGER_VALUES 4
-#endif
-
 static POSITIVEINTEGER_VALUE_DESCR *PIV_Descr = NULL;
-static size_t PIV_Descr_Size = MAX_POSITIVEINTEGER_VALUES;
+static size_t PIV_Descr_Size = 0;
 static pthread_mutex_t PIV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -78,16 +74,22 @@ void PositiveInteger_Value_Property_Lists(
     return;
 }
 
-void PositiveInteger_Value_Object_Array_Resize(size_t new_size)
+void PositiveInteger_Value_Resize(size_t new_size)
 {
     PIV_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    PositiveInteger_Value_Object_Array_Free();
-    PositiveInteger_Value_Object_Array_Alloc(PIV_Descr_Size);
-    PositiveInteger_Value_Object_Array_Init();
+    PositiveInteger_Value_Free();
+    PositiveInteger_Value_Alloc(PIV_Descr_Size);
+    PositiveInteger_Value_Objects_Init();
 }
 
-void PositiveInteger_Value_Object_Array_Alloc(size_t size)
+
+void PositiveInteger_Value_Add(size_t count)
+{
+    PositiveInteger_Value_Resize(PIV_Descr_Size + count);
+}
+
+void PositiveInteger_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&PIV_Descr_Mutex);
     
@@ -96,7 +98,7 @@ void PositiveInteger_Value_Object_Array_Alloc(size_t size)
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
-void PositiveInteger_Value_Object_Array_Free(void)
+void PositiveInteger_Value_Free(void)
 {
     pthread_mutex_lock(&PIV_Descr_Mutex);
 
@@ -106,7 +108,7 @@ void PositiveInteger_Value_Object_Array_Free(void)
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
-void PositiveInteger_Value_Object_Array_Init(void)
+void PositiveInteger_Value_Objects_Init(void)
 {
     unsigned i;
 
@@ -119,8 +121,7 @@ void PositiveInteger_Value_Object_Array_Init(void)
 
 void PositiveInteger_Value_Init(void)
 {
-    PositiveInteger_Value_Object_Array_Alloc(PIV_Descr_Size);
-    PositiveInteger_Value_Object_Array_Init();
+
 }
 
 /* we simply have 0-n object instances.  Yours might be */

@@ -181,13 +181,16 @@ extern "C" {
 #endif
 
     BACNET_STACK_EXPORT
-    void Analog_Input_Object_Array_Resize(size_t new_size);
+    void Analog_Input_Resize(size_t new_size);
     BACNET_STACK_EXPORT
-    void Analog_Input_Object_Array_Alloc(size_t new_size);
+    void Analog_Input_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
-    void Analog_Input_Object_Array_Free(void);
+    void Analog_Input_Add(size_t count);
     BACNET_STACK_EXPORT
-    void Analog_Input_Object_Array_Init(void);
+    void Analog_Input_Free(void);
+    BACNET_STACK_EXPORT
+    void Analog_Input_Objects_Init(void);
+
 
     BACNET_STACK_EXPORT
     bool Analog_Input_Create(

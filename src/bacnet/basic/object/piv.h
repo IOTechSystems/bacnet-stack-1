@@ -101,13 +101,15 @@ extern "C" {
     void PositiveInteger_Value_Intrinsic_Reporting(uint32_t object_instance);
 
     BACNET_STACK_EXPORT
-    void PositiveInteger_Value_Object_Array_Resize(size_t new_size);
+    void PositiveInteger_Value_Resize(size_t new_size);
     BACNET_STACK_EXPORT
-    void PositiveInteger_Value_Object_Array_Alloc(size_t new_size);
+    void PositiveInteger_Value_Add(size_t count);
     BACNET_STACK_EXPORT
-    void PositiveInteger_Value_Object_Array_Free(void);
+    void PositiveInteger_Value_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
-    void PositiveInteger_Value_Object_Array_Init(void);
+    void PositiveInteger_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     void PositiveInteger_Value_Init(void);

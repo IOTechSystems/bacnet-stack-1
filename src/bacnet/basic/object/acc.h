@@ -92,13 +92,15 @@ extern "C" {
     bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t);
 
     BACNET_STACK_EXPORT
-    void Accumulator_Object_Array_Resize(size_t new_size);
+    void Accumulator_Resize(size_t new_size);
     BACNET_STACK_EXPORT
-    void Accumulator_Object_Array_Alloc(size_t new_size);
+    void Accumulator_Add(size_t count);
     BACNET_STACK_EXPORT
-    void Accumulator_Object_Array_Free(void);
+    void Accumulator_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
-    void Accumulator_Object_Array_Init(void);
+    void Accumulator_Free(void);
+    BACNET_STACK_EXPORT
+    void Accumulator_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     void Accumulator_Init(

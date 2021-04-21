@@ -43,12 +43,8 @@
 #include "bacnet/timestamp.h"
 #include "bacnet/basic/object/ai.h"
 
-#ifndef MAX_ANALOG_INPUTS
-#define MAX_ANALOG_INPUTS 4
-#endif
-
 static ANALOG_INPUT_DESCR *AI_Descr = NULL;
-static size_t AI_Descr_Size = MAX_ANALOG_INPUTS;
+static size_t AI_Descr_Size = 0;
 static pthread_mutex_t AI_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -82,23 +78,29 @@ void Analog_Input_Property_Lists(
     return;
 }
 
-void Analog_Input_Object_Array_Resize(size_t new_size)
+void Analog_Input_Add(size_t count)
+{
+    Analog_Input_Resize(AI_Descr_Size + count);
+}
+
+void Analog_Input_Resize(size_t new_size)
 {
     AI_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    Analog_Input_Object_Array_Free();
-    Analog_Input_Object_Array_Alloc(AI_Descr_Size);
-    Analog_Input_Object_Array_Init();
+    Analog_Input_Free();
+    Analog_Input_Alloc(AI_Descr_Size);
+    Analog_Input_Objects_Init();
+
 }
 
-void Analog_Input_Object_Array_Alloc(size_t size)
+void Analog_Input_Alloc(size_t size)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
     AI_Descr = calloc(size, sizeof(*AI_Descr));
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
-void Analog_Input_Object_Array_Free(void)
+void Analog_Input_Free(void)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
 
@@ -108,7 +110,7 @@ void Analog_Input_Object_Array_Free(void)
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
-void Analog_Input_Object_Array_Init(void)
+void Analog_Input_Objects_Init(void)
 {
     unsigned i;
 #if defined(INTRINSIC_REPORTING)
@@ -150,13 +152,12 @@ void Analog_Input_Object_Array_Init(void)
 
 void Analog_Input_Init(void)
 {
-    Analog_Input_Object_Array_Alloc(AI_Descr_Size);
-    Analog_Input_Object_Array_Init();   
+
 }
 
 void Analog_Input_Cleanup(void)
 {
-    Analog_Input_Object_Array_Free();
+    Analog_Input_Free();
 }
 
 /* we simply have 0-n object instances.  Yours might be */

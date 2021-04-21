@@ -41,16 +41,12 @@
 #include "bacnet/basic/object/bo.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_BINARY_OUTPUTS
-#define MAX_BINARY_OUTPUTS 4
-#endif
-
 /* When all the priorities are level null, the present value returns */
 /* the Relinquish Default value */
 #define RELINQUISH_DEFAULT BINARY_INACTIVE
 /* Here is our Priority Array.*/
 static BACNET_BINARY_PV (*Binary_Output_Level)[BACNET_MAX_PRIORITY] = NULL;
-static size_t BO_Level_Size = MAX_BINARY_OUTPUTS;
+static size_t BO_Level_Size = 0;
 static pthread_mutex_t BO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
@@ -83,27 +79,31 @@ void Binary_Output_Property_Lists(
     return;
 }
 
-void Binary_Output_Object_Array_Resize(size_t new_size)
+void Binary_Output_Resize(size_t new_size)
 {
     BO_Level_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    Binary_Output_Object_Array_Free();
-    Binary_Output_Object_Array_Alloc(BO_Level_Size);
-    Binary_Output_Object_Array_Init();
+    Binary_Output_Free();
+    Binary_Output_Alloc(BO_Level_Size);
+    Binary_Output_Objects_Init();
 }
 
-void Binary_Output_Object_Array_Alloc(size_t size)
+void Binary_Output_Add(size_t count)
+{
+    Binary_Output_Resize(BO_Level_Size + count);
+}
+
+void Binary_Output_Alloc(size_t size)
 {
     pthread_mutex_lock(&BO_Level_Mutex);
     
     Binary_Output_Level = calloc(size, sizeof (*Binary_Output_Level));
     Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
 
-
     pthread_mutex_unlock(&BO_Level_Mutex);
 }
 
-void Binary_Output_Object_Array_Free(void)
+void Binary_Output_Free(void)
 {
     pthread_mutex_lock(&BO_Level_Mutex);
 
@@ -116,7 +116,7 @@ void Binary_Output_Object_Array_Free(void)
     pthread_mutex_unlock(&BO_Level_Mutex);
 }
 
-void Binary_Output_Object_Array_Init(void)
+void Binary_Output_Objects_Init(void)
 {
     unsigned i, j;
     static bool initialized = false;
@@ -138,10 +138,7 @@ void Binary_Output_Object_Array_Init(void)
 
 void Binary_Output_Init(void)
 {
-    Binary_Output_Object_Array_Alloc(BO_Level_Size);
-    Binary_Output_Object_Array_Init();   
 
-    return;
 }
 
 /* we simply have 0-n object instances.  Yours might be */

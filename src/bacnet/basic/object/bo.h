@@ -154,13 +154,15 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
-    void Binary_Output_Object_Array_Resize(size_t new_size);
+    void Binary_Output_Resize(size_t new_size);
     BACNET_STACK_EXPORT
-    void Binary_Output_Object_Array_Alloc(size_t new_size);
+    void Binary_Output_Add(size_t count);
     BACNET_STACK_EXPORT
-    void Binary_Output_Object_Array_Free(void);
+    void Binary_Output_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
-    void Binary_Output_Object_Array_Init(void);
+    void Binary_Output_Free(void);
+    BACNET_STACK_EXPORT
+    void Binary_Output_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     bool Binary_Output_Create(

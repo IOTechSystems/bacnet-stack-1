@@ -43,12 +43,8 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/object/av.h"
 
-#ifndef MAX_ANALOG_VALUES
-#define MAX_ANALOG_VALUES 4
-#endif
-
 static ANALOG_VALUE_DESCR *AV_Descr = NULL;
-static size_t AV_Descr_Size = MAX_ANALOG_VALUES;
+static size_t AV_Descr_Size = 0;
 static pthread_mutex_t AV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -90,23 +86,28 @@ void Analog_Value_Property_Lists(
     return;
 }
 
-void Analog_Value_Object_Array_Resize(size_t new_size)
+void Analog_Value_Resize(size_t new_size)
 {
     AV_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
-    Analog_Value_Object_Array_Free();
-    Analog_Value_Object_Array_Alloc(AV_Descr_Size);
-    Analog_Value_Object_Array_Init();
+    Analog_Value_Free();
+    Analog_Value_Alloc(AV_Descr_Size);
+    Analog_Value_Objects_Init();
 }
 
-void Analog_Value_Object_Array_Alloc(size_t size)
+void Analog_Value_Add(size_t count)
+{
+    Analog_Value_Resize(AV_Descr_Size + count);
+}
+
+void Analog_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&AV_Descr_Mutex);
     AV_Descr = calloc(size, sizeof (*AV_Descr));
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
-void Analog_Value_Object_Array_Free(void)
+void Analog_Value_Free(void)
 {
     pthread_mutex_lock(&AV_Descr_Mutex);
 
@@ -116,7 +117,7 @@ void Analog_Value_Object_Array_Free(void)
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
-void Analog_Value_Object_Array_Init(void)
+void Analog_Value_Objects_Init(void)
 {
     unsigned i;
 #if defined(INTRINSIC_REPORTING)
@@ -160,8 +161,7 @@ void Analog_Value_Object_Array_Init(void)
  */
 void Analog_Value_Init(void)
 {
-    Analog_Value_Object_Array_Alloc(AV_Descr_Size);
-    Analog_Value_Object_Array_Init();
+
 }
 
 /**

@@ -189,13 +189,15 @@ extern "C" {
 #endif
 
     BACNET_STACK_EXPORT
-    void Analog_Value_Object_Array_Resize(size_t new_size);
+    void Analog_Value_Resize(size_t new_size);
     BACNET_STACK_EXPORT
-    void Analog_Value_Object_Array_Alloc(size_t new_size);
+    void Analog_Value_Add(size_t count);
     BACNET_STACK_EXPORT
-    void Analog_Value_Object_Array_Free(void);
+    void Analog_Value_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
-    void Analog_Value_Object_Array_Init(void);
+    void Analog_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void Analog_Value_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     bool Analog_Value_Create(

@@ -35,9 +35,6 @@
 #include "bacnet/config.h"
 #include "bacnet/basic/object/acc.h"
 
-#ifndef MAX_ACCUMULATORS
-#define MAX_ACCUMULATORS 64
-#endif
 
 struct object_data {
     BACNET_UNSIGNED_INTEGER Present_Value;
@@ -45,7 +42,7 @@ struct object_data {
 };
 
 static struct object_data *Object_List = NULL;
-static size_t Object_List_Size = MAX_ACCUMULATORS;
+static size_t Object_List_Size = 0;
 static pthread_mutex_t Acc_Object_List_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -440,18 +437,20 @@ bool Accumulator_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return false;
 }
 
-
-
-
-void Accumulator_Object_Array_Resize(size_t new_size)
+void Accumulator_Resize(size_t new_size)
 {
     Object_List_Size = new_size;
-    Accumulator_Object_Array_Free();
-    Accumulator_Object_Array_Alloc(Object_List_Size);
-    Accumulator_Object_Array_Init();
+    Accumulator_Free();
+    Accumulator_Alloc(Object_List_Size);
+    Accumulator_Objects_Init();
 }
 
-void Accumulator_Object_Array_Alloc(size_t size)
+void Accumulator_Add(size_t count)
+{
+    Accumulator_Resize(Object_List_Size + count);
+}
+
+void Accumulator_Alloc(size_t size)
 {
     pthread_mutex_lock(&Acc_Object_List_Mutex);
     
@@ -460,7 +459,7 @@ void Accumulator_Object_Array_Alloc(size_t size)
     pthread_mutex_unlock(&Acc_Object_List_Mutex);
 }
 
-void Accumulator_Object_Array_Free(void)
+void Accumulator_Free(void)
 {
     pthread_mutex_lock(&Acc_Object_List_Mutex);
 
@@ -470,7 +469,7 @@ void Accumulator_Object_Array_Free(void)
     pthread_mutex_unlock(&Acc_Object_List_Mutex);
 }
 
-void Accumulator_Object_Array_Init(void)
+void Accumulator_Objects_Init(void)
 {
     BACNET_UNSIGNED_INTEGER unsigned_value = 1;
     unsigned i = 0;
@@ -487,8 +486,7 @@ void Accumulator_Object_Array_Init(void)
  */
 void Accumulator_Init(void)
 {
-    Accumulator_Object_Array_Alloc(Object_List_Size);
-    Accumulator_Object_Array_Init();
+
 }
 
 #ifdef TEST_ACCUMULATOR
