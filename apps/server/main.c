@@ -496,7 +496,6 @@ static void cleanup(void)
     datalink_cleanup();
     simulated_cleanup();
     Device_Cleanup();
-    exit(0);
 }
 
 /** Main function of server demo.
@@ -696,6 +695,7 @@ int main(int argc, char *argv[])
     }
 
     cleanup();
+    return 0;
 }
 
 /* @} */
