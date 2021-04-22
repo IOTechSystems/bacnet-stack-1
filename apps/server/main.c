@@ -94,6 +94,8 @@ static lua_State *lua_thread_state = NULL; //lua state for the thread
 static pthread_t script_runner_pthread;
 static bool script_running = false;
 
+//ANALOG INPUT
+
 static int set_analog_input (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -117,6 +119,8 @@ static int create_analog_inputs(lua_State *L)
   return 0;
 }
 
+//ANALOG OUTPUT
+
 static int set_analog_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -134,7 +138,6 @@ static int set_analog_output_name (lua_State *L)
   return 0;
 }
 
-
 static int create_analog_outputs(lua_State *L)
 {
   size_t count = lua_tonumber(L, 1);
@@ -142,12 +145,21 @@ static int create_analog_outputs(lua_State *L)
   return 0;
 }
 
+//ANALOG VALUE
 static int set_analog_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
   unsigned int priority = lua_tonumber(L,3);
   Analog_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_analog_value_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Analog_Value_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -158,11 +170,21 @@ static int create_analog_values(lua_State *L)
   return 0;
 }
 
+//BINARY INPUT
+
 static int set_binary_input (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
   Binary_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int set_binary_input_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Binary_Input_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -173,12 +195,21 @@ static int create_binary_inputs(lua_State *L)
   return 0;
 }
 
+//BINARY OUTPUT
 static int set_binary_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
   uint8_t priority = lua_tonumber(L,3);
   Binary_Output_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_output_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Binary_Output_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -189,12 +220,21 @@ static int create_binary_outputs(lua_State *L)
   return 0;
 }
 
+//BINARY VALUE
 static int set_binary_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
-  uint priority = lua_tonumber(L,3);
+  uint8_t priority = lua_tonumber(L,3);
   Binary_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_value_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Binary_Value_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -205,12 +245,21 @@ static int create_binary_values(lua_State *L)
   return 0;
 }
 
+//INTEGER VALUE
 static int set_integer_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
   int32_t value = lua_tonumber (L, 2);
   uint8_t priority = lua_tonumber (L, 3);
   Integer_Value_Present_Value_Set (object_instance, value, priority);
+  return 0;
+}
+
+static int set_integer_value_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Integer_Value_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -221,6 +270,7 @@ static int create_integer_values (lua_State *L)
   return 0;
 }
 
+//POSITIVE INTEGER VALUE
 static int set_positive_integer_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
@@ -237,6 +287,7 @@ static int create_positive_integer_values (lua_State *L)
   return 0;
 }
 
+//ACCUMULATOR 
 static int set_accumulator_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
@@ -273,6 +324,11 @@ static void setup_lua_callbacks(lua_State *L)
 
       {"setAnalogInputName", set_analog_input_name},
       {"setAnalogOutputName", set_analog_output_name},
+      {"setAnalogValueName", set_analog_value_name},
+      {"setBinaryInputName", set_binary_input_name},
+      {"setBinaryOutputName", set_binary_output_name},
+      {"setBinaryValueName", set_binary_value_name},
+      {"setIntegerValueName", set_integer_value_name},
 
       {"createAnalogInputs", create_analog_inputs},
       {"createAnalogOutputs", create_analog_outputs},
