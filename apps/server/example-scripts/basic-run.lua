@@ -28,5 +28,9 @@ function Run() --Run once
 
     bacnet.setIntegerValue(5000, -1337, 1)
     bacnet.setPositiveIntegerValue(5000, 42, 1)
-    bacnet.setAccumulatorValue(5000, 2222)
+    bacnet.setAccumulator(5000, 2222)
+
+    bacnet.setAnalogInputName(5000, "Keyser Soze")
+  
+
 end

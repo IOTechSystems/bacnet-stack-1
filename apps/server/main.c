@@ -102,6 +102,14 @@ static int set_analog_input (lua_State *L)
   return 0;
 }
 
+static int set_analog_input_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Analog_Input_Name_Set (object_instance, name);
+  return 0;
+}
+
 static int create_analog_inputs(lua_State *L)
 {
   size_t count = lua_tonumber(L, 1);
@@ -252,7 +260,9 @@ static void setup_lua_callbacks(lua_State *L)
       {"setBinaryValue", set_binary_value},
       {"setIntegerValue", set_integer_value},
       {"setPositiveIntegerValue", set_positive_integer_value},
-      {"setAccumulatorValue", set_accumulator_value},
+      {"setAccumulator", set_accumulator_value},
+
+      {"setAnalogInputName", set_analog_input_name},
 
       {"createAnalogInputs", create_analog_inputs},
       {"createAnalogOutputs", create_analog_outputs},
