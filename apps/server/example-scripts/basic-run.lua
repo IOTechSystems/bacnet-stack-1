@@ -31,6 +31,7 @@ function Run() --Run once
     bacnet.setAccumulator(5000, 2222)
 
     bacnet.setAnalogInputName(5000, "Keyser Soze")
+    bacnet.setAnalogInputName(5000, "Bill the Butcher")
   
 
 end

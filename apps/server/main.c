@@ -121,10 +121,19 @@ static int set_analog_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
-  unsigned int priority = lua_tonumber(L,3);
+  uint8_t priority = lua_tonumber(L,3);
   Analog_Output_Present_Value_Set(object_instance, value, priority);
   return 0;
 }
+
+static int set_analog_output_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Analog_Output_Name_Set (object_instance, name);
+  return 0;
+}
+
 
 static int create_analog_outputs(lua_State *L)
 {
@@ -168,7 +177,7 @@ static int set_binary_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
-  unsigned int priority = lua_tonumber(L,3);
+  uint8_t priority = lua_tonumber(L,3);
   Binary_Output_Present_Value_Set(object_instance, value, priority);
   return 0;
 }
@@ -184,7 +193,7 @@ static int set_binary_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
-  unsigned int priority = lua_tonumber(L,3);
+  uint priority = lua_tonumber(L,3);
   Binary_Value_Present_Value_Set(object_instance, value, priority);
   return 0;
 }
@@ -263,6 +272,7 @@ static void setup_lua_callbacks(lua_State *L)
       {"setAccumulator", set_accumulator_value},
 
       {"setAnalogInputName", set_analog_input_name},
+      {"setAnalogOutputName", set_analog_output_name},
 
       {"createAnalogInputs", create_analog_inputs},
       {"createAnalogOutputs", create_analog_outputs},
@@ -272,11 +282,11 @@ static void setup_lua_callbacks(lua_State *L)
       {"createBinaryValues", create_binary_values},
       {"createIntegerValues", create_integer_values},
       {"createPositiveIntegerValues", create_positive_integer_values},
-      {"createAccumulators", create_accumulators}
+      {"createAccumulators", create_accumulators},
+      {NULL, NULL}
   };
 
-  lua_newtable(L);
-  luaL_setfuncs(L, callbacks, 0);
+  luaL_newlib(L, callbacks);
   lua_setglobal(L, "bacnet");
 
   //register a function so that the script can check if the server is running
@@ -337,6 +347,7 @@ static void simulated_update(void)
   if(!lua_call_function (lua_update_state, "Update"))
   {
     cleanup();
+    exit(0);
   }
 }
 
@@ -351,7 +362,9 @@ static void init_update(const char* file_path)
 {
   if (!lua_init_state (&lua_update_state, file_path))
   {
+    lua_update_state = NULL;
     cleanup();
+    exit(0);
   }
 }
 
@@ -359,7 +372,9 @@ static void init_thread_runner(const char* file_path)
 {
   if (!lua_init_state (&lua_thread_state, file_path))
   {
+    lua_thread_state = NULL;
     cleanup();
+    exit(0);
   }
 
   script_running = true;

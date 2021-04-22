@@ -88,9 +88,7 @@ void Analog_Input_Resize(size_t new_size)
 {
     //could maybe copy state of old array to new one with memcpy?
     Analog_Input_Free();
-
-    AI_Descr_Size = new_size;
-    Analog_Input_Alloc(AI_Descr_Size);
+    Analog_Input_Alloc(new_size);
     Analog_Input_Objects_Init();
 
 }
@@ -98,12 +96,16 @@ void Analog_Input_Resize(size_t new_size)
 void Analog_Input_Alloc(size_t size)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
+
+    AI_Descr_Size = size;
     AI_Descr = calloc(size, sizeof(*AI_Descr));
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
 void Analog_Input_Free(void)
 {
+    if (NULL == AI_Descr) return;    
+
     pthread_mutex_lock(&AI_Descr_Mutex);
 
     for(unsigned int i=0; i < AI_Descr_Size; i++)
@@ -113,6 +115,7 @@ void Analog_Input_Free(void)
 
     free(AI_Descr);
     AI_Descr = NULL;
+    AI_Descr_Size = 0;
 
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
@@ -278,6 +281,7 @@ bool Analog_Input_Object_Name(
         return status;
     }
 
+    pthread_mutex_lock(&AI_Descr_Mutex);
     if (NULL != AI_Descr[index].Name)
     {
         snprintf(text_string, 32, "%s", AI_Descr[index].Name);   
@@ -286,6 +290,7 @@ bool Analog_Input_Object_Name(
     {
         sprintf(text_string, "ANALOG INPUT %lu", (unsigned long)index);
     }
+    pthread_mutex_unlock(&AI_Descr_Mutex);
 
     status = characterstring_init_ansi(object_name, text_string);
 
@@ -294,8 +299,9 @@ bool Analog_Input_Object_Name(
 
 bool Analog_Input_Name_Set(uint32_t object_instance, char *new_name)
 {
-    unsigned int index;
+    if (NULL == AI_Descr) return false;
 
+    unsigned int index;
     index = Analog_Input_Instance_To_Index(object_instance);
     if (index >= AI_Descr_Size)
     {
