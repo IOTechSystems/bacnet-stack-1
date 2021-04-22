@@ -143,6 +143,17 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
+    void Binary_Input_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Free(void);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Objects_Init(void);
+
+    BACNET_STACK_EXPORT
     bool Binary_Input_Create(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
