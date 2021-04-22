@@ -83,11 +83,16 @@
 
 #include <pthread.h>
 
-lua_State *lua_update_state = NULL; //lua state for the update loop
-lua_State *lua_thread_state = NULL; //lua state for the thread
 
-pthread_t script_runner_pthread;
-bool script_running = false;
+static void cleanup(void);
+
+static bool running = true;
+
+static lua_State *lua_update_state = NULL; //lua state for the update loop
+static lua_State *lua_thread_state = NULL; //lua state for the thread
+
+static pthread_t script_runner_pthread;
+static bool script_running = false;
 
 static int set_analog_input (lua_State *L)
 {
@@ -97,10 +102,10 @@ static int set_analog_input (lua_State *L)
   return 0;
 }
 
-static int resize_analog_input_object_array(lua_State *L)
+static int create_analog_inputs(lua_State *L)
 {
-  size_t size = lua_tonumber(L, 1);
-  Analog_Input_Object_Array_Resize(size);
+  size_t count = lua_tonumber(L, 1);
+  Analog_Input_Add(count);
   return 0;
 }
 
@@ -113,6 +118,13 @@ static int set_analog_output (lua_State *L)
   return 0;
 }
 
+static int create_analog_outputs(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Analog_Output_Add(count);
+  return 0;
+}
+
 static int set_analog_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -122,11 +134,25 @@ static int set_analog_value (lua_State *L)
   return 0;
 }
 
+static int create_analog_values(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Analog_Value_Add(count);
+  return 0;
+}
+
 static int set_binary_input (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
   Binary_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int create_binary_inputs(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Binary_Input_Add(count);
   return 0;
 }
 
@@ -139,12 +165,26 @@ static int set_binary_output (lua_State *L)
   return 0;
 }
 
+static int create_binary_outputs(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Binary_Output_Add(count);
+  return 0;
+}
+
 static int set_binary_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
   unsigned int priority = lua_tonumber(L,3);
   Binary_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int create_binary_values(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Binary_Value_Add(count);
   return 0;
 }
 
@@ -157,12 +197,26 @@ static int set_integer_value (lua_State *L)
   return 0;
 }
 
+static int create_integer_values (lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Integer_Value_Add(count);
+  return 0;
+}
+
 static int set_positive_integer_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
   uint32_t value = lua_tonumber (L, 2);
   uint8_t priority = lua_tonumber (L, 3);
   PositiveInteger_Value_Present_Value_Set (object_instance, value, priority);
+  return 0;
+}
+
+static int create_positive_integer_values (lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  PositiveInteger_Value_Add(count);
   return 0;
 }
 
@@ -174,12 +228,23 @@ static int set_accumulator_value (lua_State *L)
   return 0;
 }
 
+static int create_accumulators(lua_State *L)
+{
+  size_t count = lua_tonumber(L, 1);
+  Accumulator_Add(count);
+  return 0;
+}
+
+static int is_server_running(lua_State *L)
+{
+  lua_pushboolean(L, running);
+  return 1;
+}
+
 static void setup_lua_callbacks(lua_State *L)
 {
   static const struct luaL_Reg callbacks [] = {
       {"setAnalogInput", set_analog_input},
-      {"resizeAnalogInputObjectArray", resize_analog_input_object_array},
-
       {"setAnalogOutput", set_analog_output},
       {"setAnalogValue", set_analog_value},
       {"setBinaryInput", set_binary_input},
@@ -187,12 +252,25 @@ static void setup_lua_callbacks(lua_State *L)
       {"setBinaryValue", set_binary_value},
       {"setIntegerValue", set_integer_value},
       {"setPositiveIntegerValue", set_positive_integer_value},
-      {"setAccumulatorValue", set_accumulator_value}
+      {"setAccumulatorValue", set_accumulator_value},
+
+      {"createAnalogInputs", create_analog_inputs},
+      {"createAnalogOutputs", create_analog_outputs},
+      {"createAnalogValues", create_analog_values},
+      {"createBinaryInputs", create_binary_inputs},
+      {"createBinaryOutputs", create_binary_outputs},
+      {"createBinaryValues", create_binary_values},
+      {"createIntegerValues", create_integer_values},
+      {"createPositiveIntegerValues", create_positive_integer_values},
+      {"createAccumulators", create_accumulators}
   };
 
   lua_newtable(L);
   luaL_setfuncs(L, callbacks, 0);
   lua_setglobal(L, "bacnet");
+
+  //register a function so that the script can check if the server is running
+  lua_register(L, "isBacnetRunning", is_server_running);
 } 
 
 static void lua_fail (lua_State *L)
@@ -228,11 +306,12 @@ static bool lua_init_state(lua_State **L, const char* file_path)
 }
 
 //cleanup and exit
-static void simulated_exit(void) 
+static void simulated_cleanup(void) 
 {
   if (script_running)
   {
     pthread_join (script_runner_pthread, NULL);   
+    script_running = false;
   }
 
   if (NULL != lua_update_state)
@@ -240,8 +319,6 @@ static void simulated_exit(void)
     lua_close (lua_update_state);
   }
 
-  printf("Exiting...\n");
-  exit(1);
 }
 
 //calls update function in lua script
@@ -249,7 +326,7 @@ static void simulated_update(void)
 {
   if(!lua_call_function (lua_update_state, "Update"))
   {
-    simulated_exit();
+    cleanup();
   }
 }
 
@@ -264,7 +341,7 @@ static void init_update(const char* file_path)
 {
   if (!lua_init_state (&lua_update_state, file_path))
   {
-    simulated_exit();
+    cleanup();
   }
 }
 
@@ -272,7 +349,7 @@ static void init_thread_runner(const char* file_path)
 {
   if (!lua_init_state (&lua_thread_state, file_path))
   {
-    simulated_exit();
+    cleanup();
   }
 
   script_running = true;
@@ -409,6 +486,17 @@ static void print_help(const char *filename)
         filename);
 }
 
+static void sigint(int a)
+{
+  running = false;
+}
+
+static void cleanup(void)
+{
+    datalink_cleanup();
+    simulated_cleanup();
+    Device_Cleanup();
+}
 
 /** Main function of server demo.
  *
@@ -549,9 +637,10 @@ int main(int argc, char *argv[])
       simulated_init(scriptpath);
     }
 
+    signal(SIGINT, sigint);
 
     /* loop forever */
-    for (;;) {
+    while (running) {    
         /* input */
         current_seconds = time(NULL);
 
@@ -604,6 +693,8 @@ int main(int argc, char *argv[])
         }
         
     }
+
+    cleanup();
     return 0;
 }
 

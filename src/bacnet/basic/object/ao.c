@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -39,9 +40,6 @@
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_ANALOG_OUTPUTS
-#define MAX_ANALOG_OUTPUTS 4
-#endif
 
 /* we choose to have a NULL level in our system represented by */
 /* a particular value.  When the priorities are not in use, they */
@@ -53,11 +51,13 @@
 /* Here is our Priority Array.  They are supposed to be Real, but */
 /* we don't have that kind of memory, so we will use a single byte */
 /* and load a Real for returning the value when asked. */
-static uint8_t Analog_Output_Level[MAX_ANALOG_OUTPUTS][BACNET_MAX_PRIORITY];
+static uint8_t (*Analog_Output_Level)[BACNET_MAX_PRIORITY] = NULL;
+static size_t AO_Level_Size = 0;
 static pthread_mutex_t AO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
-static bool Out_Of_Service[MAX_ANALOG_OUTPUTS];
+static bool *Out_Of_Service = NULL;
+
 
 /* we need to have our arrays initialized before answering any calls */
 static bool Analog_Output_Initialized = false;
@@ -88,7 +88,44 @@ void Analog_Output_Property_Lists(
     return;
 }
 
-void Analog_Output_Init(void)
+void Analog_Output_Resize(size_t new_size)
+{
+    AO_Level_Size = new_size;
+    //could maybe copy state of old array to new one with memcpy?
+    Analog_Output_Free();
+    Analog_Output_Alloc(AO_Level_Size);
+    Analog_Output_Objects_Init();
+}
+
+void Analog_Output_Add(size_t count)
+{
+    Analog_Output_Resize(AO_Level_Size + count);
+}
+
+void Analog_Output_Alloc(size_t size)
+{
+    pthread_mutex_lock(&AO_Level_Mutex);
+    
+    Analog_Output_Level = calloc(size, sizeof (*Analog_Output_Level));
+    Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
+
+    pthread_mutex_unlock(&AO_Level_Mutex);
+}
+
+void Analog_Output_Free(void)
+{
+    pthread_mutex_lock(&AO_Level_Mutex);
+
+    free(Analog_Output_Level);
+    Analog_Output_Level = NULL;
+    
+    free(Out_Of_Service);
+    Out_Of_Service = NULL;
+    
+    pthread_mutex_unlock(&AO_Level_Mutex);
+}
+
+void Analog_Output_Objects_Init(void)
 {
     unsigned i, j;
 
@@ -96,16 +133,25 @@ void Analog_Output_Init(void)
         Analog_Output_Initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        for (i = 0; i < MAX_ANALOG_OUTPUTS; i++) {
+        pthread_mutex_lock(&AO_Level_Mutex);
+        for (i = 0; i < AO_Level_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
-                pthread_mutex_lock(&AO_Level_Mutex);
                 Analog_Output_Level[i][j] = AO_LEVEL_NULL;
-                pthread_mutex_unlock(&AO_Level_Mutex);
             }
         }
+        pthread_mutex_unlock(&AO_Level_Mutex);
     }
-
     return;
+}
+
+void Analog_Output_Init(void)
+{
+
+}
+
+void Analog_Output_Cleanup(void)
+{
+    Analog_Output_Free();
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -113,7 +159,7 @@ void Analog_Output_Init(void)
 /* given instance exists */
 bool Analog_Output_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
+    if (object_instance < AO_Level_Size) {
         return true;
     }
 
@@ -124,7 +170,7 @@ bool Analog_Output_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Analog_Output_Count(void)
 {
-    return MAX_ANALOG_OUTPUTS;
+    return AO_Level_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -140,9 +186,9 @@ uint32_t Analog_Output_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Analog_Output_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_ANALOG_OUTPUTS;
+    unsigned index = AO_Level_Size;
 
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
+    if (object_instance < AO_Level_Size) {
         index = object_instance;
     }
 
@@ -156,7 +202,7 @@ float Analog_Output_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         pthread_mutex_lock(&AO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
@@ -177,7 +223,7 @@ unsigned Analog_Output_Present_Value_Priority(uint32_t object_instance)
     unsigned priority = 0; /* return value */
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         pthread_mutex_lock(&AO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
@@ -198,7 +244,7 @@ bool Analog_Output_Present_Value_Set(
     bool status = false;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */) && (value >= 0.0) &&
             (value <= 100.0)) {
@@ -225,7 +271,7 @@ bool Analog_Output_Present_Value_Relinquish(
     bool status = false;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
             pthread_mutex_lock(&AO_Level_Mutex);
@@ -251,7 +297,7 @@ bool Analog_Output_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
+    if (object_instance < AO_Level_Size) {
         sprintf(
             text_string, "ANALOG OUTPUT %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -266,7 +312,7 @@ bool Analog_Output_Out_Of_Service(uint32_t instance)
     bool oos_flag = false;
 
     index = Analog_Output_Instance_To_Index(instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         oos_flag = Out_Of_Service[index];
     }
 
@@ -278,7 +324,7 @@ void Analog_Output_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     unsigned index = 0;
 
     index = Analog_Output_Instance_To_Index(instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Level_Size) {
         Out_Of_Service[index] = oos_flag;
     }
 }
