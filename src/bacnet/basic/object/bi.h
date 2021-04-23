@@ -37,6 +37,15 @@
 extern "C" {
 #endif /* __cplusplus */
 
+
+    typedef struct binary_input_descr {
+        bool Out_Of_Service;
+        BACNET_BINARY_PV Present_Value;
+        bool Change_Of_Value;
+        BACNET_POLARITY Polarity;
+        char * Name;
+    } BINARY_INPUT_DESCR;
+
     BACNET_STACK_EXPORT
     void Binary_Input_Property_Lists(
         const int **pRequired,

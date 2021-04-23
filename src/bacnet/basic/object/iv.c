@@ -49,15 +49,10 @@
 /* me! */
 #include "bacnet/basic/object/iv.h"
 
-struct integer_object {
-    bool Out_Of_Service : 1;
-    int32_t Present_Value;
-    uint16_t Units;
-};
 
-static struct integer_object *Integer_Value = NULL;
-static size_t Integer_Value_Size = 0;
-static pthread_mutex_t IV_Mutex = PTHREAD_MUTEX_INITIALIZER;
+static INTEGER_DESCR *I_Descr = NULL;
+static size_t I_Descr_Size = 0;
+static pthread_mutex_t I_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Integer_Value_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -108,7 +103,7 @@ bool Integer_Value_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < Integer_Value_Size) {
+    if (index < I_Descr_Size) {
         return true;
     }
 
@@ -122,7 +117,7 @@ bool Integer_Value_Valid_Instance(uint32_t object_instance)
  */
 unsigned Integer_Value_Count(void)
 {
-    return Integer_Value_Size;
+    return I_Descr_Size;
 }
 
 /**
@@ -153,9 +148,9 @@ uint32_t Integer_Value_Index_To_Instance(unsigned index)
  */
 unsigned Integer_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = Integer_Value_Size;
+    unsigned index = I_Descr_Size;
 
-     if (object_instance < Integer_Value_Size) {
+     if (object_instance < I_Descr_Size) {
         index = object_instance;
     }
 
@@ -175,10 +170,10 @@ int32_t Integer_Value_Present_Value(uint32_t object_instance)
     unsigned int index;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        value = Integer_Value[index].Present_Value;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        value = I_Descr[index].Present_Value;
+        pthread_mutex_unlock(&I_Descr_Mutex);
     }
 
     return value;
@@ -200,10 +195,10 @@ bool Integer_Value_Present_Value_Set(
 
     (void)priority;
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        Integer_Value[index].Present_Value = value;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        I_Descr[index].Present_Value = value;
+        pthread_mutex_unlock(&I_Descr_Mutex);
         status = true;
     }
 
@@ -220,21 +215,51 @@ bool Integer_Value_Present_Value_Set(
  *
  * @return  true if object-name was retrieved
  */
-bool Integer_Value_Object_Name(
-    uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
+bool Integer_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
-    char text_string[32] = "";
+    static char text_string[32] = ""; /* okay for single thread */
     unsigned int index;
     bool status = false;
 
     index = Integer_Value_Instance_To_Index(object_instance);
-    if (index < Integer_Value_Size) {
-        sprintf(
-            text_string, "ANALOG VALUE %lu", (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    if (index >= I_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&I_Descr_Mutex);
+    if (NULL != I_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", I_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "INTEGER VALUE %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&I_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Integer_Value_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == I_Descr) return false;
+
+    unsigned int index;
+    index = Integer_Value_Instance_To_Index(object_instance);
+    if (index >= I_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&I_Descr_Mutex);
+    free(I_Descr[index].Name);
+    I_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    strcpy(I_Descr[index].Name, new_name);
+    pthread_mutex_unlock(&I_Descr_Mutex);
+
+    return true;
 }
 
 /**
@@ -250,10 +275,10 @@ uint16_t Integer_Value_Units(uint32_t instance)
     uint16_t units = UNITS_NO_UNITS;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        units = Integer_Value[index].Units;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        units = I_Descr[index].Units;
+        pthread_mutex_unlock(&I_Descr_Mutex);
     }
 
     return units;
@@ -273,10 +298,10 @@ bool Integer_Value_Units_Set(uint32_t instance, uint16_t units)
     bool status = false;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        Integer_Value[index].Units = units;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        I_Descr[index].Units = units;
+        pthread_mutex_unlock(&I_Descr_Mutex);
         status = true;
     }
 
@@ -297,10 +322,10 @@ bool Integer_Value_Out_Of_Service(uint32_t instance)
     bool value = false;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        value = Integer_Value[index].Out_Of_Service;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        value = I_Descr[index].Out_Of_Service;
+        pthread_mutex_unlock(&I_Descr_Mutex);
     }
 
     return value;
@@ -319,10 +344,10 @@ void Integer_Value_Out_Of_Service_Set(uint32_t instance, bool value)
     unsigned int index = 0;
 
     index = Integer_Value_Instance_To_Index(instance);
-    if (index < Integer_Value_Size) {
-        pthread_mutex_lock(&IV_Mutex);
-        Integer_Value[index].Out_Of_Service = value;
-        pthread_mutex_unlock(&IV_Mutex);
+    if (index < I_Descr_Size) {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        I_Descr[index].Out_Of_Service = value;
+        pthread_mutex_unlock(&I_Descr_Mutex);
     }
 }
 
@@ -476,48 +501,58 @@ bool Integer_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 
 void Integer_Value_Resize(size_t new_size)
 {
-    Integer_Value_Size = new_size;
+
     //could maybe copy state of old array to new one with memcpy?
     Integer_Value_Free();
-    Integer_Value_Alloc(Integer_Value_Size);
+    Integer_Value_Alloc(new_size);
     Integer_Value_Objects_Init();
 }
 
 void Integer_Value_Add(size_t count)
 {
-    Integer_Value_Resize(Integer_Value_Size + count);
+    Integer_Value_Resize(I_Descr_Size + count);
 }
 
 void Integer_Value_Alloc(size_t size)
 {
-    pthread_mutex_lock(&IV_Mutex);
+    pthread_mutex_lock(&I_Descr_Mutex);
     
-    Integer_Value = calloc(size, sizeof (*Integer_Value));
+    I_Descr = calloc(size, sizeof (*I_Descr));
+    I_Descr_Size = size;
   
-    pthread_mutex_unlock(&IV_Mutex);
+    pthread_mutex_unlock(&I_Descr_Mutex);
 }
 
 void Integer_Value_Free(void)
 {
-    pthread_mutex_lock(&IV_Mutex);
+    if (NULL == I_Descr) return;    
 
-    free(Integer_Value);
-    Integer_Value = NULL;
-    
-    pthread_mutex_unlock(&IV_Mutex);
+    pthread_mutex_lock(&I_Descr_Mutex);
+
+    for(unsigned int i=0; i < I_Descr_Size; i++)
+    {
+        free(I_Descr[i].Name);
+    }
+
+    free(I_Descr);
+    I_Descr = NULL;
+    I_Descr_Size = 0;
+
+    pthread_mutex_unlock(&I_Descr_Mutex);
 }
 
 void Integer_Value_Objects_Init(void)
 {
     unsigned index = 0;
 
-    pthread_mutex_lock(&IV_Mutex);
-    for (index = 0; index < Integer_Value_Size; index++) {
-        Integer_Value[index].Present_Value = 0;
-        Integer_Value[index].Out_Of_Service = false;
-        Integer_Value[index].Units = UNITS_NO_UNITS;
+    pthread_mutex_lock(&I_Descr_Mutex);
+    for (index = 0; index < I_Descr_Size; index++) {
+        I_Descr[index].Present_Value = 0;
+        I_Descr[index].Out_Of_Service = false;
+        I_Descr[index].Units = UNITS_NO_UNITS;
+        I_Descr[index].Name = NULL;
     }
-    pthread_mutex_unlock(&IV_Mutex);
+    pthread_mutex_unlock(&I_Descr_Mutex);
 }
 
 /**

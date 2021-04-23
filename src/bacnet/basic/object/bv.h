@@ -37,6 +37,13 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct binary_value_descr
+    {
+        BACNET_BINARY_PV Level[BACNET_MAX_PRIORITY];
+        bool Out_Of_Service;
+        char * Name;
+    } BINARY_VALUE_DESCR;
+
     BACNET_STACK_EXPORT
     void Binary_Value_Init(
         void);

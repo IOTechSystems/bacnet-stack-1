@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -45,12 +46,11 @@
 /* the Relinquish Default value */
 #define RELINQUISH_DEFAULT BINARY_INACTIVE
 /* Here is our Priority Array.*/
-static BACNET_BINARY_PV (*Binary_Value_Level)[BACNET_MAX_PRIORITY];
-static size_t Binary_Value_Level_Size = 0;
-static pthread_mutex_t BV_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
+static BINARY_VALUE_DESCR *BV_Descr = NULL;
+static size_t BV_Descr_Size = 0;
+static pthread_mutex_t BV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
-static bool *Out_Of_Service;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Binary_Value_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -88,39 +88,41 @@ void Binary_Value_Property_Lists(
 
 void Binary_Value_Resize(size_t new_size)
 {
-    Binary_Value_Level_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
     Binary_Value_Free();
-    Binary_Value_Alloc(Binary_Value_Level_Size);
+    Binary_Value_Alloc(new_size);
     Binary_Value_Objects_Init();
 }
 
 void Binary_Value_Add(size_t count)
 {
-    Binary_Value_Resize(Binary_Value_Level_Size + count);
+    Binary_Value_Resize(BV_Descr_Size + count);
 }
 
 void Binary_Value_Alloc(size_t size)
 {
-    pthread_mutex_lock(&BV_Level_Mutex);
-    
-    Binary_Value_Level = calloc(size, sizeof (*Binary_Value_Level));
-    Out_Of_Service = calloc(size, sizeof(*Out_Of_Service));
-
-    pthread_mutex_unlock(&BV_Level_Mutex);
+    pthread_mutex_lock(&BV_Descr_Mutex);
+    BV_Descr = calloc(size, sizeof (*BV_Descr));
+    BV_Descr_Size = size;
+    pthread_mutex_unlock(&BV_Descr_Mutex);
 }
 
 void Binary_Value_Free(void)
 {
-    pthread_mutex_lock(&BV_Level_Mutex);
+    if (NULL == BV_Descr) return;    
 
-    free(Binary_Value_Level);
-    Binary_Value_Level = NULL;
+    pthread_mutex_lock(&BV_Descr_Mutex);
 
-    free(Out_Of_Service);
-    Out_Of_Service = NULL;
-    
-    pthread_mutex_unlock(&BV_Level_Mutex);
+    for(unsigned int i=0; i < BV_Descr_Size; i++)
+    {
+        free(BV_Descr[i].Name);
+    }
+
+    free(BV_Descr);
+    BV_Descr = NULL;
+    BV_Descr_Size = 0;
+
+    pthread_mutex_unlock(&BV_Descr_Mutex);
 }
 
 void Binary_Value_Objects_Init(void)
@@ -132,13 +134,14 @@ void Binary_Value_Objects_Init(void)
         initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        pthread_mutex_lock(&BV_Level_Mutex);
-        for (i = 0; i < Binary_Value_Level_Size; i++) {
+        pthread_mutex_lock(&BV_Descr_Mutex);
+        for (i = 0; i < BV_Descr_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
-                Binary_Value_Level[i][j] = BINARY_NULL;
+                BV_Descr[i].Level[j] = BINARY_NULL;
             }
+            BV_Descr[i].Name = NULL;
         }
-        pthread_mutex_unlock(&BV_Level_Mutex);
+        pthread_mutex_unlock(&BV_Descr_Mutex);
     }
 
 }
@@ -167,7 +170,7 @@ void Binary_Value_Cleanup(void)
  */
 bool Binary_Value_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < Binary_Value_Level_Size) {
+    if (object_instance < BV_Descr_Size) {
         return true;
     }
 
@@ -181,7 +184,7 @@ bool Binary_Value_Valid_Instance(uint32_t object_instance)
  */
 unsigned Binary_Value_Count(void)
 {
-    return Binary_Value_Level_Size;
+    return BV_Descr_Size;
 }
 
 /**
@@ -209,9 +212,9 @@ uint32_t Binary_Value_Index_To_Instance(unsigned index)
  */
 unsigned Binary_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = Binary_Value_Level_Size;
+    unsigned index = BV_Descr_Size;
 
-    if (object_instance < Binary_Value_Level_Size) {
+    if (object_instance < BV_Descr_Size) {
         index = object_instance;
     }
 
@@ -232,15 +235,15 @@ BACNET_BINARY_PV Binary_Value_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Binary_Value_Instance_To_Index(object_instance);
-    if (index < Binary_Value_Level_Size) {
-        pthread_mutex_lock(&BV_Level_Mutex);
+    if (index < BV_Descr_Size) {
+        pthread_mutex_lock(&BV_Descr_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
-            if (Binary_Value_Level[index][i] != BINARY_NULL) {
-                value = Binary_Value_Level[index][i];
+            if (BV_Descr[index].Level[i] != BINARY_NULL) {
+                value = BV_Descr[index].Level[i];
                 break;
             }
         }
-        pthread_mutex_unlock(&BV_Level_Mutex);
+        pthread_mutex_unlock(&BV_Descr_Mutex);
     }
 
     return value;
@@ -255,12 +258,12 @@ bool Binary_Value_Present_Value_Set(
     bool status = false;
 
     index = Binary_Value_Instance_To_Index(object_instance);
-    if (index < Binary_Value_Level_Size) {
+    if (index < BV_Descr_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
-            pthread_mutex_lock(&BV_Level_Mutex);
-            Binary_Value_Level[index][priority -1] = binary_value;
-            pthread_mutex_unlock(&BV_Level_Mutex);
+            pthread_mutex_lock(&BV_Descr_Mutex);
+            BV_Descr[index].Level[priority -1] = binary_value;
+            pthread_mutex_unlock(&BV_Descr_Mutex);
             
             status = true;
         }
@@ -282,15 +285,49 @@ bool Binary_Value_Object_Name(
     uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
     static char text_string[32] = ""; /* okay for single thread */
+    unsigned int index;
     bool status = false;
 
-    if (object_instance < Binary_Value_Level_Size) {
-        sprintf(
-            text_string, "BINARY VALUE %lu", (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    index = Binary_Value_Instance_To_Index(object_instance);
+    if (index >= BV_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&BV_Descr_Mutex);
+    if (NULL != BV_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", BV_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "BINARY VALUE %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&BV_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+
+bool Binary_Value_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == BV_Descr) return false;
+
+    unsigned int index;
+    index =Binary_Value_Instance_To_Index(object_instance);
+    if (index >= BV_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&BV_Descr_Mutex);
+    free(BV_Descr[index].Name);
+    BV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    strcpy(BV_Descr[index].Name, new_name);
+    pthread_mutex_unlock(&BV_Descr_Mutex);
+
+    return true;
 }
 
 /**
@@ -306,8 +343,11 @@ bool Binary_Value_Out_Of_Service(uint32_t instance)
     bool oos_flag = false;
 
     index = Binary_Value_Instance_To_Index(instance);
-    if (index < Binary_Value_Level_Size) {
-        oos_flag = Out_Of_Service[index];
+    if (index < BV_Descr_Size) {
+        pthread_mutex_lock(&BV_Descr_Mutex);
+        oos_flag = BV_Descr[index].Out_Of_Service;
+        pthread_mutex_lock(&BV_Descr_Mutex);
+
     }
 
     return oos_flag;
@@ -324,8 +364,10 @@ void Binary_Value_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     unsigned index = 0;
 
     index = Binary_Value_Instance_To_Index(instance);
-    if (index < Binary_Value_Level_Size) {
-        Out_Of_Service[index] = oos_flag;
+    if (index < BV_Descr_Size) {
+        pthread_mutex_lock(&BV_Descr_Mutex);
+        BV_Descr[index].Out_Of_Service = oos_flag;
+        pthread_mutex_lock(&BV_Descr_Mutex);
     }
 }
 
@@ -359,7 +401,7 @@ int Binary_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
 
     /* Valid object index? */
     object_index = Binary_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index >= Binary_Value_Level_Size) {
+    if (object_index >= BV_Descr_Size) {
         rpdata->error_class = ERROR_CLASS_OBJECT;
         rpdata->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return BACNET_STATUS_ERROR;
@@ -417,14 +459,14 @@ int Binary_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                  */
                 /* into one packet. */
             } else if (rpdata->array_index == BACNET_ARRAY_ALL) {
-                pthread_mutex_lock(&BV_Level_Mutex);
+                pthread_mutex_lock(&BV_Descr_Mutex);
 
                 for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
                     /* FIXME: check if we have room before adding it to APDU */
-                    if (Binary_Value_Level[object_index][i] == BINARY_NULL) {
+                    if (BV_Descr[object_index].Level[i] == BINARY_NULL) {
                         len = encode_application_null(&apdu[apdu_len]);
                     } else {
-                        present_value = Binary_Value_Level[object_index][i];
+                        present_value = BV_Descr[object_index].Level[i];
                         len = encode_application_enumerated(
                             &apdu[apdu_len], present_value);
                     }
@@ -438,22 +480,21 @@ int Binary_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                         break;
                     }
                 }
-                pthread_mutex_unlock(&BV_Level_Mutex);
+                pthread_mutex_unlock(&BV_Descr_Mutex);
             } else {
                 if (rpdata->array_index <= BACNET_MAX_PRIORITY) {
-                    pthread_mutex_lock(&BV_Level_Mutex);
+                    pthread_mutex_lock(&BV_Descr_Mutex);
 
-                    if (Binary_Value_Level[object_index][rpdata->array_index] ==
+                    if (BV_Descr[object_index].Level[rpdata->array_index] ==
                         BINARY_NULL) {
                         apdu_len = encode_application_null(&apdu[apdu_len]);
                     } else {
-                        present_value = Binary_Value_Level[object_index]
-                                                          [rpdata->array_index];
+                        present_value = BV_Descr[object_index].Level[rpdata->array_index];
                         apdu_len = encode_application_enumerated(
                             &apdu[apdu_len], present_value);
                     }
 
-                    pthread_mutex_unlock(&BV_Level_Mutex);
+                    pthread_mutex_unlock(&BV_Descr_Mutex);
 
                 } else {
                     rpdata->error_class = ERROR_CLASS_PROPERTY;
@@ -529,7 +570,7 @@ bool Binary_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 
     /* Valid object index? */
     object_index = Binary_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= Binary_Value_Level_Size) {
+    if (object_index >= BV_Descr_Size) {
         wp_data->error_class = ERROR_CLASS_OBJECT;
         wp_data->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return false;
@@ -548,9 +589,9 @@ bool Binary_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     level = (BACNET_BINARY_PV)value.type.Enumerated;
                     priority--;
 
-                    pthread_mutex_lock(&BV_Level_Mutex);
-                    Binary_Value_Level[object_index][priority] = level;
-                    pthread_mutex_unlock(&BV_Level_Mutex);
+                    pthread_mutex_lock(&BV_Descr_Mutex);
+                    BV_Descr[object_index].Level[priority] = level;
+                    pthread_mutex_unlock(&BV_Descr_Mutex);
 
                     /* Note: you could set the physical output here if we
                        are the highest priority.
@@ -578,9 +619,9 @@ bool Binary_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     if (priority && (priority <= BACNET_MAX_PRIORITY)) {
                         priority--;
                         
-                        pthread_mutex_lock(&BV_Level_Mutex);
-                        Binary_Value_Level[object_index][priority] = level;
-                        pthread_mutex_unlock(&BV_Level_Mutex);
+                        pthread_mutex_lock(&BV_Descr_Mutex);
+                        BV_Descr[object_index].Level[priority] = level;
+                        pthread_mutex_unlock(&BV_Descr_Mutex);
 
                         /* Note: you could set the physical output here to the
                            next highest priority, or to the relinquish default

@@ -43,6 +43,7 @@
 #include "bacnet/timestamp.h"
 #include "bacnet/basic/object/ai.h"
 
+
 static ANALOG_INPUT_DESCR *AI_Descr = NULL;
 static size_t AI_Descr_Size = 0;
 static pthread_mutex_t AI_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -85,10 +86,9 @@ void Analog_Input_Add(size_t count)
 
 void Analog_Input_Resize(size_t new_size)
 {
-    AI_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
     Analog_Input_Free();
-    Analog_Input_Alloc(AI_Descr_Size);
+    Analog_Input_Alloc(new_size);
     Analog_Input_Objects_Init();
 
 }
@@ -97,15 +97,24 @@ void Analog_Input_Alloc(size_t size)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
     AI_Descr = calloc(size, sizeof(*AI_Descr));
+    AI_Descr_Size = size;
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
 void Analog_Input_Free(void)
 {
+    if (NULL == AI_Descr) return;    
+
     pthread_mutex_lock(&AI_Descr_Mutex);
+
+    for(unsigned int i=0; i < AI_Descr_Size; i++)
+    {
+        free(AI_Descr[i].Name);
+    }
 
     free(AI_Descr);
     AI_Descr = NULL;
+    AI_Descr_Size = 0;
 
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
@@ -126,6 +135,7 @@ void Analog_Input_Objects_Init(void)
         AI_Descr[i].Prior_Value = 0.0f;
         AI_Descr[i].COV_Increment = 1.0f;
         AI_Descr[i].Changed = false;
+        AI_Descr[i].Name = NULL;
 #if defined(INTRINSIC_REPORTING)
         AI_Descr[i].Event_State = EVENT_STATE_NORMAL;
         /* notification class not connected */
@@ -266,12 +276,44 @@ bool Analog_Input_Object_Name(
     bool status = false;
 
     index = Analog_Input_Instance_To_Index(object_instance);
-    if (index < AI_Descr_Size) {
-        sprintf(text_string, "ANALOG INPUT %lu", (unsigned long)index);
-        status = characterstring_init_ansi(object_name, text_string);
+    if (index >= AI_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    if (NULL != AI_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", AI_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "ANALOG INPUT %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&AI_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Analog_Input_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == AI_Descr) return false;
+
+    unsigned int index;
+    index = Analog_Input_Instance_To_Index(object_instance);
+    if (index >= AI_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    free(AI_Descr[index].Name);
+    AI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    strcpy(AI_Descr[index].Name, new_name);
+    pthread_mutex_unlock(&AI_Descr_Mutex);
+
+    return true;
 }
 
 bool Analog_Input_Change_Of_Value(uint32_t object_instance)

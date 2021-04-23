@@ -45,6 +45,13 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct integer_descr {
+        bool Out_Of_Service : 1;
+        int32_t Present_Value;
+        uint16_t Units;
+        char * Name;
+    } INTEGER_DESCR;
+
     BACNET_STACK_EXPORT
     void Integer_Value_Property_Lists(
         const int **pRequired,
@@ -67,6 +74,9 @@ extern "C" {
     bool Integer_Value_Object_Name(
         uint32_t object_instance,
         BACNET_CHARACTER_STRING * object_name);
+    BACNET_STACK_EXPORT
+    bool Integer_Value_Name_Set(
+        uint32_t object_instance, char *new_name);
 
     BACNET_STACK_EXPORT
     int Integer_Value_Read_Property(
