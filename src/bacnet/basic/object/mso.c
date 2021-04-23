@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -38,10 +39,6 @@
 #include "bacnet/basic/object/mso.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_MULTISTATE_OUTPUTS
-#define MAX_MULTISTATE_OUTPUTS 4
-#endif
-
 /* When all the priorities are level null, the present value returns */
 /* the Relinquish Default value, 0 is not allowed */
 #define MULTISTATE_RELINQUISH_DEFAULT 1
@@ -51,11 +48,8 @@
 /* how many states? 1 to 254 states, 0 is not allowed */
 #define MULTISTATE_NUMBER_OF_STATES (254)
 /* Here is our Priority Array.*/
-static uint8_t Multistate_Output_Level[MAX_MULTISTATE_OUTPUTS]
-                                      [BACNET_MAX_PRIORITY];
-/* Writable out-of-service allows others to play with our Present Value */
-/* without changing the physical output */
-static bool Out_Of_Service[MAX_MULTISTATE_OUTPUTS];
+static MULTISTATE_OUTPUT_DESCR *MSO_Descr = NULL;
+static size_t MSO_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Multistate_Output_Properties_Required[] = {
@@ -86,7 +80,35 @@ void Multistate_Output_Property_Lists(
     return;
 }
 
-void Multistate_Output_Init(void)
+void Multistate_Output_Resize(size_t new_size)
+{
+    Multistate_Output_Free();
+    Multistate_Output_Alloc(new_size);
+    Multistate_Output_Objects_Init();
+}
+
+void Multistate_Output_Add(size_t count)
+{
+    Multistate_Output_Resize(MSO_Descr_Size + count);
+}
+
+void Multistate_Output_Free(void)
+{
+    free(MSO_Descr);
+    MSO_Descr = NULL;
+    MSO_Descr_Size = 0;
+}
+
+void Multistate_Output_Alloc(size_t size)
+{
+    MSO_Descr = calloc(size, sizeof (*MSO_Descr));
+    if (NULL != MSO_Descr)
+    {
+        MSO_Descr_Size = size;
+    }
+}
+
+void Multistate_Output_Objects_Init()
 {
     unsigned i, j;
     static bool initialized = false;
@@ -95,9 +117,9 @@ void Multistate_Output_Init(void)
         initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        for (i = 0; i < MAX_MULTISTATE_OUTPUTS; i++) {
+        for (i = 0; i < MSO_Descr_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
-                Multistate_Output_Level[i][j] = MULTISTATE_NULL;
+                MSO_Descr[i].Level[j] = MULTISTATE_NULL;
             }
         }
     }
@@ -105,12 +127,22 @@ void Multistate_Output_Init(void)
     return;
 }
 
+void Multistate_Output_Cleanup()
+{
+    Multistate_Output_Free();
+}
+
+void Multistate_Output_Init(void)
+{
+
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
 /* given instance exists */
 bool Multistate_Output_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_MULTISTATE_OUTPUTS) {
+    if (object_instance < MSO_Descr_Size) {
         return true;
     }
 
@@ -121,7 +153,7 @@ bool Multistate_Output_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Multistate_Output_Count(void)
 {
-    return MAX_MULTISTATE_OUTPUTS;
+    return MSO_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -137,9 +169,9 @@ uint32_t Multistate_Output_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Multistate_Output_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_MULTISTATE_OUTPUTS;
+    unsigned index = MSO_Descr_Size;
 
-    if (object_instance < MAX_MULTISTATE_OUTPUTS) {
+    if (object_instance < MSO_Descr_Size) {
         index = object_instance;
     }
 
@@ -153,10 +185,10 @@ uint32_t Multistate_Output_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Multistate_Output_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_OUTPUTS) {
+    if (index < MSO_Descr_Size) {
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
-            if (Multistate_Output_Level[index][i] != MULTISTATE_NULL) {
-                value = Multistate_Output_Level[index][i];
+            if ( MSO_Descr[index].Level[i] != MULTISTATE_NULL) {
+                value = MSO_Descr[index].Level[i];
                 break;
             }
         }
@@ -172,7 +204,7 @@ bool Multistate_Output_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_MULTISTATE_OUTPUTS) {
+    if (object_instance < MSO_Descr_Size) {
         sprintf(text_string, "MULTISTATE OUTPUT %u", object_instance);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -186,8 +218,8 @@ bool Multistate_Output_Out_Of_Service(uint32_t instance)
     bool oos_flag = false;
 
     index = Multistate_Output_Instance_To_Index(instance);
-    if (index < MAX_MULTISTATE_OUTPUTS) {
-        oos_flag = Out_Of_Service[index];
+    if (index < MSO_Descr_Size) {
+        oos_flag = MSO_Descr[index].Out_Of_Service;
     }
 
     return oos_flag;
@@ -198,8 +230,8 @@ void Multistate_Output_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     unsigned index = 0;
 
     index = Multistate_Output_Instance_To_Index(instance);
-    if (index < MAX_MULTISTATE_OUTPUTS) {
-        Out_Of_Service[index] = oos_flag;
+    if (index < MSO_Descr_Size) {
+        MSO_Descr[index].Out_Of_Service = oos_flag;
     }
 }
 
@@ -276,12 +308,11 @@ int Multistate_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                     rpdata->object_instance);
                 for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
                     /* FIXME: check if we have room before adding it to APDU */
-                    if (Multistate_Output_Level[object_index][i] ==
+                    if (MSO_Descr[object_index].Level[i] ==
                         MULTISTATE_NULL) {
                         len = encode_application_null(&apdu[apdu_len]);
                     } else {
-                        present_value =
-                            Multistate_Output_Level[object_index][i];
+                        present_value = MSO_Descr[object_index].Level[i];
                         len = encode_application_unsigned(
                             &apdu[apdu_len], present_value);
                     }
@@ -299,14 +330,11 @@ int Multistate_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 object_index = Multistate_Output_Instance_To_Index(
                     rpdata->object_instance);
                 if (rpdata->array_index <= BACNET_MAX_PRIORITY) {
-                    if (Multistate_Output_Level[object_index]
-                                               [rpdata->array_index - 1] ==
-                        MULTISTATE_NULL) {
+                    if (MSO_Descr[object_index].Level[rpdata->array_index - 1] == MULTISTATE_NULL) {
                         apdu_len = encode_application_null(&apdu[0]);
                     } else {
                         present_value =
-                            Multistate_Output_Level[object_index]
-                                                   [rpdata->array_index - 1];
+                            MSO_Descr[object_index].Level[rpdata->array_index - 1];
                         apdu_len = encode_application_unsigned(
                             &apdu[0], present_value);
                     }
@@ -388,8 +416,7 @@ bool Multistate_Output_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     object_index = Multistate_Output_Instance_To_Index(
                         wp_data->object_instance);
                     priority--;
-                    Multistate_Output_Level[object_index][priority] =
-                        (uint8_t)level;
+                    MSO_Descr[object_index].Level[priority] = (uint8_t)level;
                     /* Note: you could set the physical output here if we
                        are the highest priority.
                        However, if Out of Service is TRUE, then don't set the
@@ -417,8 +444,7 @@ bool Multistate_Output_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                     priority = wp_data->priority;
                     if (priority && (priority <= BACNET_MAX_PRIORITY)) {
                         priority--;
-                        Multistate_Output_Level[object_index][priority] =
-                            (uint8_t)level;
+                        MSO_Descr[object_index].Level[priority] = (uint8_t)level;
                         /* Note: you could set the physical output here to the
                            next highest priority, or to the relinquish default
                            if no priorities are set. However, if Out of Service

@@ -49,9 +49,6 @@
 #include "bacnet/rp.h"
 #include "bacnet/wp.h"
 
-#ifndef MAX_COMMANDS
-#define MAX_COMMANDS 4
-#endif
 
 #ifndef MAX_COMMAND_ACTIONS
 #define MAX_COMMAND_ACTIONS 8
@@ -179,14 +176,26 @@ extern "C" {
         float value);
 
     /* note: header of Intrinsic_Reporting function is required
-       even when INTRINSIC_REPORTING is not defined */
+       even when INTRINSIC_REPORTING is not defined */   
     BACNET_STACK_EXPORT
     void Command_Intrinsic_Reporting(
         uint32_t object_instance);
 
     BACNET_STACK_EXPORT
-    void Command_Init(
-        void);
+    void Command_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Command_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Command_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Command_Free(void);
+    BACNET_STACK_EXPORT
+    void Command_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void Command_Init(void);
+    BACNET_STACK_EXPORT
+    void Command_Cleanup(void);
 
 #ifdef BAC_TEST
 #include "ctest.h"

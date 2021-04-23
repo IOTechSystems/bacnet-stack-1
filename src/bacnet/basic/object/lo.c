@@ -30,6 +30,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -42,10 +44,6 @@
 #include "bacnet/proplist.h"
 /* me! */
 #include "bacnet/basic/object/lo.h"
-
-#ifndef MAX_LIGHTING_OUTPUTS
-#define MAX_LIGHTING_OUTPUTS 8
-#endif
 
 struct lighting_output_object {
     float Present_Value;
@@ -71,7 +69,8 @@ struct lighting_output_object {
     float Max_Actual_Value;
     uint8_t Lighting_Command_Default_Priority;
 };
-static struct lighting_output_object Lighting_Output[MAX_LIGHTING_OUTPUTS];
+static struct lighting_output_object *Lighting_Output = NULL;
+static size_t Lighting_Output_Size = 0;
 
 /* These arrays are used by the ReadPropertyMultiple handler and
    property-list property (as of protocol-revision 14) */
@@ -127,7 +126,7 @@ bool Lighting_Output_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         return true;
     }
 
@@ -141,14 +140,14 @@ bool Lighting_Output_Valid_Instance(uint32_t object_instance)
  */
 unsigned Lighting_Output_Count(void)
 {
-    return MAX_LIGHTING_OUTPUTS;
+    return Lighting_Output_Size;
 }
 
 /**
  * Determines the object instance-number for a given 0..N index
  * of Lighting Output objects where N is Lighting_Output_Count().
  *
- * @param  index - 0..MAX_LIGHTING_OUTPUTS value
+ * @param  index - 0..Lighting_Output_Size value
  *
  * @return  object instance-number for the given index
  */
@@ -167,17 +166,17 @@ uint32_t Lighting_Output_Index_To_Instance(unsigned index)
  *
  * @param  object_instance - object-instance number of the object
  *
- * @return  index for the given instance-number, or MAX_LIGHTING_OUTPUTS
+ * @return  index for the given instance-number, or Lighting_Output_Size
  * if not valid.
  */
 unsigned Lighting_Output_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_LIGHTING_OUTPUTS;
+    unsigned index = Lighting_Output_Size;
 
     if (object_instance) {
         index = object_instance - 1;
-        if (index > MAX_LIGHTING_OUTPUTS) {
-            index = MAX_LIGHTING_OUTPUTS;
+        if (index > Lighting_Output_Size) {
+            index = Lighting_Output_Size;
         }
     }
 
@@ -198,7 +197,7 @@ float Lighting_Output_Present_Value(uint32_t object_instance)
     unsigned p = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Relinquish_Default;
         for (p = 0; p < BACNET_MAX_PRIORITY; p++) {
             if (BIT_CHECK(Lighting_Output[index].Priority_Active_Bits, p)) {
@@ -227,7 +226,7 @@ static float Lighting_Output_Priority_Value(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             priority--;
             value = Lighting_Output[index].Priority_Array[priority];
@@ -253,7 +252,7 @@ static bool Lighting_Output_Priority_Active(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             priority--;
             if (BIT_CHECK(
@@ -280,7 +279,7 @@ unsigned Lighting_Output_Present_Value_Priority(uint32_t object_instance)
     unsigned priority = 0; /* return value */
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         for (p = 0; p < BACNET_MAX_PRIORITY; p++) {
             if (BIT_CHECK(Lighting_Output[index].Priority_Active_Bits, p)) {
                 priority = p + 1;
@@ -309,7 +308,7 @@ bool Lighting_Output_Present_Value_Set(
     bool status = false;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
             priority--;
@@ -338,7 +337,7 @@ bool Lighting_Output_Present_Value_Relinquish(
     bool status = false;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
             priority--;
@@ -369,7 +368,7 @@ bool Lighting_Output_Object_Name(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         sprintf(
             text_string, "LIGHTING OUTPUT %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -393,7 +392,7 @@ bool Lighting_Output_Lighting_Command_Set(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         // FIXME: check lighting command member values
         status = lighting_command_copy(
             &Lighting_Output[index].Lighting_Command, value);
@@ -418,7 +417,7 @@ bool Lighting_Output_Lighting_Command(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         status = lighting_command_copy(
             value, &Lighting_Output[index].Lighting_Command);
     }
@@ -440,7 +439,7 @@ BACNET_LIGHTING_IN_PROGRESS Lighting_Output_In_Progress(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].In_Progress;
     }
 
@@ -463,7 +462,7 @@ bool Lighting_Output_In_Progress_Set(
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].In_Progress = in_progress;
     }
 
@@ -483,7 +482,7 @@ float Lighting_Output_Tracking_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Tracking_Value;
     }
 
@@ -505,7 +504,7 @@ bool Lighting_Output_Tracking_Value_Set(uint32_t object_instance, float value)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].Tracking_Value = value;
         status = true;
     }
@@ -527,7 +526,7 @@ bool Lighting_Output_Blink_Warn_Enable(uint32_t object_instance)
     unsigned index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Blink_Warn_Enable;
     }
 
@@ -550,7 +549,7 @@ bool Lighting_Output_Blink_Warn_Enable_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].Blink_Warn_Enable = enable;
         status = true;
     }
@@ -572,7 +571,7 @@ uint32_t Lighting_Output_Egress_Time(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Egress_Time;
     }
 
@@ -594,7 +593,7 @@ bool Lighting_Output_Egress_Time_Set(uint32_t object_instance, uint32_t seconds)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].Egress_Time = seconds;
         status = true;
     }
@@ -616,7 +615,7 @@ bool Lighting_Output_Egress_Active(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Egress_Active;
     }
 
@@ -637,7 +636,7 @@ uint32_t Lighting_Output_Default_Fade_Time(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Default_Fade_Time;
     }
 
@@ -660,7 +659,7 @@ bool Lighting_Output_Default_Fade_Time_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if ((index < MAX_LIGHTING_OUTPUTS) && (milliseconds >= 100) &&
+    if ((index < Lighting_Output_Size) && (milliseconds >= 100) &&
         (milliseconds <= 86400000)) {
         Lighting_Output[index].Default_Fade_Time = milliseconds;
         status = true;
@@ -683,7 +682,7 @@ float Lighting_Output_Default_Ramp_Rate(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Default_Ramp_Rate;
     }
 
@@ -706,7 +705,7 @@ bool Lighting_Output_Default_Ramp_Rate_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if ((index < MAX_LIGHTING_OUTPUTS) && (percent_per_second >= 0.1) &&
+    if ((index < Lighting_Output_Size) && (percent_per_second >= 0.1) &&
         (percent_per_second <= 100.0)) {
         Lighting_Output[index].Default_Ramp_Rate = percent_per_second;
         status = true;
@@ -729,7 +728,7 @@ float Lighting_Output_Default_Step_Increment(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Default_Step_Increment;
     }
 
@@ -752,7 +751,7 @@ bool Lighting_Output_Default_Step_Increment_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if ((index < MAX_LIGHTING_OUTPUTS) && (step_increment >= 0.1) &&
+    if ((index < Lighting_Output_Size) && (step_increment >= 0.1) &&
         (step_increment <= 100.0)) {
         Lighting_Output[index].Default_Step_Increment = step_increment;
         status = true;
@@ -777,7 +776,7 @@ unsigned Lighting_Output_Default_Priority(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Lighting_Command_Default_Priority;
     }
 
@@ -800,7 +799,7 @@ bool Lighting_Output_Default_Priority_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if ((index < MAX_LIGHTING_OUTPUTS) && (priority >= BACNET_MIN_PRIORITY) &&
+    if ((index < Lighting_Output_Size) && (priority >= BACNET_MIN_PRIORITY) &&
         (priority <= BACNET_MAX_PRIORITY)) {
         Lighting_Output[index].Lighting_Command_Default_Priority = priority;
         status = true;
@@ -823,7 +822,7 @@ bool Lighting_Output_Out_Of_Service(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Out_Of_Service;
     }
 
@@ -843,7 +842,7 @@ void Lighting_Output_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].Out_Of_Service = value;
     }
 }
@@ -862,7 +861,7 @@ float Lighting_Output_Relinquish_Default(uint32_t object_instance)
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         value = Lighting_Output[index].Relinquish_Default;
     }
 
@@ -885,7 +884,7 @@ bool Lighting_Output_Relinquish_Default_Set(
     unsigned int index = 0;
 
     index = Lighting_Output_Instance_To_Index(object_instance);
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         Lighting_Output[index].Relinquish_Default = value;
     }
 
@@ -1231,7 +1230,7 @@ static void Lighting_Output_Fade_Handler(struct lighting_output_object *pLight,
 /**
  * Handles the timing for a single Lighting Output object
  *
- * @param index - 0..MAX_LIGHTING_OUTPUTS value
+ * @param index - 0..Lighting_Output_Size value
  * @param milliseconds - number of milliseconds elapsed since previously
  * called.  Works best when called about every 10 milliseconds.
  */
@@ -1240,7 +1239,7 @@ static void Lighting_Output_Timer_Handler(unsigned index, uint16_t milliseconds)
     struct lighting_output_object *pLight = NULL;
     BACNET_LIGHTING_COMMAND *pCommand = NULL;
 
-    if (index < MAX_LIGHTING_OUTPUTS) {
+    if (index < Lighting_Output_Size) {
         pLight = &Lighting_Output[index];
         pCommand = &pLight->Lighting_Command;
         switch (pCommand->operation) {
@@ -1284,19 +1283,44 @@ void Lighting_Output_Timer(uint16_t milliseconds)
 {
     unsigned i = 0;
 
-    for (i = 0; i < MAX_LIGHTING_OUTPUTS; i++) {
+    for (i = 0; i < Lighting_Output_Size; i++) {
         Lighting_Output_Timer_Handler(i, milliseconds);
     }
 }
 
-/**
- * Initializes the Lighting Output object data
- */
-void Lighting_Output_Init(void)
+void Lighting_Output_Resize(size_t new_size)
 {
-    unsigned i, p;
+    Lighting_Output_Free();
+    Lighting_Output_Alloc(new_size);
+    Lighting_Output_Objects_Init();
+}
 
-    for (i = 0; i < MAX_LIGHTING_OUTPUTS; i++) {
+void Lighting_Output_Add(size_t count)
+{
+    Lighting_Output_Resize(Lighting_Output_Size + count);
+}
+
+void Lighting_Output_Free(void)
+{
+    free(Lighting_Output);
+    Lighting_Output = NULL;
+    Lighting_Output_Size = 0;
+}
+
+void Lighting_Output_Alloc(size_t size)
+{
+    Lighting_Output = calloc(size, sizeof (*Lighting_Output));
+    if (NULL != Lighting_Output)
+    {
+        Lighting_Output_Size = size;
+    }
+}
+
+void Lighting_Output_Objects_Init()
+{
+   unsigned i, p;
+
+    for (i = 0; i < Lighting_Output_Size; i++) {
         Lighting_Output[i].Present_Value = 0.0;
         Lighting_Output[i].Tracking_Value = 0.0;
         Lighting_Output[i].Physical_Value = 0.0;
@@ -1329,6 +1353,20 @@ void Lighting_Output_Init(void)
     }
 
     return;
+}
+
+void Lighting_Output_Cleanup()
+{
+    Lighting_Output_Free();
+}
+
+
+/**
+ * Initializes the Lighting Output object data
+ */
+void Lighting_Output_Init(void)
+{
+    
 }
 
 #ifdef BAC_TEST

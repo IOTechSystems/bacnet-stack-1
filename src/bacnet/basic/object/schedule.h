@@ -85,8 +85,25 @@ extern "C" {
     uint32_t Schedule_Index_To_Instance(unsigned index);
     BACNET_STACK_EXPORT
     unsigned Schedule_Instance_To_Index(uint32_t instance);
+
+
+
+    BACNET_STACK_EXPORT
+    void Schedule_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Schedule_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Schedule_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Schedule_Free(void);
+    BACNET_STACK_EXPORT
+    void Schedule_Objects_Init(void);    
+
     BACNET_STACK_EXPORT
     void Schedule_Init(void);
+    BACNET_STACK_EXPORT
+    void Schedule_Cleanup(void);
+
 
     BACNET_STACK_EXPORT
     void Schedule_Out_Of_Service_Set(

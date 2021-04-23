@@ -37,6 +37,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct multistate_output_descr{
+        uint8_t Level[BACNET_MAX_PRIORITY];
+        bool Out_Of_Service;
+    } MULTISTATE_OUTPUT_DESCR;
+
     BACNET_STACK_EXPORT
     void Multistate_Output_Property_Lists(
         const int **pRequired,
@@ -61,7 +66,21 @@ extern "C" {
         BACNET_CHARACTER_STRING * object_name);
 
     BACNET_STACK_EXPORT
+    void Multistate_Output_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Output_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Multistate_Output_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Output_Free(void);
+    BACNET_STACK_EXPORT
+    void Multistate_Output_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
     void Multistate_Output_Init(
+        void);
+    BACNET_STACK_EXPORT
+    void Multistate_Output_Cleanup(
         void);
 
     BACNET_STACK_EXPORT

@@ -29,6 +29,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -40,11 +41,8 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/object/osv.h"
 
-#ifndef MAX_OCTETSTRING_VALUES
-#define MAX_OCTETSTRING_VALUES 4
-#endif
-
-static OCTETSTRING_VALUE_DESCR OSV_Descr[MAX_OCTETSTRING_VALUES];
+static OCTETSTRING_VALUE_DESCR *OSV_Descr = NULL;
+static size_t OSV_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int OctetString_Value_Properties_Required[] = {
@@ -73,14 +71,56 @@ void OctetString_Value_Property_Lists(
     return;
 }
 
-void OctetString_Value_Init(void)
+
+
+void OctetString_Value_Resize(size_t new_size)
+{
+    OctetString_Value_Free();
+    OctetString_Value_Alloc(new_size);
+    OctetString_Value_Objects_Init();
+}
+
+void OctetString_Value_Add(size_t count)
+{
+    OctetString_Value_Resize(OSV_Descr_Size + count);
+}
+
+void OctetString_Value_Free(void)
+{
+    free(OSV_Descr);
+    OSV_Descr = NULL;
+    OSV_Descr_Size = 0;
+}
+
+void OctetString_Value_Alloc(size_t size)
+{
+    OSV_Descr = calloc(size, sizeof (*OSV_Descr));
+    if (NULL != OSV_Descr)
+    {
+        OSV_Descr_Size = size;
+    }
+}
+
+void OctetString_Value_Objects_Init()
 {
     unsigned i;
 
-    for (i = 0; i < MAX_OCTETSTRING_VALUES; i++) {
+    for (i = 0; i < OSV_Descr_Size; i++) {
         memset(&OSV_Descr[i], 0x00, sizeof(OCTETSTRING_VALUE_DESCR));
         octetstring_init(&OSV_Descr[i].Present_Value, NULL, 0);
     }
+}
+
+void OctetString_Value_Cleanup()
+{
+    OctetString_Value_Free();
+}
+
+
+
+void OctetString_Value_Init(void)
+{
+  
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -88,7 +128,7 @@ void OctetString_Value_Init(void)
 /* given instance exists */
 bool OctetString_Value_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_OCTETSTRING_VALUES) {
+    if (object_instance < OSV_Descr_Size) {
         return true;
     }
 
@@ -99,7 +139,7 @@ bool OctetString_Value_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned OctetString_Value_Count(void)
 {
-    return MAX_OCTETSTRING_VALUES;
+    return OSV_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -115,9 +155,9 @@ uint32_t OctetString_Value_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned OctetString_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_OCTETSTRING_VALUES;
+    unsigned index = OSV_Descr_Size;
 
-    if (object_instance < MAX_OCTETSTRING_VALUES) {
+    if (object_instance < OSV_Descr_Size) {
         index = object_instance;
     }
 
@@ -141,7 +181,7 @@ bool OctetString_Value_Present_Value_Set(
     bool status = false;
 
     index = OctetString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_OCTETSTRING_VALUES) {
+    if (index < OSV_Descr_Size) {
         octetstring_copy(&OSV_Descr[index].Present_Value, value);
         status = true;
     }
@@ -154,7 +194,7 @@ BACNET_OCTET_STRING *OctetString_Value_Present_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = OctetString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_OCTETSTRING_VALUES) {
+    if (index < OSV_Descr_Size) {
         value = &OSV_Descr[index].Present_Value;
     }
 
@@ -168,7 +208,7 @@ bool OctetString_Value_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_OCTETSTRING_VALUES) {
+    if (object_instance < OSV_Descr_Size) {
         sprintf(text_string, "OCTETSTRING VALUE %lu",
             (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
@@ -197,7 +237,7 @@ int OctetString_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     apdu = rpdata->application_data;
 
     object_index = OctetString_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index < MAX_OCTETSTRING_VALUES) {
+    if (object_index < OSV_Descr_Size) {
         CurrentAV = &OSV_Descr[object_index];
     } else {
         return BACNET_STATUS_ERROR;
@@ -295,7 +335,7 @@ bool OctetString_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     }
     object_index =
         OctetString_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index < MAX_OCTETSTRING_VALUES) {
+    if (object_index < OSV_Descr_Size) {
         CurrentAV = &OSV_Descr[object_index];
     } else {
         return false;

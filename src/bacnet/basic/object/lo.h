@@ -206,8 +206,20 @@ extern "C" {
         uint16_t milliseconds);
 
     BACNET_STACK_EXPORT
-    void Lighting_Output_Init(
-        void);
+    void Lighting_Output_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Free(void);
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Init(void);
+    BACNET_STACK_EXPORT
+    void Lighting_Output_Cleanup(void);
 
     BACNET_STACK_EXPORT
     int Lighting_Output_Read_Property(
