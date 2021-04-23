@@ -333,7 +333,7 @@ bool Analog_Output_Name_Set( uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&AO_Descr_Mutex);
     free(AO_Descr[index].Name);
-    AO_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    AO_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(AO_Descr[index].Name, new_name);
     pthread_mutex_unlock(&AO_Descr_Mutex);
 

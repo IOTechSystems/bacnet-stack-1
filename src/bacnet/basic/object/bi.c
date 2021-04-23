@@ -389,7 +389,7 @@ bool Binary_Input_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&BI_Descr_Mutex);
     free(BI_Descr[index].Name);
-    BI_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    BI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(BI_Descr[index].Name, new_name);
     pthread_mutex_unlock(&BI_Descr_Mutex);
 

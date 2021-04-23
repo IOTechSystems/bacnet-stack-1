@@ -12,6 +12,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
+
+    typedef struct accumulator_descr {
+        BACNET_UNSIGNED_INTEGER Present_Value;
+        int32_t Scale;
+        char *Name;
+    }ACCUMULATOR_DESCR;
+
+
     BACNET_STACK_EXPORT
     void Accumulator_Property_Lists(
         const int **pRequired,
@@ -35,8 +43,8 @@ extern "C" {
         uint32_t instance);
 
     BACNET_STACK_EXPORT
-    char *Accumulator_Name(
-        uint32_t object_instance);
+    bool Accumulator_Name(
+        uint32_t object_instance, BACNET_CHARACTER_STRING * object_name);
     BACNET_STACK_EXPORT
     bool Accumulator_Name_Set(
         uint32_t object_instance,
@@ -49,12 +57,6 @@ extern "C" {
     bool Accumulator_Description_Set(
         uint32_t instance,
         char *new_name);
-
-    BACNET_STACK_EXPORT
-    bool Accumulator_Object_Name(
-        uint32_t object_instance,
-        BACNET_CHARACTER_STRING * object_name);
-
 
     BACNET_STACK_EXPORT
     bool Accumulator_Units_Set(

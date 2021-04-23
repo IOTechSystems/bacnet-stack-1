@@ -255,7 +255,7 @@ bool Integer_Value_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&I_Descr_Mutex);
     free(I_Descr[index].Name);
-    I_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    I_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(I_Descr[index].Name, new_name);
     pthread_mutex_unlock(&I_Descr_Mutex);
 

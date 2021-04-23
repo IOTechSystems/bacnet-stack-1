@@ -323,7 +323,7 @@ bool Binary_Value_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&BV_Descr_Mutex);
     free(BV_Descr[index].Name);
-    BV_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    BV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(BV_Descr[index].Name, new_name);
     pthread_mutex_unlock(&BV_Descr_Mutex);
 

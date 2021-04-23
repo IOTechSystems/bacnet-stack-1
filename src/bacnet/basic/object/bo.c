@@ -291,7 +291,7 @@ bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&BO_Descr_Mutex);
     free(BO_Descr[index].Name);
-    BO_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    BO_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(BO_Descr[index].Name, new_name);
     pthread_mutex_unlock(&BO_Descr_Mutex);
 

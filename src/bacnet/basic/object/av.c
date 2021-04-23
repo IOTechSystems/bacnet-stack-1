@@ -373,7 +373,7 @@ bool Analog_Value_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&AV_Descr_Mutex);
     free(AV_Descr[index].Name);
-    AV_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    AV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(AV_Descr[index].Name, new_name);
     pthread_mutex_unlock(&AV_Descr_Mutex);
 

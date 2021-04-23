@@ -309,7 +309,7 @@ bool Analog_Input_Name_Set(uint32_t object_instance, char *new_name)
 
     pthread_mutex_lock(&AI_Descr_Mutex);
     free(AI_Descr[index].Name);
-    AI_Descr[index].Name = calloc(strlen(new_name), sizeof(char));
+    AI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
     strcpy(AI_Descr[index].Name, new_name);
     pthread_mutex_unlock(&AI_Descr_Mutex);
 

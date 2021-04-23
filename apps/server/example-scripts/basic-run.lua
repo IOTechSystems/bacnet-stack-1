@@ -30,10 +30,10 @@ function Run() --Run once
     bacnet.setAnalogOutputName(5000, "Mickey O'Neil")
     bacnet.setAnalogValueName(5000, "Turkish")
     bacnet.setBinaryInputName(5000, "Bullet Tooth Tony")
-    bacnet.setBinaryOutputName(5000, "Boris 'The Blade' ")
+    bacnet.setBinaryOutputName(5000, "Boris 'The Blade' Yurinov")
     bacnet.setBinaryValueName(5000, "Franky Four Fingers")
     bacnet.setIntegerValueName(5000, "Cousin Avi")
-
-  
+    bacnet.setPositiveIntegerValueName(5000, "Gorgeous George")
+    bacnet.setAccumulatorName(5000, "John The Gun")
 
 end

@@ -280,6 +280,14 @@ static int set_positive_integer_value (lua_State *L)
   return 0;
 }
 
+static int set_positive_integer_value_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  PositiveInteger_Value_Name_Set (object_instance, name);
+  return 0;
+}
+
 static int create_positive_integer_values (lua_State *L)
 {
   size_t count = lua_tonumber(L, 1);
@@ -293,6 +301,14 @@ static int set_accumulator_value (lua_State *L)
   uint32_t object_instance = lua_tonumber (L, 1);
   uint32_t value = lua_tonumber (L, 2);
   Accumulator_Present_Value_Set (object_instance, value);
+  return 0;
+}
+
+static int set_accumulator_name (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  char *name = (char *) lua_tostring(L,2);
+  Accumulator_Name_Set (object_instance, name);
   return 0;
 }
 
@@ -329,6 +345,8 @@ static void setup_lua_callbacks(lua_State *L)
       {"setBinaryOutputName", set_binary_output_name},
       {"setBinaryValueName", set_binary_value_name},
       {"setIntegerValueName", set_integer_value_name},
+      {"setPositiveIntegerValueName", set_positive_integer_value_name},
+      {"setAccumulatorName", set_accumulator_name},
 
       {"createAnalogInputs", create_analog_inputs},
       {"createAnalogOutputs", create_analog_outputs},
@@ -339,7 +357,8 @@ static void setup_lua_callbacks(lua_State *L)
       {"createIntegerValues", create_integer_values},
       {"createPositiveIntegerValues", create_positive_integer_values},
       {"createAccumulators", create_accumulators},
-      {NULL, NULL}
+
+      {NULL, NULL} //required
   };
 
   luaL_newlib(L, callbacks);
