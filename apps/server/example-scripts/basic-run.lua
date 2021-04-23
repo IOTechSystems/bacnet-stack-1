@@ -26,14 +26,14 @@ function Run() --Run once
     bacnet.setPositiveIntegerValue(5000, 42, 1)
     bacnet.setAccumulator(5000, 2222)
 
-    bacnet.setAnalogInputName(5000, "Brick Top")
-    bacnet.setAnalogOutputName(5000, "Mickey O'Neil")
-    bacnet.setAnalogValueName(5000, "Turkish")
-    bacnet.setBinaryInputName(5000, "Bullet Tooth Tony")
-    bacnet.setBinaryOutputName(5000, "Boris 'The Blade' Yurinov")
-    bacnet.setBinaryValueName(5000, "Franky Four Fingers")
-    bacnet.setIntegerValueName(5000, "Cousin Avi")
-    bacnet.setPositiveIntegerValueName(5000, "Gorgeous George")
-    bacnet.setAccumulatorName(5000, "John The Gun")
+    bacnet.setAnalogInputName(5000, "Test analog input")
+    bacnet.setAnalogOutputName(5000, "Test analog out")
+    bacnet.setAnalogValueName(5000, "Test analog value")
+    bacnet.setBinaryInputName(5000, "test B I")
+    bacnet.setBinaryOutputName(5000, "test B O")
+    bacnet.setBinaryValueName(5000, "test B V")
+    bacnet.setIntegerValueName(5000, "test integer value")
+    bacnet.setPositiveIntegerValueName(5000, "test positive integer")
+    bacnet.setAccumulatorName(5000, "test accumulator")
 
 end
