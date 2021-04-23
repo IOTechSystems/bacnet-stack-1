@@ -97,7 +97,10 @@ void Analog_Input_Alloc(size_t size)
 {
     pthread_mutex_lock(&AI_Descr_Mutex);
     AI_Descr = calloc(size, sizeof(*AI_Descr));
-    AI_Descr_Size = size;
+    if (NULL != AI_Descr)
+    {
+        AI_Descr_Size = size;
+    }
     pthread_mutex_unlock(&AI_Descr_Mutex);
 }
 
@@ -310,7 +313,10 @@ bool Analog_Input_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&AI_Descr_Mutex);
     free(AI_Descr[index].Name);
     AI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(AI_Descr[index].Name, new_name);
+    if (NULL != AI_Descr[index].Name)
+    {
+        strcpy(AI_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&AI_Descr_Mutex);
 
     return true;

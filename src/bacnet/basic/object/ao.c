@@ -102,8 +102,11 @@ void Analog_Output_Alloc(size_t size)
 {
     pthread_mutex_lock(&AO_Descr_Mutex);
 
-    AO_Descr_Size = size;
     AO_Descr = calloc(size, sizeof (*AO_Descr));
+    if (NULL != AO_Descr)
+    {
+        AO_Descr_Size = size;
+    }
     
     pthread_mutex_unlock(&AO_Descr_Mutex);
 }
@@ -306,7 +309,6 @@ bool Analog_Output_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRIN
     pthread_mutex_lock(&AO_Descr_Mutex);
     if (NULL != AO_Descr[object_instance].Name) 
     {
-        
         snprintf(text_string, 32, "%s", AO_Descr[object_instance].Name); 
     }
     else
@@ -334,7 +336,10 @@ bool Analog_Output_Name_Set( uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&AO_Descr_Mutex);
     free(AO_Descr[index].Name);
     AO_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(AO_Descr[index].Name, new_name);
+    if (NULL != AO_Descr[index].Name)
+    {
+        strcpy(AO_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&AO_Descr_Mutex);
 
     return true;

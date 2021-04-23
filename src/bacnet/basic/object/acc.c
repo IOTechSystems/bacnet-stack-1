@@ -188,7 +188,10 @@ bool Accumulator_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&Acc_Descr_Mutex);
     free(Acc_Descr[index].Name);
     Acc_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(Acc_Descr[index].Name, new_name);
+    if (NULL != Acc_Descr[index].Name)
+    {
+        strcpy(Acc_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&Acc_Descr_Mutex);
 
     return true;
@@ -482,7 +485,10 @@ void Accumulator_Alloc(size_t size)
     pthread_mutex_lock(&Acc_Descr_Mutex);
     
     Acc_Descr = calloc(size, sizeof (*Acc_Descr));
-    Acc_Descr_Size = size;
+    if (NULL != Acc_Descr)
+    {
+        Acc_Descr_Size = size;
+    }
   
     pthread_mutex_unlock(&Acc_Descr_Mutex);
 }

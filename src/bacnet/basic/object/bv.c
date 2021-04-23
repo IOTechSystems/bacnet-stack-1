@@ -103,7 +103,10 @@ void Binary_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&BV_Descr_Mutex);
     BV_Descr = calloc(size, sizeof (*BV_Descr));
-    BV_Descr_Size = size;
+    if(NULL != BV_Descr)
+    {
+        BV_Descr_Size = size;
+    }
     pthread_mutex_unlock(&BV_Descr_Mutex);
 }
 
@@ -324,7 +327,10 @@ bool Binary_Value_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&BV_Descr_Mutex);
     free(BV_Descr[index].Name);
     BV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(BV_Descr[index].Name, new_name);
+    if (NULL != BV_Descr[index].Name)
+    {
+        strcpy(BV_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&BV_Descr_Mutex);
 
     return true;
