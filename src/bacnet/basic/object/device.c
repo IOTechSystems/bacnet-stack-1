@@ -257,7 +257,7 @@ static object_functions_t My_Object_Table[] = {
 #endif
     { OBJECT_ACCUMULATOR, Accumulator_Init, Accumulator_Cleanup, Accumulator_Count,
         Accumulator_Index_To_Instance, Accumulator_Valid_Instance,
-        Accumulator_Object_Name, Accumulator_Read_Property,
+        Accumulator_Name, Accumulator_Read_Property,
         Accumulator_Write_Property, Accumulator_Property_Lists,
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },

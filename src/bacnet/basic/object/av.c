@@ -88,10 +88,9 @@ void Analog_Value_Property_Lists(
 
 void Analog_Value_Resize(size_t new_size)
 {
-    AV_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
     Analog_Value_Free();
-    Analog_Value_Alloc(AV_Descr_Size);
+    Analog_Value_Alloc(new_size);
     Analog_Value_Objects_Init();
 }
 
@@ -104,15 +103,27 @@ void Analog_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&AV_Descr_Mutex);
     AV_Descr = calloc(size, sizeof (*AV_Descr));
+    if (NULL != AV_Descr)
+    {
+        AV_Descr_Size = size;
+    }
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
 void Analog_Value_Free(void)
 {
+    if (NULL == AV_Descr) return;   
+
     pthread_mutex_lock(&AV_Descr_Mutex);
+
+    for(unsigned int i=0; i < AV_Descr_Size; i++)
+    {
+        free(AV_Descr[i].Name);
+    }
 
     free(AV_Descr);
     AV_Descr = NULL;
+    AV_Descr_Size = 0;
 
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
@@ -132,6 +143,7 @@ void Analog_Value_Objects_Init(void)
         AV_Descr[i].Prior_Value = 0.0f;
         AV_Descr[i].COV_Increment = 1.0f;
         AV_Descr[i].Changed = false;
+        AV_Descr[i].Name = NULL;
 #if defined(INTRINSIC_REPORTING)
         AV_Descr[i].Event_State = EVENT_STATE_NORMAL;
         /* notification class not connected */
@@ -323,19 +335,55 @@ float Analog_Value_Present_Value(uint32_t object_instance)
  *
  * @return  true/false
  */
-bool Analog_Value_Object_Name(
-    uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
+bool Analog_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < AV_Descr_Size) {
-        sprintf(
-            text_string, "ANALOG VALUE %lu", (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    unsigned int index;
+    index = Analog_Value_Instance_To_Index(object_instance);
+    if (index >= AV_Descr_Size)
+    {
+        return false;
     }
 
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    if (NULL != AV_Descr[object_instance].Name)
+    {
+        snprintf(text_string, 32, "%s", AV_Descr[object_instance].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "ANALOG VALUE %lu", (unsigned long)object_instance);
+    }
+    pthread_mutex_unlock(&AV_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Analog_Value_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == AV_Descr) return false;
+
+    unsigned int index;
+    index = Analog_Value_Instance_To_Index(object_instance);
+    if (index >= AV_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    free(AV_Descr[index].Name);
+    AV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != AV_Descr[index].Name)
+    {
+        strcpy(AV_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&AV_Descr_Mutex);
+
+    return true;
 }
 
 /**

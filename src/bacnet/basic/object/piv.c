@@ -76,10 +76,9 @@ void PositiveInteger_Value_Property_Lists(
 
 void PositiveInteger_Value_Resize(size_t new_size)
 {
-    PIV_Descr_Size = new_size;
     //could maybe copy state of old array to new one with memcpy?
     PositiveInteger_Value_Free();
-    PositiveInteger_Value_Alloc(PIV_Descr_Size);
+    PositiveInteger_Value_Alloc(new_size);
     PositiveInteger_Value_Objects_Init();
 }
 
@@ -92,18 +91,28 @@ void PositiveInteger_Value_Add(size_t count)
 void PositiveInteger_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&PIV_Descr_Mutex);
-    
-    PIV_Descr = calloc(size, sizeof (*PIV_Descr));
-  
+    PIV_Descr = calloc(size, sizeof(*PIV_Descr));
+    if(NULL != PIV_Descr)
+    {
+        PIV_Descr_Size = size;
+    }
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
 void PositiveInteger_Value_Free(void)
 {
+    if (NULL == PIV_Descr) return;
+
     pthread_mutex_lock(&PIV_Descr_Mutex);
+
+    for(unsigned int i=0; i < PIV_Descr_Size; i++)
+    {
+        free(PIV_Descr[i].Name);
+    }
 
     free(PIV_Descr);
     PIV_Descr = NULL;
+    PIV_Descr_Size = 0;
     
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
@@ -114,7 +123,10 @@ void PositiveInteger_Value_Objects_Init(void)
 
     pthread_mutex_lock(&PIV_Descr_Mutex);
     for (i = 0; i < PIV_Descr_Size; i++) {
-        memset(PIV_Descr, 0x00, sizeof(POSITIVEINTEGER_VALUE_DESCR));
+        PIV_Descr[i].Units = 0;
+        PIV_Descr[i].Out_Of_Service = false;
+        PIV_Descr[i].Present_Value = 0;
+        PIV_Descr[i].Name = NULL;
     }
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
@@ -215,16 +227,52 @@ uint32_t PositiveInteger_Value_Present_Value(uint32_t object_instance)
 bool PositiveInteger_Value_Object_Name(
     uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
-    static char text_string[40] = ""; /* okay for single thread */
+    static char text_string[32] = ""; /* okay for single thread */
+    unsigned int index;
     bool status = false;
 
-    if (object_instance < PIV_Descr_Size) {
-        sprintf(text_string, "POSITIVEINTEGER VALUE %lu",
-            (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    if (NULL != PIV_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", PIV_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "POSITIVEINTEGER %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == PIV_Descr) return false;
+
+    unsigned int index;
+    index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    free(PIV_Descr[index].Name);
+    PIV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != PIV_Descr[index].Name)
+    {
+        strcpy(PIV_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    return true;
 }
 
 /* return apdu len, or BACNET_STATUS_ERROR on error */
