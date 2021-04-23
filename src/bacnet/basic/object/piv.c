@@ -92,7 +92,10 @@ void PositiveInteger_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&PIV_Descr_Mutex);
     PIV_Descr = calloc(size, sizeof(*PIV_Descr));
-    PIV_Descr_Size = size;
+    if(NULL != PIV_Descr)
+    {
+        PIV_Descr_Size = size;
+    }
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
@@ -263,7 +266,10 @@ bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&PIV_Descr_Mutex);
     free(PIV_Descr[index].Name);
     PIV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(PIV_Descr[index].Name, new_name);
+    if (NULL != PIV_Descr[index].Name)
+    {
+        strcpy(PIV_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 
     return true;

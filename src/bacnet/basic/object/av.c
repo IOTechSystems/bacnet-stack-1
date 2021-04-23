@@ -102,8 +102,11 @@ void Analog_Value_Add(size_t count)
 void Analog_Value_Alloc(size_t size)
 {
     pthread_mutex_lock(&AV_Descr_Mutex);
-    AV_Descr_Size = size;
     AV_Descr = calloc(size, sizeof (*AV_Descr));
+    if (NULL != AV_Descr)
+    {
+        AV_Descr_Size = size;
+    }
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
@@ -374,7 +377,10 @@ bool Analog_Value_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&AV_Descr_Mutex);
     free(AV_Descr[index].Name);
     AV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(AV_Descr[index].Name, new_name);
+    if (NULL != AV_Descr[index].Name)
+    {
+        strcpy(AV_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&AV_Descr_Mutex);
 
     return true;

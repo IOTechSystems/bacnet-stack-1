@@ -118,7 +118,10 @@ void Binary_Input_Alloc(size_t size)
 {
     pthread_mutex_lock(&BI_Descr_Mutex);
     BI_Descr = calloc(size, sizeof (*BI_Descr));
-    BI_Descr_Size = size;
+    if(NULL != BI_Descr)
+    {
+        BI_Descr_Size = size;
+    }
     pthread_mutex_unlock(&BI_Descr_Mutex);
 }
 
@@ -390,7 +393,10 @@ bool Binary_Input_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&BI_Descr_Mutex);
     free(BI_Descr[index].Name);
     BI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(BI_Descr[index].Name, new_name);
+    if (NULL != BI_Descr[index].Name)
+    {
+        strcpy(BI_Descr[index].Name, new_name);
+    }
     pthread_mutex_unlock(&BI_Descr_Mutex);
 
     return true;

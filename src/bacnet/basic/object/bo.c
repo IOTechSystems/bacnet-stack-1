@@ -96,7 +96,10 @@ void Binary_Output_Alloc(size_t size)
     pthread_mutex_lock(&BO_Descr_Mutex);
     
     BO_Descr = calloc(size, sizeof (*BO_Descr));
-    BO_Descr_Size = size;
+    if(NULL != BO_Descr)
+    {
+        BO_Descr_Size = size;
+    }
     pthread_mutex_unlock(&BO_Descr_Mutex);
 }
 
@@ -292,7 +295,11 @@ bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
     pthread_mutex_lock(&BO_Descr_Mutex);
     free(BO_Descr[index].Name);
     BO_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
-    strcpy(BO_Descr[index].Name, new_name);
+    if (NULL != BO_Descr[index].Name)
+    {
+        strcpy(BO_Descr[index].Name, new_name);
+    }
+    
     pthread_mutex_unlock(&BO_Descr_Mutex);
 
     return true;
