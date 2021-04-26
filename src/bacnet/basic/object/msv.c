@@ -40,11 +40,6 @@
 #include "bacnet/basic/object/msv.h"
 #include "bacnet/basic/services.h"
 
-/* number of demo objects */
-#ifndef MAX_MULTISTATE_VALUES
-#define MAX_MULTISTATE_VALUES 4
-#endif
-
 
 static MULTISTATE_VALUE_DESCR *MSV_Descr = NULL;
 static size_t MSV_Descr_Size = 0;
@@ -108,7 +103,7 @@ void Multistate_Value_Objects_Init()
     unsigned int i;
 
     /* initialize all the analog output priority arrays to NULL */
-    for (i = 0; i < MAX_MULTISTATE_VALUES; i++) {
+    for (i = 0; i < MSV_Descr_Size; i++) {
         MSV_Descr[i].Present_Value = 1;
         sprintf(&MSV_Descr[i].Object_Name[0], "MULTISTATE VALUE %u", i);
         sprintf(&MSV_Descr[i].Object_Description[0], "MULTISTATE VALUE %u", i);
@@ -133,9 +128,9 @@ void Multistate_Value_Init(void)
 /* that correlates to the correct instance number */
 unsigned Multistate_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_MULTISTATE_VALUES;
+    unsigned index = MSV_Descr_Size;
 
-    if (object_instance < MAX_MULTISTATE_VALUES) {
+    if (object_instance < MSV_Descr_Size) {
         index = object_instance;
     }
 
@@ -154,7 +149,7 @@ uint32_t Multistate_Value_Index_To_Instance(unsigned index)
 /* more complex, and then count how many you have */
 unsigned Multistate_Value_Count(void)
 {
-    return MAX_MULTISTATE_VALUES;
+    return MSV_Descr_Size;
 }
 
 bool Multistate_Value_Valid_Instance(uint32_t object_instance)
@@ -162,7 +157,7 @@ bool Multistate_Value_Valid_Instance(uint32_t object_instance)
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         return true;
     }
 
@@ -175,7 +170,7 @@ uint32_t Multistate_Value_Present_Value(uint32_t object_instance)
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         value = MSV_Descr[index].Present_Value;
     }
 
@@ -189,7 +184,7 @@ bool Multistate_Value_Present_Value_Set(
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         if ((value > 0) && (value <= MULTISTATE_NUMBER_OF_STATES)) {
             if (MSV_Descr[index].Present_Value != (uint8_t)value) {
                 MSV_Descr[index].Change_Of_Value = true;
@@ -208,7 +203,7 @@ bool Multistate_Value_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         value = MSV_Descr[index].Out_Of_Service;
     }
 
@@ -220,7 +215,7 @@ void Multistate_Value_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         if (MSV_Descr[index].Out_Of_Service != value) {
             MSV_Descr[index].Change_Of_Value = true;
         }
@@ -236,7 +231,7 @@ char *Multistate_Value_Description(uint32_t object_instance)
     char *pName = NULL; /* return value */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         pName = MSV_Descr[index].Object_Description;
     }
 
@@ -250,7 +245,7 @@ bool Multistate_Value_Description_Set(uint32_t object_instance, char *new_name)
     bool status = false; /* return value */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         status = true;
         if (new_name) {
             for (i = 0; i < sizeof(MSV_Descr[index].Object_Description); i++) {
@@ -276,7 +271,7 @@ bool Multistate_Value_Object_Name(
     bool status = false;
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         status = characterstring_init_ansi(object_name, MSV_Descr[index].Object_Name);
     }
 
@@ -291,7 +286,7 @@ bool Multistate_Value_Name_Set(uint32_t object_instance, char *new_name)
     bool status = false; /* return value */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         status = true;
         /* FIXME: check to see if there is a matching name */
         if (new_name) {
@@ -318,7 +313,7 @@ char *Multistate_Value_State_Text(
     char *pName = NULL; /* return value */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if ((index < MAX_MULTISTATE_VALUES) && (state_index > 0) &&
+    if ((index < MSV_Descr_Size) && (state_index > 0) &&
         (state_index <= MULTISTATE_NUMBER_OF_STATES)) {
         state_index--;
         pName = MSV_Descr[index].State_Text[state_index];
@@ -336,7 +331,7 @@ bool Multistate_Value_State_Text_Set(
     bool status = false; /* return value */
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if ((index < MAX_MULTISTATE_VALUES) && (state_index > 0) &&
+    if ((index < MSV_Descr_Size) && (state_index > 0) &&
         (state_index <= MULTISTATE_NUMBER_OF_STATES)) {
         state_index--;
         status = true;
@@ -364,7 +359,7 @@ bool Multistate_Value_Change_Of_Value(uint32_t object_instance)
     unsigned index;
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         status = MSV_Descr[index].Change_Of_Value;
     }
 
@@ -376,7 +371,7 @@ void Multistate_Value_Change_Of_Value_Clear(uint32_t object_instance)
     unsigned index;
 
     index = Multistate_Value_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_VALUES) {
+    if (index < MSV_Descr_Size) {
         MSV_Descr[index].Change_Of_Value = false;
     }
 
