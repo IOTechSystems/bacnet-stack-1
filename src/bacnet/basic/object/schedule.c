@@ -25,6 +25,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -37,11 +38,8 @@
 #include "bacnet/timestamp.h"
 #include "bacnet/basic/object/schedule.h"
 
-#ifndef MAX_SCHEDULES
-#define MAX_SCHEDULES 4
-#endif
-
-static SCHEDULE_DESCR Schedule_Descr[MAX_SCHEDULES];
+static SCHEDULE_DESCR *Schedule_Descr = NULL;
+static size_t Schedule_Descr_Size = 0;
 
 static const int Schedule_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
     PROP_OBJECT_NAME, PROP_OBJECT_TYPE, PROP_PRESENT_VALUE,
@@ -67,13 +65,40 @@ void Schedule_Property_Lists(
     }
 }
 
-void Schedule_Init(void)
+void Schedule_Resize(size_t new_size)
+{
+    Schedule_Free();
+    Schedule_Alloc(new_size);
+    Schedule_Objects_Init();
+}
+
+void Schedule_Add(size_t count)
+{
+    Schedule_Resize(Schedule_Descr_Size + count);
+}
+
+void Schedule_Free(void)
+{
+    free(Schedule_Descr);
+    Schedule_Descr = NULL;
+    Schedule_Descr_Size = 0;
+}
+
+void Schedule_Alloc(size_t size)
+{
+    Schedule_Descr = calloc(size, sizeof (*Schedule_Descr));
+    if (NULL != Schedule_Descr)
+    {
+        Schedule_Descr_Size = size;
+    }
+}
+
+void Schedule_Objects_Init()
 {
     unsigned i, j;
-
     SCHEDULE_DESCR *psched = &Schedule_Descr[0];
 
-    for (i = 0; i < MAX_SCHEDULES; i++, psched++) {
+    for (i = 0; i < Schedule_Descr_Size; i++, psched++) {
         /* whole year, change as neccessary */
         psched->Start_Date.year = 0xFF;
         psched->Start_Date.month = 1;
@@ -96,10 +121,25 @@ void Schedule_Init(void)
     }
 }
 
+void Schedule_Cleanup()
+{
+    Schedule_Free();
+}
+
+/**
+ * Initializes the Schedule object data
+ */
+void Schedule_Init(void)
+{
+
+}
+
+
+
 bool Schedule_Valid_Instance(uint32_t object_instance)
 {
     unsigned int index = Schedule_Instance_To_Index(object_instance);
-    if (index < MAX_SCHEDULES) {
+    if (index < Schedule_Descr_Size) {
         return true;
     } else {
         return false;
@@ -108,7 +148,7 @@ bool Schedule_Valid_Instance(uint32_t object_instance)
 
 unsigned Schedule_Count(void)
 {
-    return MAX_SCHEDULES;
+    return Schedule_Descr_Size;
 }
 
 uint32_t Schedule_Index_To_Instance(unsigned index)
@@ -118,9 +158,9 @@ uint32_t Schedule_Index_To_Instance(unsigned index)
 
 unsigned Schedule_Instance_To_Index(uint32_t instance)
 {
-    unsigned index = MAX_SCHEDULES;
+    unsigned index = Schedule_Descr_Size;
 
-    if (instance < MAX_SCHEDULES) {
+    if (instance < Schedule_Descr_Size) {
         index = instance;
     }
 
@@ -135,7 +175,7 @@ bool Schedule_Object_Name(
     bool status = false;
 
     index = Schedule_Instance_To_Index(object_instance);
-    if (index < MAX_SCHEDULES) {
+    if (index < Schedule_Descr_Size) {
         sprintf(text_string, "SCHEDULE %lu", (unsigned long)index);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -155,7 +195,7 @@ void Schedule_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Schedule_Instance_To_Index(object_instance);
-    if (index < MAX_SCHEDULES) {
+    if (index < Schedule_Descr_Size) {
         Schedule_Descr[index].Out_Of_Service = value;
     }
 }
@@ -176,7 +216,7 @@ int Schedule_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     }
 
     object_index = Schedule_Instance_To_Index(rpdata->object_instance);
-    if (object_index < MAX_SCHEDULES) {
+    if (object_index < Schedule_Descr_Size) {
         CurrentSC = &Schedule_Descr[object_index];
     } else {
         return BACNET_STATUS_ERROR;
@@ -332,7 +372,7 @@ bool Schedule_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     }
 
     object_index = Schedule_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= MAX_SCHEDULES) {
+    if (object_index >= Schedule_Descr_Size) {
         return false;
     }
 

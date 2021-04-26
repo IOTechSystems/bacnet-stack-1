@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -39,17 +40,11 @@
 #include "bacnet/basic/object/csv.h"
 #include "bacnet/basic/services.h"
 
-/* number of demo objects */
-#ifndef MAX_CHARACTERSTRING_VALUES
-#define MAX_CHARACTERSTRING_VALUES 1
-#endif
+
 
 /* Here is our Present Value */
-static BACNET_CHARACTER_STRING Present_Value[MAX_CHARACTERSTRING_VALUES];
-/* Writable out-of-service allows others to manipulate our Present Value */
-static bool Out_Of_Service[MAX_CHARACTERSTRING_VALUES];
-static char Object_Name[MAX_CHARACTERSTRING_VALUES][64];
-static char Object_Description[MAX_CHARACTERSTRING_VALUES][64];
+static CHARACTER_STRING_VALUE_DESCR *CSV_Descr = NULL;
+static size_t CSV_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -85,23 +80,60 @@ void CharacterString_Value_Property_Lists(
     return;
 }
 
+void CharacterString_Value_Resize(size_t new_size)
+{
+    CharacterString_Value_Free();
+    CharacterString_Value_Alloc(new_size);
+    CharacterString_Value_Objects_Init();
+}
+
+void CharacterString_Value_Add(size_t count)
+{
+    CharacterString_Value_Resize(CSV_Descr_Size + count);
+}
+
+void CharacterString_Value_Free(void)
+{
+    free(CSV_Descr);
+    CSV_Descr = NULL;
+    CSV_Descr_Size = 0;
+}
+
+void CharacterString_Value_Alloc(size_t size)
+{
+    CSV_Descr = calloc(size, sizeof (*CSV_Descr));
+    if (NULL != CSV_Descr)
+    {
+        CSV_Descr_Size = size;
+    }
+}
+
+void CharacterString_Value_Objects_Init()
+{
+    unsigned i;
+
+    /* initialize all Present Values */
+    for (i = 0; i < CSV_Descr_Size; i++) {
+        snprintf(&CSV_Descr[i].Object_Name[0], sizeof(CSV_Descr[i].Object_Name),"CHARACTER STRING VALUE %u", i + 1);
+        snprintf(&CSV_Descr[i].Object_Description[0], sizeof(CSV_Descr[i].Object_Description),
+            "A Character String Value Example");
+        characterstring_init_ansi(&CSV_Descr[i].Present_Value, "");
+    }
+
+    return;
+}
+
+void CharacterString_Value_Cleanup()
+{
+    CharacterString_Value_Free();
+}
+
 /**
  * Initialize the character string values.
  */
 void CharacterString_Value_Init(void)
 {
-    unsigned i;
 
-    /* initialize all Present Values */
-    for (i = 0; i < MAX_CHARACTERSTRING_VALUES; i++) {
-        snprintf(&Object_Name[i][0], sizeof(Object_Name[i]),
-            "CHARACTER STRING VALUE %u", i + 1);
-        snprintf(&Object_Description[i][0], sizeof(Object_Description[i]),
-            "A Character String Value Example");
-        characterstring_init_ansi(&Present_Value[i], "");
-    }
-
-    return;
 }
 
 /**
@@ -115,9 +147,9 @@ void CharacterString_Value_Init(void)
  */
 unsigned CharacterString_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_CHARACTERSTRING_VALUES;
+    unsigned index = CSV_Descr_Size;
 
-    if (object_instance < MAX_CHARACTERSTRING_VALUES) {
+    if (object_instance < CSV_Descr_Size) {
         index = object_instance;
     }
 
@@ -145,7 +177,7 @@ uint32_t CharacterString_Value_Index_To_Instance(unsigned index)
  */
 unsigned CharacterString_Value_Count(void)
 {
-    return MAX_CHARACTERSTRING_VALUES;
+    return CSV_Descr_Size;
 }
 
 /**
@@ -162,7 +194,7 @@ bool CharacterString_Value_Valid_Instance(uint32_t object_instance)
     unsigned index = 0; /* offset from instance lookup */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
+    if (index < CSV_Descr_Size) {
         return true;
     }
 
@@ -186,8 +218,8 @@ bool CharacterString_Value_Present_Value(
     unsigned index = 0; /* offset from instance lookup */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (object_name && (index < MAX_CHARACTERSTRING_VALUES)) {
-        status = characterstring_copy(object_name, &Present_Value[index]);
+    if (object_name && (index < CSV_Descr_Size)) {
+        status = characterstring_copy(object_name, &CSV_Descr[index].Present_Value);
     }
 
     return status;
@@ -209,8 +241,8 @@ bool CharacterString_Value_Present_Value_Set(
     unsigned index = 0; /* offset from instance lookup */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
-        status = characterstring_copy(&Present_Value[index], object_name);
+    if (index < CSV_Descr_Size) {
+        status = characterstring_copy(&CSV_Descr[index].Present_Value, object_name);
     }
 
     return status;
@@ -229,8 +261,8 @@ bool CharacterString_Value_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
-        value = Out_Of_Service[index];
+    if (index < CSV_Descr_Size) {
+        value = CSV_Descr[index].Out_Of_Service;
     }
 
     return value;
@@ -248,8 +280,8 @@ static void CharacterString_Value_Out_Of_Service_Set(
     unsigned index = 0;
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
-        Out_Of_Service[index] = value;
+    if (index < CSV_Descr_Size) {
+        CSV_Descr[index].Out_Of_Service = value;
     }
 
     return;
@@ -268,8 +300,8 @@ static char *CharacterString_Value_Description(uint32_t object_instance)
     char *pName = NULL; /* return value */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
-        pName = Object_Description[index];
+    if (index < CSV_Descr_Size) {
+        pName = CSV_Descr[index].Object_Description;
     }
 
     return pName;
@@ -292,18 +324,18 @@ bool CharacterString_Value_Description_Set(
     bool status = false; /* return value */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
+    if (index < CSV_Descr_Size) {
         status = true;
         if (new_descr) {
-            for (i = 0; i < sizeof(Object_Description[index]); i++) {
-                Object_Description[index][i] = new_descr[i];
+            for (i = 0; i < sizeof(CSV_Descr[index].Object_Description); i++) {
+                CSV_Descr[index].Object_Description[i] = new_descr[i];
                 if (new_descr[i] == 0) {
                     break;
                 }
             }
         } else {
-            memset(&Object_Description[index][0], 0,
-                sizeof(Object_Description[index]));
+            memset(&CSV_Descr[index].Object_Description[0], 0,
+                sizeof(CSV_Descr[index].Object_Description));
         }
     }
 
@@ -326,8 +358,8 @@ bool CharacterString_Value_Object_Name(
     bool status = false;
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
-        status = characterstring_init_ansi(object_name, Object_Name[index]);
+    if (index < CSV_Descr_Size) {
+        status = characterstring_init_ansi(object_name, CSV_Descr[index].Object_Name);
     }
 
     return status;
@@ -350,18 +382,18 @@ bool CharacterString_Value_Name_Set(uint32_t object_instance, char *new_name)
     bool status = false; /* return value */
 
     index = CharacterString_Value_Instance_To_Index(object_instance);
-    if (index < MAX_CHARACTERSTRING_VALUES) {
+    if (index < CSV_Descr_Size) {
         status = true;
         /* FIXME: check to see if there is a matching name */
         if (new_name) {
-            for (i = 0; i < sizeof(Object_Name[index]); i++) {
-                Object_Name[index][i] = new_name[i];
+            for (i = 0; i < sizeof(CSV_Descr[index].Object_Name); i++) {
+                CSV_Descr[index].Object_Name[i] = new_name[i];
                 if (new_name[i] == 0) {
                     break;
                 }
             }
         } else {
-            memset(&Object_Name[index][0], 0, sizeof(Object_Name[index]));
+            memset(&CSV_Descr[index].Object_Name[0], 0, sizeof(CSV_Descr[index].Object_Name));
         }
     }
 
@@ -396,7 +428,7 @@ int CharacterString_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     /* Valid object? */
     object_index =
         CharacterString_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index >= MAX_CHARACTERSTRING_VALUES) {
+    if (object_index >= CSV_Descr_Size) {
         rpdata->error_class = ERROR_CLASS_OBJECT;
         rpdata->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return BACNET_STATUS_ERROR;
@@ -457,7 +489,7 @@ int CharacterString_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 encode_application_enumerated(&apdu[0], EVENT_STATE_NORMAL);
             break;
         case PROP_OUT_OF_SERVICE:
-            state = Out_Of_Service[object_index];
+            state = CSV_Descr[object_index].Out_Of_Service;
             apdu_len = encode_application_boolean(&apdu[0], state);
             break;
         default:
@@ -513,7 +545,7 @@ bool CharacterString_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     /* Valid object? */
     object_index =
         CharacterString_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= MAX_CHARACTERSTRING_VALUES) {
+    if (object_index >= CSV_Descr_Size) {
         wp_data->error_class = ERROR_CLASS_OBJECT;
         wp_data->error_code = ERROR_CODE_UNKNOWN_OBJECT;
         return false;

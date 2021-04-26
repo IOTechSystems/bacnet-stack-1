@@ -53,10 +53,8 @@ typedef struct {
 #define FILE_RECORD_SIZE MAX_OCTET_STRING_BYTES
 #endif
 
-static BACNET_FILE_LISTING BACnet_File_Listing[] = {
-    { 0, "temp_0.txt" }, { 1, "temp_1.txt" }, { 2, "temp_2.txt" },
-    { 0, NULL } /* last file indication */
-};
+static BACNET_FILE_LISTING *BACnet_File_Listing = NULL;
+static size_t BACnet_File_Listing_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int bacfile_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -82,6 +80,76 @@ void BACfile_Property_Lists(
     }
 
     return;
+}
+
+void bacfile_resize(size_t new_size)
+{
+    bacfile_free();
+    bacfile_alloc(new_size);
+    bacfile_objects_init();
+}
+
+void bacfile_add(size_t count)
+{
+    bacfile_resize(BACnet_File_Listing_Size + count);
+}
+
+void bacfile_free(void)
+{
+    if(BACnet_File_Listing == NULL) return;
+
+    for (size_t i=0 ; i < BACnet_File_Listing_Size; i++)
+    {
+        free(BACnet_File_Listing[i].filename);
+        BACnet_File_Listing[i].filename = NULL;
+    }
+
+    free(BACnet_File_Listing);
+    BACnet_File_Listing = NULL;
+    BACnet_File_Listing_Size = 0;
+}
+
+void bacfile_alloc(size_t size)
+{
+    if(size > BACNET_MAX_INSTANCE) 
+    {
+        size = BACNET_MAX_INSTANCE;
+    }
+
+    BACnet_File_Listing = calloc(size + 1, sizeof (*BACnet_File_Listing)); //+1 for null entry
+    if (NULL != BACnet_File_Listing)
+    {
+        BACnet_File_Listing_Size = size;
+    }
+}
+
+void bacfile_objects_init()
+{
+    char name_buffer[32];
+    for (size_t i = 0; i < BACnet_File_Listing_Size; i++)
+    {
+        BACnet_File_Listing[i].instance = i;
+
+        snprintf(name_buffer, 32, "temp_%lu.txt", i);
+        BACnet_File_Listing[i].filename = malloc(sizeof(char) * (strlen(name_buffer) + 1) ) ;
+        strncpy(BACnet_File_Listing[i].filename, name_buffer, strlen(name_buffer) + 1);
+    }
+    //+1 for null entry
+    BACnet_File_Listing[BACnet_File_Listing_Size].instance = 0;
+    BACnet_File_Listing[BACnet_File_Listing_Size].filename = NULL;
+}
+
+void bacfile_cleanup()
+{
+    bacfile_free();
+}
+
+void bacfile_init(void)
+{
+    //bacnet file listing must have at least one entry of null name
+    BACnet_File_Listing = malloc(sizeof(*BACnet_File_Listing));
+    BACnet_File_Listing[0].filename = NULL;
+    BACnet_File_Listing[0].instance = 0;
 }
 
 static char *bacfile_name(uint32_t instance)
@@ -597,8 +665,4 @@ bool bacfile_read_ack_record_data(
     }
 
     return found;
-}
-
-void bacfile_init(void)
-{
 }

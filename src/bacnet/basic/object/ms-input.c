@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -39,23 +41,8 @@
 #include "bacnet/basic/object/ms-input.h"
 #include "bacnet/basic/services.h"
 
-/* number of demo objects */
-#ifndef MAX_MULTISTATE_INPUTS
-#define MAX_MULTISTATE_INPUTS 4
-#endif
-
-/* how many states? 1 to 254 states - 0 is not allowed. */
-#ifndef MULTISTATE_NUMBER_OF_STATES
-#define MULTISTATE_NUMBER_OF_STATES (254)
-#endif
-
-/* Here is our Present Value */
-static uint8_t Present_Value[MAX_MULTISTATE_INPUTS];
-/* Writable out-of-service allows others to manipulate our Present Value */
-static bool Out_Of_Service[MAX_MULTISTATE_INPUTS];
-static char Object_Name[MAX_MULTISTATE_INPUTS][64];
-static char Object_Description[MAX_MULTISTATE_INPUTS][64];
-static char State_Text[MAX_MULTISTATE_INPUTS][MULTISTATE_NUMBER_OF_STATES][64];
+static MULTISTATE_INPUT_DESCR *MSI_Descr = NULL;
+static size_t MSI_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -83,18 +70,55 @@ void Multistate_Input_Property_Lists(
     return;
 }
 
-void Multistate_Input_Init(void)
+void Multistate_Input_Resize(size_t new_size)
+{
+    Multistate_Input_Free();
+    Multistate_Input_Alloc(new_size);
+    Multistate_Input_Objects_Init();
+}
+
+void Multistate_Input_Add(size_t count)
+{
+    Multistate_Input_Resize(MSI_Descr_Size + count);
+}
+
+void Multistate_Input_Free(void)
+{
+    free(MSI_Descr);
+    MSI_Descr = NULL;
+    MSI_Descr_Size = 0;
+}
+
+void Multistate_Input_Alloc(size_t size)
+{
+    MSI_Descr = calloc(size, sizeof (*MSI_Descr));
+    if (NULL != MSI_Descr)
+    {
+        MSI_Descr_Size = size;
+    }
+}
+
+void Multistate_Input_Objects_Init()
 {
     unsigned i;
-
     /* initialize all the analog output priority arrays to NULL */
-    for (i = 0; i < MAX_MULTISTATE_INPUTS; i++) {
-        Present_Value[i] = 1;
-        sprintf(&Object_Name[i][0], "MULTISTATE INPUT %u", i);
-        sprintf(&Object_Description[i][0], "MULTISTATE INPUT %u", i);
+    for (i = 0; i < MSI_Descr_Size; i++) {
+        MSI_Descr[i].Present_Value = 1;
+        sprintf(&MSI_Descr[i].Object_Name[0], "MULTISTATE INPUT %u", i);
+        sprintf(&MSI_Descr[i].Object_Description[0], "MULTISTATE INPUT %u", i);
     }
 
     return;
+}
+
+void Multistate_Input_Cleanup()
+{
+    Multistate_Input_Free();
+}
+
+void Multistate_Input_Init(void)
+{
+
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -102,9 +126,9 @@ void Multistate_Input_Init(void)
 /* that correlates to the correct instance number */
 unsigned Multistate_Input_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_MULTISTATE_INPUTS;
+    unsigned index = MSI_Descr_Size;
 
-    if (object_instance < MAX_MULTISTATE_INPUTS) {
+    if (object_instance < MSI_Descr_Size) {
         index = object_instance;
     }
 
@@ -123,7 +147,7 @@ uint32_t Multistate_Input_Index_To_Instance(unsigned index)
 /* more complex, and then count how many you have */
 unsigned Multistate_Input_Count(void)
 {
-    return MAX_MULTISTATE_INPUTS;
+    return MSI_Descr_Size;
 }
 
 bool Multistate_Input_Valid_Instance(uint32_t object_instance)
@@ -131,7 +155,7 @@ bool Multistate_Input_Valid_Instance(uint32_t object_instance)
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         return true;
     }
 
@@ -149,8 +173,8 @@ uint32_t Multistate_Input_Present_Value(uint32_t object_instance)
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
-        value = Present_Value[index];
+    if (index < MSI_Descr_Size) {
+        value = MSI_Descr[index].Present_Value;
     }
 
     return value;
@@ -163,9 +187,9 @@ bool Multistate_Input_Present_Value_Set(
     unsigned index = 0; /* offset from instance lookup */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         if ((value > 0) && (value <= MULTISTATE_NUMBER_OF_STATES)) {
-            Present_Value[index] = (uint8_t)value;
+            MSI_Descr[index].Present_Value = (uint8_t)value;
             status = true;
         }
     }
@@ -179,8 +203,8 @@ bool Multistate_Input_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
-        value = Out_Of_Service[index];
+    if (index < MSI_Descr_Size) {
+        value = MSI_Descr[index].Out_Of_Service;
     }
 
     return value;
@@ -191,8 +215,8 @@ void Multistate_Input_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
-        Out_Of_Service[index] = value;
+    if (index < MSI_Descr_Size) {
+        MSI_Descr[index].Out_Of_Service = value;
     }
 
     return;
@@ -204,8 +228,8 @@ char *Multistate_Input_Description(uint32_t object_instance)
     char *pName = NULL; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
-        pName = Object_Description[index];
+    if (index < MSI_Descr_Size) {
+        pName = MSI_Descr[index].Object_Description;
     }
 
     return pName;
@@ -218,18 +242,18 @@ bool Multistate_Input_Description_Set(uint32_t object_instance, char *new_name)
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         status = true;
         if (new_name) {
-            for (i = 0; i < sizeof(Object_Description[index]); i++) {
-                Object_Description[index][i] = new_name[i];
+            for (i = 0; i < sizeof(MSI_Descr[index].Object_Description); i++) {
+                MSI_Descr[index].Object_Description[i] = new_name[i];
                 if (new_name[i] == 0) {
                     break;
                 }
             }
         } else {
-            for (i = 0; i < sizeof(Object_Description[index]); i++) {
-                Object_Description[index][i] = 0;
+            for (i = 0; i < sizeof(MSI_Descr[index].Object_Description); i++) {
+                MSI_Descr[index].Object_Description[i] = 0;
             }
         }
     }
@@ -248,13 +272,13 @@ static bool Multistate_Input_Description_Write(uint32_t object_instance,
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         length = characterstring_length(char_string);
-        if (length <= sizeof(Object_Description[index])) {
+        if (length <= sizeof(MSI_Descr[index].Object_Description)) {
             encoding = characterstring_encoding(char_string);
             if (encoding == CHARACTER_UTF8) {
-                status = characterstring_ansi_copy(Object_Description[index],
-                    sizeof(Object_Description[index]), char_string);
+                status = characterstring_ansi_copy(MSI_Descr[index].Object_Description,
+                    sizeof(MSI_Descr[index].Object_Description), char_string);
                 if (!status) {
                     *error_class = ERROR_CLASS_PROPERTY;
                     *error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
@@ -279,8 +303,8 @@ bool Multistate_Input_Object_Name(
     bool status = false;
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
-        status = characterstring_init_ansi(object_name, Object_Name[index]);
+    if (index < MSI_Descr_Size) {
+        status = characterstring_init_ansi(object_name, MSI_Descr[index].Object_Name);
     }
 
     return status;
@@ -294,19 +318,19 @@ bool Multistate_Input_Name_Set(uint32_t object_instance, char *new_name)
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         status = true;
         /* FIXME: check to see if there is a matching name */
         if (new_name) {
-            for (i = 0; i < sizeof(Object_Name[index]); i++) {
-                Object_Name[index][i] = new_name[i];
+            for (i = 0; i < sizeof(MSI_Descr[index].Object_Name); i++) {
+                MSI_Descr[index].Object_Name[i] = new_name[i];
                 if (new_name[i] == 0) {
                     break;
                 }
             }
         } else {
-            for (i = 0; i < sizeof(Object_Name[index]); i++) {
-                Object_Name[index][i] = 0;
+            for (i = 0; i < sizeof(MSI_Descr[index].Object_Name); i++) {
+                MSI_Descr[index].Object_Name[i] = 0;
             }
         }
     }
@@ -325,13 +349,13 @@ static bool Multistate_Input_Object_Name_Write(uint32_t object_instance,
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if (index < MAX_MULTISTATE_INPUTS) {
+    if (index < MSI_Descr_Size) {
         length = characterstring_length(char_string);
-        if (length <= sizeof(Object_Name[index])) {
+        if (length <= sizeof(MSI_Descr[index].Object_Name)) {
             encoding = characterstring_encoding(char_string);
             if (encoding == CHARACTER_UTF8) {
-                status = characterstring_ansi_copy(Object_Name[index],
-                    sizeof(Object_Name[index]), char_string);
+                status = characterstring_ansi_copy(MSI_Descr[index].Object_Name,
+                    sizeof(MSI_Descr[index].Object_Name), char_string);
                 if (!status) {
                     *error_class = ERROR_CLASS_PROPERTY;
                     *error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;
@@ -356,10 +380,10 @@ char *Multistate_Input_State_Text(
     char *pName = NULL; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if ((index < MAX_MULTISTATE_INPUTS) && (state_index > 0) &&
+    if ((index < MSI_Descr_Size) && (state_index > 0) &&
         (state_index <= MULTISTATE_NUMBER_OF_STATES)) {
         state_index--;
-        pName = State_Text[index][state_index];
+        pName = MSI_Descr[index].State_Text[state_index];
     }
 
     return pName;
@@ -374,20 +398,20 @@ bool Multistate_Input_State_Text_Set(
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if ((index < MAX_MULTISTATE_INPUTS) && (state_index > 0) &&
+    if ((index < MSI_Descr_Size) && (state_index > 0) &&
         (state_index <= MULTISTATE_NUMBER_OF_STATES)) {
         state_index--;
         status = true;
         if (new_name) {
-            for (i = 0; i < sizeof(State_Text[index][state_index]); i++) {
-                State_Text[index][state_index][i] = new_name[i];
+            for (i = 0; i < sizeof(MSI_Descr[index].State_Text[state_index]); i++) {
+                MSI_Descr[index].State_Text[state_index][i] = new_name[i];
                 if (new_name[i] == 0) {
                     break;
                 }
             }
         } else {
-            for (i = 0; i < sizeof(State_Text[index][state_index]); i++) {
-                State_Text[index][state_index][i] = 0;
+            for (i = 0; i < sizeof(MSI_Descr[index].State_Text[state_index]); i++) {
+                MSI_Descr[index].State_Text[state_index][i] = 0;
             }
         }
     }
@@ -408,16 +432,16 @@ static bool Multistate_Input_State_Text_Write(uint32_t object_instance,
     bool status = false; /* return value */
 
     index = Multistate_Input_Instance_To_Index(object_instance);
-    if ((index < MAX_MULTISTATE_INPUTS) && (state_index > 0) &&
+    if ((index < MSI_Descr_Size) && (state_index > 0) &&
         (state_index <= Multistate_Input_Max_States(object_instance))) {
         state_index--;
         length = characterstring_length(char_string);
-        if (length <= sizeof(State_Text[index][state_index])) {
+        if (length <= sizeof(MSI_Descr[index].State_Text[state_index])) {
             encoding = characterstring_encoding(char_string);
             if (encoding == CHARACTER_UTF8) {
                 status =
-                    characterstring_ansi_copy(State_Text[index][state_index],
-                        sizeof(State_Text[index][state_index]), char_string);
+                    characterstring_ansi_copy(MSI_Descr[index].State_Text[state_index],
+                        sizeof(MSI_Descr[index].State_Text[state_index]), char_string);
                 if (!status) {
                     *error_class = ERROR_CLASS_PROPERTY;
                     *error_code = ERROR_CODE_VALUE_OUT_OF_RANGE;

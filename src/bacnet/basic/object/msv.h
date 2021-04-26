@@ -37,6 +37,20 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    /* how many states? 1 to 254 states - 0 is not allowed. */
+    #ifndef MULTISTATE_NUMBER_OF_STATES
+    #define MULTISTATE_NUMBER_OF_STATES (254)
+    #endif
+
+    typedef struct Multistate_Value_Descr {
+        uint8_t Present_Value;
+        bool Out_Of_Service;
+        bool Change_Of_Value;
+        char Object_Name[64];
+        char Object_Description[64];
+        char State_Text[MULTISTATE_NUMBER_OF_STATES][64];
+    } MULTISTATE_VALUE_DESCR;
+
     BACNET_STACK_EXPORT
     void Multistate_Value_Property_Lists(
         const int **pRequired,
@@ -127,7 +141,21 @@ extern "C" {
         uint32_t state_index);
 
     BACNET_STACK_EXPORT
+    void Multistate_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Multistate_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void Multistate_Value_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
     void Multistate_Value_Init(
+        void);
+     BACNET_STACK_EXPORT
+    void Multistate_Value_Cleanup(
         void);
 
 

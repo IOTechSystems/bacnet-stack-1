@@ -37,6 +37,19 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    /* how many states? 1 to 254 states - 0 is not allowed. */
+    #ifndef MULTISTATE_NUMBER_OF_STATES
+    #define MULTISTATE_NUMBER_OF_STATES (254)
+    #endif
+
+    typedef struct Multistate_Input_Descr {
+        uint8_t Present_Value;
+        bool Out_Of_Service;
+        char Object_Name[64];
+        char Object_Description[64];
+        char State_Text[MULTISTATE_NUMBER_OF_STATES][64];
+    } MULTISTATE_INPUT_DESCR;
+
     BACNET_STACK_EXPORT
     void Multistate_Input_Property_Lists(
         const int **pRequired,
@@ -136,6 +149,17 @@ extern "C" {
         uint32_t state_index);
 
     BACNET_STACK_EXPORT
+    void Multistate_Input_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Input_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Multistate_Input_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Multistate_Input_Free(void);
+    BACNET_STACK_EXPORT
+    void Multistate_Input_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
     bool Multistate_Input_Create(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -144,7 +168,6 @@ extern "C" {
     BACNET_STACK_EXPORT
     void Multistate_Input_Cleanup(
         void);
-
     BACNET_STACK_EXPORT
     void Multistate_Input_Init(
         void);

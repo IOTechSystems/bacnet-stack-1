@@ -25,6 +25,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h> /* for memmove */
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -44,13 +45,8 @@
 #include "bacnet/basic/object/bacfile.h" /* object list dependency */
 #endif
 
-/* number of demo objects */
-#ifndef MAX_TREND_LOGS
-#define MAX_TREND_LOGS 8
-#endif
-
-static TL_DATA_REC Logs[MAX_TREND_LOGS][TL_MAX_ENTRIES];
-static TL_LOG_INFO LogInfo[MAX_TREND_LOGS];
+static TREND_LOG_DESCR *TL_Descr = NULL;
+static size_t TL_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Trend_Log_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -102,7 +98,7 @@ void Trend_Log_Property_Lists(
 /* given instance exists */
 bool Trend_Log_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_TREND_LOGS) {
+    if (object_instance < TL_Descr_Size) {
         return true;
     }
 
@@ -113,7 +109,7 @@ bool Trend_Log_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Trend_Log_Count(void)
 {
-    return MAX_TREND_LOGS;
+    return TL_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -129,20 +125,45 @@ uint32_t Trend_Log_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Trend_Log_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_TREND_LOGS;
+    unsigned index = TL_Descr_Size;
 
-    if (object_instance < MAX_TREND_LOGS) {
+    if (object_instance < TL_Descr_Size) {
         index = object_instance;
     }
 
     return index;
 }
 
-/*
- * Things to do when starting up the stack for Trend Logs.
- * Should be called whenever we reset the device or power it up
- */
-void Trend_Log_Init(void)
+
+void Trend_Log_Resize(size_t new_size)
+{
+    Trend_Log_Free();
+    Trend_Log_Alloc(new_size);
+    Trend_Log_Objects_Init();
+}
+
+void Trend_Log_Add(size_t count)
+{
+    Trend_Log_Resize(TL_Descr_Size + count);
+}
+
+void Trend_Log_Free(void)
+{
+    free(TL_Descr);
+    TL_Descr = NULL;
+    TL_Descr_Size = 0;
+}
+
+void Trend_Log_Alloc(size_t size)
+{
+    TL_Descr = calloc(size, sizeof (*TL_Descr));
+    if (NULL != TL_Descr)
+    {
+        TL_Descr_Size = size;
+    }
+}
+
+void Trend_Log_Objects_Init()
 {
     static bool initialized = false;
     int iLog;
@@ -155,7 +176,7 @@ void Trend_Log_Init(void)
 
         /* initialize all the values */
 
-        for (iLog = 0; iLog < MAX_TREND_LOGS; iLog++) {
+        for (iLog = 0; iLog < TL_Descr_Size; iLog++) {
             /*
              * Do we need to do anything here?
              * Trend logs are usually assumed to survive over resets
@@ -181,53 +202,67 @@ void Trend_Log_Init(void)
             tClock = mktime(&TempTime);
 
             for (iEntry = 0; iEntry < TL_MAX_ENTRIES; iEntry++) {
-                Logs[iLog][iEntry].tTimeStamp = tClock;
-                Logs[iLog][iEntry].ucRecType = TL_TYPE_REAL;
-                Logs[iLog][iEntry].Datum.fReal =
+                TL_Descr[iLog].Logs[iEntry].tTimeStamp = tClock;
+                TL_Descr[iLog].Logs[iEntry].ucRecType = TL_TYPE_REAL;
+                TL_Descr[iLog].Logs[iEntry].Datum.fReal =
                     (float)(iEntry + (iLog * TL_MAX_ENTRIES));
                 /* Put status flags with every second log */
                 if ((iLog & 1) == 0) {
-                    Logs[iLog][iEntry].ucStatus = 128;
+                    TL_Descr[iLog].Logs[iEntry].ucStatus = 128;
                 } else {
-                    Logs[iLog][iEntry].ucStatus = 0;
+                    TL_Descr[iLog].Logs[iEntry].ucStatus = 0;
                 }
                 tClock += 900; /* advance 15 minutes */
             }
 
-            LogInfo[iLog].tLastDataTime = tClock - 900;
-            LogInfo[iLog].bAlignIntervals = true;
-            LogInfo[iLog].bEnable = true;
-            LogInfo[iLog].bStopWhenFull = false;
-            LogInfo[iLog].bTrigger = false;
-            LogInfo[iLog].LoggingType = LOGGING_TYPE_POLLED;
-            LogInfo[iLog].Source.arrayIndex = 0;
-            LogInfo[iLog].ucTimeFlags = 0;
-            LogInfo[iLog].ulIntervalOffset = 0;
-            LogInfo[iLog].iIndex = 0;
-            LogInfo[iLog].ulLogInterval = 900;
-            LogInfo[iLog].ulRecordCount = TL_MAX_ENTRIES;
-            LogInfo[iLog].ulTotalRecordCount = 10000;
+            TL_Descr[iLog].Log_Info.tLastDataTime = tClock - 900;
+            TL_Descr[iLog].Log_Info.bAlignIntervals = true;
+            TL_Descr[iLog].Log_Info.bEnable = true;
+            TL_Descr[iLog].Log_Info.bStopWhenFull = false;
+            TL_Descr[iLog].Log_Info.bTrigger = false;
+            TL_Descr[iLog].Log_Info.LoggingType = LOGGING_TYPE_POLLED;
+            TL_Descr[iLog].Log_Info.Source.arrayIndex = 0;
+            TL_Descr[iLog].Log_Info.ucTimeFlags = 0;
+            TL_Descr[iLog].Log_Info.ulIntervalOffset = 0;
+            TL_Descr[iLog].Log_Info.iIndex = 0;
+            TL_Descr[iLog].Log_Info.ulLogInterval = 900;
+            TL_Descr[iLog].Log_Info.ulRecordCount = TL_MAX_ENTRIES;
+            TL_Descr[iLog].Log_Info.ulTotalRecordCount = 10000;
 
-            LogInfo[iLog].Source.deviceIdentifier.instance =
+            TL_Descr[iLog].Log_Info.Source.deviceIdentifier.instance =
                 Device_Object_Instance_Number();
-            LogInfo[iLog].Source.deviceIdentifier.type = OBJECT_DEVICE;
-            LogInfo[iLog].Source.objectIdentifier.instance = iLog;
-            LogInfo[iLog].Source.objectIdentifier.type = OBJECT_ANALOG_INPUT;
-            LogInfo[iLog].Source.arrayIndex = BACNET_ARRAY_ALL;
-            LogInfo[iLog].Source.propertyIdentifier = PROP_PRESENT_VALUE;
+            TL_Descr[iLog].Log_Info.Source.deviceIdentifier.type = OBJECT_DEVICE;
+            TL_Descr[iLog].Log_Info.Source.objectIdentifier.instance = iLog;
+            TL_Descr[iLog].Log_Info.Source.objectIdentifier.type = OBJECT_ANALOG_INPUT;
+            TL_Descr[iLog].Log_Info.Source.arrayIndex = BACNET_ARRAY_ALL;
+            TL_Descr[iLog].Log_Info.Source.propertyIdentifier = PROP_PRESENT_VALUE;
 
             datetime_set_values(
-                &LogInfo[iLog].StartTime, 2009, 1, 1, 0, 0, 0, 0);
-            LogInfo[iLog].tStartTime =
-                TL_BAC_Time_To_Local(&LogInfo[iLog].StartTime);
+                &TL_Descr[iLog].Log_Info.StartTime, 2009, 1, 1, 0, 0, 0, 0);
+            TL_Descr[iLog].Log_Info.tStartTime =
+                TL_BAC_Time_To_Local(&TL_Descr[iLog].Log_Info.StartTime);
             datetime_set_values(
-                &LogInfo[iLog].StopTime, 2020, 12, 22, 23, 59, 59, 99);
-            LogInfo[iLog].tStopTime =
-                TL_BAC_Time_To_Local(&LogInfo[iLog].StopTime);
+                &TL_Descr[iLog].Log_Info.StopTime, 2020, 12, 22, 23, 59, 59, 99);
+            TL_Descr[iLog].Log_Info.tStopTime =
+                TL_BAC_Time_To_Local(&TL_Descr[iLog].Log_Info.StopTime);
         }
     }
+}
 
-    return;
+
+void Trend_Log_Cleanup()
+{
+    Trend_Log_Free();
+}
+
+
+/*
+ * Things to do when starting up the stack for Trend Logs.
+ * Should be called whenever we reset the device or power it up
+ */
+void Trend_Log_Init(void)
+{
+    
 }
 
 /*
@@ -241,7 +276,7 @@ bool Trend_Log_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_TREND_LOGS) {
+    if (object_instance < TL_Descr_Size) {
         sprintf(text_string, "Trend Log %u", object_instance);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -265,8 +300,7 @@ int Trend_Log_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
         return 0;
     }
     apdu = rpdata->application_data;
-    CurrentLog = &LogInfo[Trend_Log_Instance_To_Index(
-        rpdata->object_instance)]; /* Pin down which log to look at */
+    CurrentLog = &TL_Descr[Trend_Log_Instance_To_Index(rpdata->object_instance)].Log_Info; /* Pin down which log to look at */
     switch (rpdata->object_property) {
         case PROP_OBJECT_IDENTIFIER:
             apdu_len = encode_application_object_id(
@@ -428,7 +462,7 @@ bool Trend_Log_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
 
     /* Pin down which log to look at */
     log_index = Trend_Log_Instance_To_Index(wp_data->object_instance);
-    CurrentLog = &LogInfo[log_index];
+    CurrentLog = &TL_Descr[log_index].Log_Info;
 
     /* decode the some of the request */
     len = bacapp_decode_application_data(
@@ -796,7 +830,7 @@ bool TrendLogGetRRInfo(
     int log_index;
 
     log_index = Trend_Log_Instance_To_Index(pRequest->object_instance);
-    if (log_index >= MAX_TREND_LOGS) {
+    if (log_index >= TL_Descr_Size) {
         pRequest->error_class = ERROR_CLASS_OBJECT;
         pRequest->error_code = ERROR_CODE_UNKNOWN_OBJECT;
     } else if (pRequest->object_property == PROP_LOG_BUFFER) {
@@ -823,7 +857,7 @@ void TL_Insert_Status_Rec(int iLog, BACNET_LOG_STATUS eStatus, bool bState)
     TL_LOG_INFO *CurrentLog;
     TL_DATA_REC TempRec;
 
-    CurrentLog = &LogInfo[iLog];
+    CurrentLog = &TL_Descr[iLog].Log_Info;
 
     TempRec.tTimeStamp = time(NULL);
     TempRec.ucRecType = TL_TYPE_STATUS;
@@ -849,7 +883,7 @@ void TL_Insert_Status_Rec(int iLog, BACNET_LOG_STATUS eStatus, bool bState)
             break;
     }
 
-    Logs[iLog][CurrentLog->iIndex++] = TempRec;
+    TL_Descr[iLog].Logs[CurrentLog->iIndex++] = TempRec;
     if (CurrentLog->iIndex >= TL_MAX_ENTRIES) {
         CurrentLog->iIndex = 0;
     }
@@ -873,7 +907,7 @@ bool TL_Is_Enabled(int iLog)
     bool bStatus;
 
     bStatus = true;
-    CurrentLog = &LogInfo[iLog];
+    CurrentLog = &TL_Descr[iLog].Log_Info;
 #if 0
     printf("\nFlags - %u, Start - %u, Stop - %u\n",
         (unsigned int) CurrentLog->ucTimeFlags,
@@ -1014,8 +1048,7 @@ int rr_trend_log_encode(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
     pRequest->ItemCount = 0; /* Start out with nothing */
 
     /* Bail out now if nowt - should never happen for a Trend Log but ... */
-    if (LogInfo[Trend_Log_Instance_To_Index(pRequest->object_instance)]
-            .ulRecordCount == 0) {
+    if (TL_Descr[Trend_Log_Instance_To_Index(pRequest->object_instance)].Log_Info.ulRecordCount == 0) {
         return (0);
     }
 
@@ -1051,7 +1084,7 @@ int TL_encode_by_position(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
     /* See how much space we have */
     uiRemaining = MAX_APDU - pRequest->Overhead;
     log_index = Trend_Log_Instance_To_Index(pRequest->object_instance);
-    CurrentLog = &LogInfo[log_index];
+    CurrentLog = &TL_Descr[log_index].Log_Info;
     if (pRequest->RequestType == RR_READ_ALL) {
         /*
          * Read all the list or as much as will fit in the buffer by selecting
@@ -1170,7 +1203,7 @@ int TL_encode_by_sequence(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
     /* See how much space we have */
     uiRemaining = MAX_APDU - pRequest->Overhead;
     log_index = Trend_Log_Instance_To_Index(pRequest->object_instance);
-    CurrentLog = &LogInfo[log_index];
+    CurrentLog = &TL_Descr[log_index].Log_Info;
     /* Figure out the sequence number for the first record, last is
      * ulTotalRecordCount */
     uiFirstSeq =
@@ -1316,7 +1349,7 @@ int TL_encode_by_time(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
     /* See how much space we have */
     uiRemaining = MAX_APDU - pRequest->Overhead;
     log_index = Trend_Log_Instance_To_Index(pRequest->object_instance);
-    CurrentLog = &LogInfo[log_index];
+    CurrentLog = &TL_Descr[log_index].Log_Info;
 
     tRefTime = TL_BAC_Time_To_Local(&pRequest->Range.RefTime);
     /* Find correct position for oldest entry in log */
@@ -1334,7 +1367,7 @@ int TL_encode_by_time(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
         /* Start out with the sequence number for the last record */
         uiFirstSeq = CurrentLog->ulTotalRecordCount;
         for (;;) {
-            if (Logs[pRequest->object_instance]
+            if ( TL_Descr[pRequest->object_instance].Logs
                     [(uiIndex + iCount) % TL_MAX_ENTRIES]
                         .tTimeStamp < tRefTime) {
                 break;
@@ -1376,7 +1409,7 @@ int TL_encode_by_time(uint8_t *apdu, BACNET_READ_RANGE_DATA *pRequest)
         uiFirstSeq =
             CurrentLog->ulTotalRecordCount - (CurrentLog->ulRecordCount - 1);
         for (;;) {
-            if (Logs[pRequest->object_instance]
+            if (TL_Descr[pRequest->object_instance].Logs
                     [(uiIndex + iCount) % TL_MAX_ENTRIES]
                         .tTimeStamp > tRefTime) {
                 break;
@@ -1447,11 +1480,11 @@ int TL_encode_entry(uint8_t *apdu, int iLog, int iEntry)
     /* Convert from BACnet 1 based to 0 based array index and then
      * handle wrap around of the circular buffer */
 
-    if (LogInfo[iLog].ulRecordCount < TL_MAX_ENTRIES) {
-        pSource = &Logs[iLog][(iEntry - 1) % TL_MAX_ENTRIES];
+    if (TL_Descr[iLog].Log_Info.ulRecordCount < TL_MAX_ENTRIES) {
+        pSource = &TL_Descr[iLog].Logs[(iEntry - 1) % TL_MAX_ENTRIES];
     } else {
         pSource =
-            &Logs[iLog][(LogInfo[iLog].iIndex + iEntry - 1) % TL_MAX_ENTRIES];
+            &TL_Descr[iLog].Logs[(TL_Descr[iLog].Log_Info.iIndex + iEntry - 1) % TL_MAX_ENTRIES];
     }
 
     iLen = 0;
@@ -1614,7 +1647,7 @@ static void TL_fetch_property(int iLog)
     BACNET_BIT_STRING TempBits;
     BACNET_UNSIGNED_INTEGER unsigned_value = 0;
 
-    CurrentLog = &LogInfo[iLog];
+    CurrentLog = &TL_Descr[iLog].Log_Info;
 
     /* Record the current time in the log entry and also in the info block
      * for the log so we can figure out when the next reading is due */
@@ -1623,7 +1656,7 @@ static void TL_fetch_property(int iLog)
     TempRec.ucStatus = 0;
 
     iLen = local_read_property(
-        ValueBuf, StatusBuf, &LogInfo[iLog].Source, &error_class, &error_code);
+        ValueBuf, StatusBuf, &TL_Descr[iLog].Log_Info.Source, &error_class, &error_code);
     if (iLen < 0) {
         /* Insert error code into log */
         TempRec.Datum.Error.usClass = error_class;
@@ -1709,7 +1742,7 @@ static void TL_fetch_property(int iLog)
         TempRec.ucStatus = 128 | bitstring_octet(&TempBits, 0);
     }
 
-    Logs[iLog][CurrentLog->iIndex++] = TempRec;
+    TL_Descr[iLog].Logs[CurrentLog->iIndex++] = TempRec;
     if (CurrentLog->iIndex >= TL_MAX_ENTRIES) {
         CurrentLog->iIndex = 0;
     }
@@ -1734,8 +1767,8 @@ void trend_log_timer(uint16_t uSeconds)
     (void)uSeconds;
     /* use OS to get the current time */
     tNow = time(NULL);
-    for (iCount = 0; iCount < MAX_TREND_LOGS; iCount++) {
-        CurrentLog = &LogInfo[iCount];
+    for (iCount = 0; iCount < TL_Descr_Size; iCount++) {
+        CurrentLog = &TL_Descr[iCount].Log_Info;
         if (TL_Is_Enabled(iCount)) {
             if (CurrentLog->LoggingType == LOGGING_TYPE_POLLED) {
                 /* For polled logs we first need to see if they are clock

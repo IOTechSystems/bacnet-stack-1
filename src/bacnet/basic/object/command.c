@@ -42,6 +42,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -334,7 +335,8 @@ int cl_decode_apdu(uint8_t *apdu,
     return dec_len;
 }
 
-COMMAND_DESCR Command_Descr[MAX_COMMANDS];
+static COMMAND_DESCR *Command_Descr = NULL;
+static size_t Command_Descr_Size = 0;
 
 /* These arrays are used by the ReadPropertyMultiple handler */
 static const int Command_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -372,17 +374,56 @@ void Command_Property_Lists(
     return;
 }
 
+
+void Command_Resize(size_t new_size)
+{
+    Command_Free();
+    Command_Alloc(new_size);
+    Command_Objects_Init();
+}
+
+void Command_Add(size_t count)
+{
+    Command_Resize(Command_Descr_Size + count);
+}
+
+void Command_Free(void)
+{
+    free(Command_Descr);
+    Command_Descr = NULL;
+    Command_Descr_Size = 0;
+}
+
+void Command_Alloc(size_t size)
+{
+    Command_Descr = calloc(size, sizeof (*Command_Descr));
+    if (NULL != Command_Descr)
+    {
+        Command_Descr_Size = size;
+    }
+}
+
+void Command_Objects_Init()
+{
+    unsigned i;
+    for (i = 0; i < Command_Descr_Size; i++) {
+        Command_Descr[i].Present_Value = 0;
+        Command_Descr[i].In_Process = false;
+        Command_Descr[i].All_Writes_Successful = true; /* Optimistic default */
+    }
+}
+
+void Command_Cleanup()
+{
+    Command_Free();
+}
+
 /**
  * Initializes the Command object data
  */
 void Command_Init(void)
 {
-    unsigned i;
-    for (i = 0; i < MAX_COMMANDS; i++) {
-        Command_Descr[i].Present_Value = 0;
-        Command_Descr[i].In_Process = false;
-        Command_Descr[i].All_Writes_Successful = true; /* Optimistic default */
-    }
+
 }
 
 /**
@@ -397,7 +438,7 @@ bool Command_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         return true;
     }
 
@@ -411,7 +452,7 @@ bool Command_Valid_Instance(uint32_t object_instance)
  */
 unsigned Command_Count(void)
 {
-    return MAX_COMMANDS;
+    return Command_Descr_Size;
 }
 
 /**
@@ -438,9 +479,9 @@ uint32_t Command_Index_To_Instance(unsigned index)
  */
 unsigned Command_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_COMMANDS;
+    unsigned index = Command_Descr_Size;
 
-    if (object_instance < MAX_COMMANDS) {
+    if (object_instance < Command_Descr_Size) {
         index = object_instance;
     }
 
@@ -460,7 +501,7 @@ uint32_t Command_Present_Value(uint32_t object_instance)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         value = Command_Descr[index].Present_Value;
     }
 
@@ -481,7 +522,7 @@ bool Command_Present_Value_Set(uint32_t object_instance, uint32_t value)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         Command_Descr[index].Present_Value = value;
         status = true;
     }
@@ -506,7 +547,7 @@ bool Command_In_Process(uint32_t object_instance)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         value = Command_Descr[index].In_Process;
     }
 
@@ -527,7 +568,7 @@ bool Command_In_Process_Set(uint32_t object_instance, bool value)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         Command_Descr[index].In_Process = value;
         status = true;
     }
@@ -550,7 +591,7 @@ bool Command_All_Writes_Successful(uint32_t object_instance)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         value = Command_Descr[index].All_Writes_Successful;
     }
 
@@ -571,7 +612,7 @@ bool Command_All_Writes_Successful_Set(uint32_t object_instance, bool value)
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         Command_Descr[index].All_Writes_Successful = value;
         status = true;
     }
@@ -596,7 +637,7 @@ bool Command_Object_Name(
     bool status = false;
 
     index = Command_Instance_To_Index(object_instance);
-    if (index < MAX_COMMANDS) {
+    if (index < Command_Descr_Size) {
         sprintf(text_string, "COMMAND %lu", (unsigned long)index);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -630,7 +671,7 @@ int Command_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
     }
     apdu_max = rpdata->application_data_len;
     object_index = Command_Instance_To_Index(rpdata->object_instance);
-    if (object_index < MAX_COMMANDS) {
+    if (object_index < Command_Descr_Size) {
         CurrentCommand = &Command_Descr[object_index];
     } else {
         return false;
@@ -769,7 +810,7 @@ bool Command_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
         return false;
     }
     object_index = Command_Instance_To_Index(wp_data->object_instance);
-    if (object_index >= MAX_COMMANDS) {
+    if (object_index >= Command_Descr_Size) {
         return false;
     }
 
