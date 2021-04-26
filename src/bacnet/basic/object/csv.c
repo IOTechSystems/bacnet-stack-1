@@ -80,7 +80,6 @@ void CharacterString_Value_Property_Lists(
     return;
 }
 
-
 void CharacterString_Value_Resize(size_t new_size)
 {
     CharacterString_Value_Free();

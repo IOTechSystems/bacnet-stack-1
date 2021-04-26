@@ -45,7 +45,6 @@ extern "C" {
         RECIPIENT_TYPE_ADDRESS = 2
     } NC_RECIPIENT_TYPE;
 
-
 #if defined(INTRINSIC_REPORTING)
 /* BACnetRecipient structure */
 /*
@@ -104,9 +103,23 @@ BACnetRecipient ::= CHOICE {
         const int **pOptional,
         const int **pProprietary);
 
+
+    
     BACNET_STACK_EXPORT
-    void Notification_Class_Init(
-        void);
+    void Notification_Class_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Notification_Class_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Notification_Class_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Notification_Class_Free(void);
+    BACNET_STACK_EXPORT
+    void Notification_Class_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void Notification_Class_Init(void);
+    BACNET_STACK_EXPORT
+    void Notification_Class_Cleanup(void);
 
     bool Notification_Class_Valid_Instance(
         uint32_t object_instance);

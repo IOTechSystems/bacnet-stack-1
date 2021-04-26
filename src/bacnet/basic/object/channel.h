@@ -220,7 +220,20 @@ extern "C" {
         BACNET_APPLICATION_DATA_VALUE * value);
 
     BACNET_STACK_EXPORT
+    void Channel_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Channel_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Channel_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Channel_Free(void);
+    BACNET_STACK_EXPORT
+    void Channel_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
     void Channel_Init(void);
+    BACNET_STACK_EXPORT
+    void Channel_Cleanup(void);
 
 #ifdef BAC_TEST
 #include "ctest.h"

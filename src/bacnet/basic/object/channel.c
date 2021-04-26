@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
@@ -50,10 +51,6 @@
 #endif
 /* me! */
 #include "bacnet/basic/object/channel.h"
-
-#ifndef BACNET_CHANNELS_MAX
-#define BACNET_CHANNELS_MAX 1
-#endif
 
 #ifndef CONTROL_GROUPS_MAX
 #define CONTROL_GROUPS_MAX 8
@@ -73,7 +70,8 @@ struct bacnet_channel_object {
     uint32_t Control_Groups[CONTROL_GROUPS_MAX];
 };
 
-static struct bacnet_channel_object Channel[BACNET_CHANNELS_MAX];
+static struct bacnet_channel_object *Channel_Descr = NULL;
+static size_t Channel_Descr_Size = 0;
 
 /* These arrays are used by the ReadPropertyMultiple handler
    property-list property (as of protocol-revision 14) */
@@ -126,7 +124,7 @@ bool Channel_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         return true;
     }
 
@@ -140,14 +138,14 @@ bool Channel_Valid_Instance(uint32_t object_instance)
  */
 unsigned Channel_Count(void)
 {
-    return BACNET_CHANNELS_MAX;
+    return Channel_Descr_Size;
 }
 
 /**
  * Determines the object instance-number for a given 0..N index
  * of Channel objects where N is Channel_Count().
  *
- * @param  index - 0..BACNET_CHANNELS_MAX value
+ * @param  index - 0..Channel_Descr_Size value
  *
  * @return  object instance-number for the given index
  */
@@ -166,17 +164,17 @@ uint32_t Channel_Index_To_Instance(unsigned index)
  *
  * @param  object_instance - object-instance number of the object
  *
- * @return  index for the given instance-number, or BACNET_CHANNELS_MAX
+ * @return  index for the given instance-number, or Channel_Descr_Size
  * if not valid.
  */
 unsigned Channel_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = BACNET_CHANNELS_MAX;
+    unsigned index = Channel_Descr_Size;
 
     if (object_instance) {
         index = object_instance - 1;
-        if (index > BACNET_CHANNELS_MAX) {
-            index = BACNET_CHANNELS_MAX;
+        if (index > Channel_Descr_Size) {
+            index = Channel_Descr_Size;
         }
     }
 
@@ -195,8 +193,8 @@ BACNET_CHANNEL_VALUE *Channel_Present_Value(uint32_t object_instance)
     BACNET_CHANNEL_VALUE *cvalue = NULL;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        cvalue = &Channel[index].Present_Value;
+    if (index < Channel_Descr_Size) {
+        cvalue = &Channel_Descr[index].Present_Value;
     }
 
     return cvalue;
@@ -215,8 +213,8 @@ unsigned Channel_Last_Priority(uint32_t object_instance)
     unsigned priority = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        priority = Channel[index].Last_Priority;
+    if (index < Channel_Descr_Size) {
+        priority = Channel_Descr[index].Last_Priority;
     }
 
     return priority;
@@ -235,8 +233,8 @@ BACNET_WRITE_STATUS Channel_Write_Status(uint32_t object_instance)
     BACNET_WRITE_STATUS write_status = BACNET_WRITE_STATUS_IDLE;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        write_status = Channel[index].Write_Status;
+    if (index < Channel_Descr_Size) {
+        write_status = Channel_Descr[index].Write_Status;
     }
 
     return write_status;
@@ -255,8 +253,8 @@ uint16_t Channel_Number(uint32_t object_instance)
     uint16_t value = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        value = Channel[index].Number;
+    if (index < Channel_Descr_Size) {
+        value = Channel_Descr[index].Number;
     }
 
     return value;
@@ -277,8 +275,8 @@ bool Channel_Number_Set(uint32_t object_instance, uint16_t value)
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        Channel[index].Number = value;
+    if (index < Channel_Descr_Size) {
+        Channel_Descr[index].Number = value;
         status = true;
     }
 
@@ -321,9 +319,9 @@ unsigned Channel_Reference_List_Member_Count(uint32_t object_instance)
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
-            pMember = &Channel[index].Members[m];
+            pMember = &Channel_Descr[index].Members[m];
             if (Channel_Reference_List_Member_Valid(pMember)) {
                 count++;
             }
@@ -350,9 +348,9 @@ BACNET_DEVICE_OBJECT_PROPERTY_REFERENCE *Channel_Reference_List_Member_Element(
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
-            pMember = &Channel[index].Members[m];
+            pMember = &Channel_Descr[index].Members[m];
             if (Channel_Reference_List_Member_Valid(pMember)) {
                 count++;
                 if (count == array_index) {
@@ -384,9 +382,9 @@ bool Channel_Reference_List_Member_Element_Set(uint32_t object_instance,
     bool status = false;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
-            pMember = &Channel[index].Members[m];
+            pMember = &Channel_Descr[index].Members[m];
             if (Channel_Reference_List_Member_Valid(pMember)) {
                 count++;
                 if (count == array_index) {
@@ -420,9 +418,9 @@ unsigned Channel_Reference_List_Member_Element_Add(uint32_t object_instance,
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
-            pMember = &Channel[index].Members[m];
+            pMember = &Channel_Descr[index].Members[m];
             if (Channel_Reference_List_Member_Valid(pMember)) {
                 count++;
             } else {
@@ -483,10 +481,10 @@ uint16_t Channel_Control_Groups_Element(
     uint16_t value = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if ((index < BACNET_CHANNELS_MAX) && (array_index > 0) &&
+    if ((index < Channel_Descr_Size) && (array_index > 0) &&
         (array_index <= CONTROL_GROUPS_MAX)) {
         array_index--;
-        value = Channel[index].Control_Groups[array_index];
+        value = Channel_Descr[index].Control_Groups[array_index];
     }
 
     return value;
@@ -508,10 +506,10 @@ bool Channel_Control_Groups_Element_Set(
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if ((index < BACNET_CHANNELS_MAX) && (array_index > 0) &&
+    if ((index < Channel_Descr_Size) && (array_index > 0) &&
         (array_index <= CONTROL_GROUPS_MAX)) {
         array_index--;
-        Channel[index].Control_Groups[array_index] = value;
+        Channel_Descr[index].Control_Groups[array_index] = value;
         status = true;
     }
 
@@ -1207,15 +1205,15 @@ bool Channel_Present_Value_Set(
     bool status = false;
 
     index = Channel_Instance_To_Index(wp_data->object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         if ((wp_data->priority > 0) &&
             (wp_data->priority <= BACNET_MAX_PRIORITY)) {
             if (wp_data->priority != 6 /* reserved */) {
                 status =
-                    Channel_Value_Copy(&Channel[index].Present_Value, value);
+                    Channel_Value_Copy(&Channel_Descr[index].Present_Value, value);
                 (void)status;
                 status = Channel_Write_Members(
-                    &Channel[index], value, wp_data->priority);
+                    &Channel_Descr[index], value, wp_data->priority);
                 (void)status;
                 status = true;
             } else {
@@ -1252,7 +1250,7 @@ bool Channel_Object_Name(
     unsigned index = 0;
 
     index = Channel_Instance_To_Index(object_instance);
-    if (index < BACNET_CHANNELS_MAX) {
+    if (index < Channel_Descr_Size) {
         sprintf(text_string, "CHANNEL %lu", (unsigned long)object_instance);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -1274,8 +1272,8 @@ bool Channel_Out_Of_Service(uint32_t instance)
     bool value = false;
 
     index = Channel_Instance_To_Index(instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        value = Channel[index].Out_Of_Service;
+    if (index < Channel_Descr_Size) {
+        value = Channel_Descr[index].Out_Of_Service;
     }
 
     return value;
@@ -1294,8 +1292,8 @@ void Channel_Out_Of_Service_Set(uint32_t instance, bool value)
     unsigned int index = 0;
 
     index = Channel_Instance_To_Index(instance);
-    if (index < BACNET_CHANNELS_MAX) {
-        Channel[index].Out_Of_Service = value;
+    if (index < Channel_Descr_Size) {
+        Channel_Descr[index].Out_Of_Service = value;
     }
 }
 
@@ -1619,32 +1617,70 @@ bool Channel_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return status;
 }
 
+
+void Channel_Resize(size_t new_size)
+{
+    Channel_Free();
+    Channel_Alloc(new_size);
+    Channel_Objects_Init();
+}
+
+void Channel_Add(size_t count)
+{
+    Channel_Resize(Channel_Descr_Size + count);
+}
+
+void Channel_Free(void)
+{
+    free(Channel_Descr);
+    Channel_Descr = NULL;
+    Channel_Descr_Size = 0;
+}
+
+void Channel_Alloc(size_t size)
+{
+    Channel_Descr = calloc(size, sizeof (*Channel_Descr));
+    if (NULL != Channel_Descr)
+    {
+        Channel_Descr_Size = size;
+    }
+}
+
+void Channel_Objects_Init()
+{
+    unsigned i, m, g;
+
+    for (i = 0; i < Channel_Descr_Size; i++) {
+        Channel_Descr[i].Present_Value.tag = BACNET_APPLICATION_TAG_EMPTYLIST;
+        Channel_Descr[i].Out_Of_Service = false;
+        Channel_Descr[i].Last_Priority = BACNET_NO_PRIORITY;
+        Channel_Descr[i].Write_Status = BACNET_WRITE_STATUS_IDLE;
+        for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
+            Channel_Descr[i].Members[m].objectIdentifier.type =
+                OBJECT_LIGHTING_OUTPUT;
+            Channel_Descr[i].Members[m].objectIdentifier.instance = i + 1;
+            Channel_Descr[i].Members[m].propertyIdentifier = PROP_LIGHTING_COMMAND;
+            Channel_Descr[i].Members[m].arrayIndex = BACNET_ARRAY_ALL;
+            Channel_Descr[i].Members[m].deviceIdentifier.type = OBJECT_DEVICE;
+            Channel_Descr[i].Members[m].deviceIdentifier.instance = 0;
+        }
+        Channel_Descr[i].Number = 0;
+        for (g = 0; g < CONTROL_GROUPS_MAX; g++) {
+            Channel_Descr[i].Control_Groups[g] = 0;
+        }
+    }
+}
+
+void Channel_Cleanup()
+{
+    Channel_Free();
+}
+
+
 /**
  * Initializes the Channel object data
  */
 void Channel_Init(void)
 {
-    unsigned i, m, g;
 
-    for (i = 0; i < BACNET_CHANNELS_MAX; i++) {
-        Channel[i].Present_Value.tag = BACNET_APPLICATION_TAG_EMPTYLIST;
-        Channel[i].Out_Of_Service = false;
-        Channel[i].Last_Priority = BACNET_NO_PRIORITY;
-        Channel[i].Write_Status = BACNET_WRITE_STATUS_IDLE;
-        for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
-            Channel[i].Members[m].objectIdentifier.type =
-                OBJECT_LIGHTING_OUTPUT;
-            Channel[i].Members[m].objectIdentifier.instance = i + 1;
-            Channel[i].Members[m].propertyIdentifier = PROP_LIGHTING_COMMAND;
-            Channel[i].Members[m].arrayIndex = BACNET_ARRAY_ALL;
-            Channel[i].Members[m].deviceIdentifier.type = OBJECT_DEVICE;
-            Channel[i].Members[m].deviceIdentifier.instance = 0;
-        }
-        Channel[i].Number = 0;
-        for (g = 0; g < CONTROL_GROUPS_MAX; g++) {
-            Channel[i].Control_Groups[g] = 0;
-        }
-    }
-
-    return;
 }

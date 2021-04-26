@@ -31,6 +31,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bacnet/basic/binding/address.h"
@@ -47,12 +48,9 @@
 #include "bacnet/wp.h"
 #include "bacnet/basic/object/nc.h"
 
-#ifndef MAX_NOTIFICATION_CLASSES
-#define MAX_NOTIFICATION_CLASSES 2
-#endif
-
 #if defined(INTRINSIC_REPORTING)
-static NOTIFICATION_CLASS_INFO NC_Info[MAX_NOTIFICATION_CLASSES];
+static NOTIFICATION_CLASS_INFO *NC_Info = NULL;
+static size_t NC_Info_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Notification_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -75,11 +73,41 @@ void Notification_Class_Property_Lists(
     return;
 }
 
-void Notification_Class_Init(void)
+
+
+void Notification_Class_Resize(size_t new_size)
+{
+    Notification_Class_Free();
+    Notification_Class_Alloc(new_size);
+    Notification_Class_Objects_Init();
+}
+
+void Notification_Class_Add(size_t count)
+{
+    Notification_Class_Resize(NC_Info_Size + count);
+}
+
+void Notification_Class_Free(void)
+{
+    free(NC_Info);
+    NC_Info = NULL;
+    NC_Info_Size = 0;
+}
+
+void Notification_Class_Alloc(size_t size)
+{
+    NC_Info = calloc(size, sizeof (*NC_Info));
+    if (NULL != NC_Info)
+    {
+        NC_Info_Size = size;
+    }
+}
+
+void Notification_Class_Objects_Init()
 {
     uint8_t NotifyIdx = 0;
 
-    for (NotifyIdx = 0; NotifyIdx < MAX_NOTIFICATION_CLASSES; NotifyIdx++) {
+    for (NotifyIdx = 0; NotifyIdx < NC_Info_Size; NotifyIdx++) {
         /* init with zeros */
         memset(&NC_Info[NotifyIdx], 0x00, sizeof(NOTIFICATION_CLASS_INFO));
         /* set the basic parameters */
@@ -94,6 +122,19 @@ void Notification_Class_Init(void)
 
     return;
 }
+   
+
+void Notification_Class_Cleanup()
+{
+    Notification_Class_Free();
+}
+
+
+
+void Notification_Class_Init(void)
+{
+
+}
 
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
@@ -103,7 +144,7 @@ bool Notification_Class_Valid_Instance(uint32_t object_instance)
     unsigned int index;
 
     index = Notification_Class_Instance_To_Index(object_instance);
-    if (index < MAX_NOTIFICATION_CLASSES)
+    if (index < NC_Info_Size)
         return true;
 
     return false;
@@ -113,7 +154,7 @@ bool Notification_Class_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Notification_Class_Count(void)
 {
-    return MAX_NOTIFICATION_CLASSES;
+    return NC_Info_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -129,9 +170,9 @@ uint32_t Notification_Class_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Notification_Class_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_NOTIFICATION_CLASSES;
+    unsigned index = NC_Info_Size;
 
-    if (object_instance < MAX_NOTIFICATION_CLASSES)
+    if (object_instance < NC_Info_Size)
         index = object_instance;
 
     return index;
@@ -145,7 +186,7 @@ bool Notification_Class_Object_Name(
     bool status = false;
 
     index = Notification_Class_Instance_To_Index(object_instance);
-    if (index < MAX_NOTIFICATION_CLASSES) {
+    if (index < NC_Info_Size) {
         sprintf(text_string, "NOTIFICATION CLASS %lu", (unsigned long)index);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -746,7 +787,7 @@ void Notification_Class_Get_Priorities(
 
     object_index = Notification_Class_Instance_To_Index(Object_Instance);
 
-    if (object_index < MAX_NOTIFICATION_CLASSES)
+    if (object_index < NC_Info_Size)
         CurrentNotify = &NC_Info[object_index];
     else {
         for (i = 0; i < 3; i++)
@@ -817,7 +858,7 @@ void Notification_Class_common_reporting_function(
     notify_index =
         Notification_Class_Instance_To_Index(event_data->notificationClass);
 
-    if (notify_index < MAX_NOTIFICATION_CLASSES)
+    if (notify_index < NC_Info_Size)
         CurrentNotify = &NC_Info[notify_index];
     else
         return;
@@ -915,7 +956,7 @@ void Notification_Class_find_recipient(void)
     uint32_t DeviceID;
     uint8_t idx;
 
-    for (notify_index = 0; notify_index < MAX_NOTIFICATION_CLASSES;
+    for (notify_index = 0; notify_index < NC_Info_Size;
          notify_index++) {
         /* pointer to current notification */
         CurrentNotify =

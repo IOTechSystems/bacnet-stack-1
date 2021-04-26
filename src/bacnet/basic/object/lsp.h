@@ -37,6 +37,15 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct life_safety_point_descr
+    {
+        BACNET_LIFE_SAFETY_MODE Mode;
+        BACNET_LIFE_SAFETY_STATE State;
+        BACNET_SILENCED_STATE Silenced_State;
+        BACNET_LIFE_SAFETY_OPERATION Operation;
+        bool Out_Of_Service;
+    }LIFE_SAFETY_POINT_DESCR;
+
     BACNET_STACK_EXPORT
     void Life_Safety_Point_Property_Lists(
         const int **pRequired,
@@ -58,9 +67,22 @@ extern "C" {
     bool Life_Safety_Point_Object_Name(
         uint32_t object_instance,
         BACNET_CHARACTER_STRING * object_name);
+
     BACNET_STACK_EXPORT
-    void Life_Safety_Point_Init(
-        void);
+    void Life_Safety_Point_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Free(void);
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Init(void);
+    BACNET_STACK_EXPORT
+    void Life_Safety_Point_Cleanup(void);
 
     BACNET_STACK_EXPORT
     int Life_Safety_Point_Read_Property(
