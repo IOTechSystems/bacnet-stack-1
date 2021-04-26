@@ -131,7 +131,6 @@ void bacfile_objects_init()
         BACnet_File_Listing[i].instance = i;
 
         snprintf(name_buffer, 32, "temp_%lu.txt", i);
-        printf("%lu\n", strlen(name_buffer));
         BACnet_File_Listing[i].filename = malloc(sizeof(char) * (strlen(name_buffer) + 1) ) ;
         strncpy(BACnet_File_Listing[i].filename, name_buffer, strlen(name_buffer) + 1);
     }
