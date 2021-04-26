@@ -227,7 +227,7 @@ static object_functions_t My_Object_Table[] = {
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
 #endif
 #if defined(BACFILE)
-    { OBJECT_FILE, bacfile_init, NULL /* Clean up */, bacfile_count, bacfile_index_to_instance,
+    { OBJECT_FILE, bacfile_init, bacfile_cleanup /* Clean up */, bacfile_count, bacfile_index_to_instance,
         bacfile_valid_instance, bacfile_object_name, bacfile_read_property,
         bacfile_write_property, BACfile_Property_Lists,
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
