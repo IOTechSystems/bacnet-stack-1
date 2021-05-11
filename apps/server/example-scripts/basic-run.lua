@@ -18,10 +18,10 @@ function Run() --Run once
 
     bacnet.setAnalogInput(5000, 1337.00)
     bacnet.setAnalogOutput(5000, 42.00, 1)
-    bacnet.setAnalogValue(5000, 1337.00, 1)
+    bacnet.setAnalogValue(5000, 1337.01, 1)
     bacnet.setBinaryInput(5000, 1)
     bacnet.setBinaryOutput(5000, 1, 1)
-    bacnet.setBinaryValue(5000, 0)
+    bacnet.setBinaryValue(5000, 1, 1)
     bacnet.setIntegerValue(5000, -1337, 1)
     bacnet.setPositiveIntegerValue(5000, 42, 1)
     bacnet.setAccumulator(5000, 2222)
@@ -35,5 +35,25 @@ function Run() --Run once
     bacnet.setIntegerValueName(5000, "test integer value")
     bacnet.setPositiveIntegerValueName(5000, "test positive integer")
     bacnet.setAccumulatorName(5000, "test accumulator")
+
+    ai = bacnet.getAnalogInputPresentValue(5000)
+    ao = bacnet.getAnalogOutputPresentValue(5000)
+    av = bacnet.getAnalogValuePresentValue(5000)
+    bi = bacnet.getBinaryInputPresentValue(5000)
+    bo = bacnet.getBinaryOutputPresentValue(5000)
+    bv = bacnet.getBinaryValuePresentValue(5000)
+    iv = bacnet.getIntegerValuePresentValue(5000)
+    piv = bacnet.getPositiveIntegerValuePresentValue(5000)
+    acc = bacnet.getAccumulatorPresentValue(5000)
+    
+    io.write( "AI: " .. tostring(ai) .. "\n")
+    io.write( "AO: " .. tostring(ao) .. "\n")
+    io.write( "AV: " .. tostring(av) .. "\n")
+    io.write( "BI: " .. tostring(bi) .. "\n")
+    io.write( "BO: " .. tostring(bo) .. "\n")
+    io.write( "BV: " .. tostring(bv) .. "\n")
+    io.write( "IV: " .. tostring(iv) .. "\n")
+    io.write( "PIV: " .. tostring(piv) .. "\n")
+    io.write( "ACC: " .. tostring(acc) .. "\n")
 
 end
