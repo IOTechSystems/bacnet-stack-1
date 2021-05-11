@@ -95,7 +95,6 @@ static pthread_t script_runner_pthread;
 static bool script_running = false;
 
 //ANALOG INPUT
-
 static int set_analog_input (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -117,6 +116,14 @@ static int create_analog_inputs(lua_State *L)
   size_t count = lua_tonumber(L, 1);
   Analog_Input_Add(count);
   return 0;
+}
+
+static int get_analog_input_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = Analog_Input_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
 }
 
 //ANALOG OUTPUT
@@ -145,6 +152,14 @@ static int create_analog_outputs(lua_State *L)
   return 0;
 }
 
+static int get_analog_output_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = Analog_Output_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
+}
+
 //ANALOG VALUE
 static int set_analog_value (lua_State *L)
 {
@@ -168,6 +183,14 @@ static int create_analog_values(lua_State *L)
   size_t count = lua_tonumber(L, 1);
   Analog_Value_Add(count);
   return 0;
+}
+
+static int get_analog_value_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = Analog_Value_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
 }
 
 //BINARY INPUT
@@ -195,6 +218,14 @@ static int create_binary_inputs(lua_State *L)
   return 0;
 }
 
+static int get_binary_input_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  BACNET_BINARY_PV value = Binary_Input_Present_Value(object_instance);
+  lua_pushnumber(L, (u_int8_t) value);
+  return 1;
+}
+
 //BINARY OUTPUT
 static int set_binary_output (lua_State *L)
 {
@@ -218,6 +249,14 @@ static int create_binary_outputs(lua_State *L)
   size_t count = lua_tonumber(L, 1);
   Binary_Output_Add(count);
   return 0;
+}
+
+static int get_binary_output_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  BACNET_BINARY_PV value = Binary_Output_Present_Value(object_instance);
+  lua_pushnumber(L, (u_int8_t) value);
+  return 1;
 }
 
 //BINARY VALUE
@@ -245,6 +284,14 @@ static int create_binary_values(lua_State *L)
   return 0;
 }
 
+static int get_binary_value_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  BACNET_BINARY_PV value = Binary_Value_Present_Value(object_instance);
+  lua_pushnumber(L, (u_int8_t) value);
+  return 1;
+}
+
 //INTEGER VALUE
 static int set_integer_value (lua_State *L)
 {
@@ -268,6 +315,14 @@ static int create_integer_values (lua_State *L)
   size_t count = lua_tonumber(L, 1);
   Integer_Value_Add(count);
   return 0;
+}
+
+static int get_integer_value_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  int value = Integer_Value_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
 }
 
 //POSITIVE INTEGER VALUE
@@ -295,6 +350,14 @@ static int create_positive_integer_values (lua_State *L)
   return 0;
 }
 
+static int get_positive_integer_value_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  unsigned int value = PositiveInteger_Value_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
+}
+
 //ACCUMULATOR 
 static int set_accumulator_value (lua_State *L)
 {
@@ -317,6 +380,14 @@ static int create_accumulators(lua_State *L)
   size_t count = lua_tonumber(L, 1);
   Accumulator_Add(count);
   return 0;
+}
+
+static int get_accumulator_present_value(lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  unsigned int value = Accumulator_Present_Value(object_instance);
+  lua_pushnumber(L, value);
+  return 1;
 }
 
 static int is_server_running(lua_State *L)
@@ -357,6 +428,16 @@ static void setup_lua_callbacks(lua_State *L)
       {"createIntegerValues", create_integer_values},
       {"createPositiveIntegerValues", create_positive_integer_values},
       {"createAccumulators", create_accumulators},
+
+      {"getAnalogInputPresentValue", get_analog_input_present_value},
+      {"getAnalogOutputPresentValue", get_analog_output_present_value},
+      {"getAnalogValuePresentValue", get_analog_value_present_value},
+      {"getBinaryInputPresentValue", get_binary_input_present_value},
+      {"getBinaryOutputPresentValue", get_binary_output_present_value},
+      {"getBinaryValuePresentValue", get_binary_value_present_value},
+      {"getIntegerValuePresentValue", get_integer_value_present_value},
+      {"getPositiveIntegerValuePresentValue", get_positive_integer_value_present_value},
+      {"getAccumulatorPresentValue", get_accumulator_present_value},
 
       {NULL, NULL} //required
   };
