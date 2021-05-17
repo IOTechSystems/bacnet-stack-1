@@ -46,7 +46,7 @@ TARGET_BIN = ${TARGET}$(TARGET_EXT)
 SRCS = $(SRC) $(BACNET_SRC) $(BACNET_BASIC_SRC) $(BACNET_PORT_SRC)
 OBJS = ${SRCS:.c=.o}
 
-LUA_FLAGS = -I/usr/include/lua5.3/ -llua5.3
+LUA_FLAGS = -I/usr/include/lua5.3/ -L/usr/lib/lua5.3/ -llua5.3 #-L/usr/lib/lua5.3/ is needed for alpine build
 PTHREADLIB = -lpthread
 
 DEFINES = -DINTRINSIC_REPORTING=1
