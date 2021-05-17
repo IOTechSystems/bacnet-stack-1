@@ -484,7 +484,7 @@ static void simulated_init (const char * file_path)
 
 static void populate_server_objects(void)
 {
-  printf("Populating server\n");
+  printf("Populating server... ");
 
   Accumulator_Add(1);
   Analog_Input_Add(1);
@@ -520,7 +520,7 @@ static void populate_server_objects(void)
   Notification_Class_Add(1);
   #endif /* defined(INTRINSIC_REPORTING) */
   
-
+  printf("Done \n");
 
 }
 
