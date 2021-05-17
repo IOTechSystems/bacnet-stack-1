@@ -68,21 +68,34 @@
 #include "bacnet/basic/object/ai.h"
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/object/av.h"
-
 #include "bacnet/basic/object/bi.h"
 #include "bacnet/basic/object/bo.h"
 #include "bacnet/basic/object/bv.h"
-
 #include "bacnet/basic/object/iv.h"
 #include "bacnet/basic/object/piv.h"
 #include "bacnet/basic/object/acc.h"
+#include "bacnet/basic/object/bacfile.h"
+#include "bacnet/basic/object/channel.h"
+#include "bacnet/basic/object/command.h"
+#include "bacnet/basic/object/csv.h"
+#include "bacnet/basic/object/lc.h"
+#include "bacnet/basic/object/lo.h"
+#include "bacnet/basic/object/lsp.h"
+#include "bacnet/basic/object/ms-input.h"
+#include "bacnet/basic/object/mso.h"
+#include "bacnet/basic/object/msv.h"
+#include "bacnet/basic/object/nc.h"
+#include "bacnet/basic/object/netport.h"
+#include "bacnet/basic/object/osv.h"
+#include "bacnet/basic/object/piv.h"
+#include "bacnet/basic/object/schedule.h"
+#include "bacnet/basic/object/trendlog.h"
 
 #include "lua5.3/lua.h"
 #include "lua5.3/lauxlib.h"
 #include "lua5.3/lualib.h"
 
 #include <pthread.h>
-
 
 static void cleanup(void);
 
@@ -120,7 +133,6 @@ static int create_analog_inputs(lua_State *L)
 }
 
 //ANALOG OUTPUT
-
 static int set_analog_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -470,6 +482,48 @@ static void simulated_init (const char * file_path)
 
 /**---------SIMULATED Device scripting end ----------**/
 
+static void populate_server_objects(void)
+{
+  printf("Populating server\n");
+
+  Accumulator_Add(1);
+  Analog_Input_Add(1);
+  Analog_Output_Add(1);
+  Analog_Value_Add(1);
+  bacfile_add(1);
+  Binary_Input_Add(1);
+  Binary_Output_Add(1);
+  Binary_Value_Add(1);
+  Channel_Add(1);
+  Command_Add(1);
+  CharacterString_Value_Add(1);
+
+  Integer_Value_Add(1);
+  PositiveInteger_Value_Add(1);
+
+  Trend_Log_Add(1);
+  Schedule_Add(1);
+
+  Life_Safety_Point_Add(1);
+  Lighting_Output_Add(1);
+  Load_Control_Add(1);
+
+  Multistate_Input_Add(1);
+  Multistate_Output_Add(1);
+  Multistate_Value_Add(1);
+
+  Network_Port_Add(1);
+
+  OctetString_Value_Add(1);
+  
+  #if defined(INTRINSIC_REPORTING)
+  Notification_Class_Add(1);
+  #endif /* defined(INTRINSIC_REPORTING) */
+  
+
+
+}
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -638,6 +692,7 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
+    bool populate_server = false;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -683,6 +738,10 @@ int main(int argc, char *argv[])
           }
           argi++;
           devicename = argv[argi]; 
+        }
+
+        if (strcmp(argv[argi], "--populate") == 0) {
+          populate_server = true;
         }
 
     }
@@ -735,6 +794,11 @@ int main(int argc, char *argv[])
     if (scriptpath != NULL)
     {
       simulated_init(scriptpath);
+    }
+
+    if (populate_server)
+    {
+      populate_server_objects();
     }
 
     signal(SIGINT, sigint);
