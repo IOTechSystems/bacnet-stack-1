@@ -614,7 +614,7 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
+    printf("Usage: %s [--populate] [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
@@ -628,6 +628,8 @@ static void print_help(const char *filename)
            "trying simulate.\n"
            "--name:\n"
            "The Device object-name is the text name for the device.\n"
+           "--populate:\n"
+           "Populates the server with one instance of each object type."
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
            "%s --instance 123\n",
@@ -790,15 +792,15 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
-  
-    if (scriptpath != NULL)
-    {
-      simulated_init(scriptpath);
-    }
 
     if (populate_server)
     {
       populate_server_objects();
+    }
+  
+    if (scriptpath != NULL)
+    {
+      simulated_init(scriptpath);
     }
 
     signal(SIGINT, sigint);
