@@ -234,7 +234,7 @@ static int get_binary_input_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Input_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
@@ -267,7 +267,7 @@ static int get_binary_output_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Output_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
@@ -300,7 +300,7 @@ static int get_binary_value_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Value_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
