@@ -68,21 +68,34 @@
 #include "bacnet/basic/object/ai.h"
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/object/av.h"
-
 #include "bacnet/basic/object/bi.h"
 #include "bacnet/basic/object/bo.h"
 #include "bacnet/basic/object/bv.h"
-
 #include "bacnet/basic/object/iv.h"
 #include "bacnet/basic/object/piv.h"
 #include "bacnet/basic/object/acc.h"
+#include "bacnet/basic/object/bacfile.h"
+#include "bacnet/basic/object/channel.h"
+#include "bacnet/basic/object/command.h"
+#include "bacnet/basic/object/csv.h"
+#include "bacnet/basic/object/lc.h"
+#include "bacnet/basic/object/lo.h"
+#include "bacnet/basic/object/lsp.h"
+#include "bacnet/basic/object/ms-input.h"
+#include "bacnet/basic/object/mso.h"
+#include "bacnet/basic/object/msv.h"
+#include "bacnet/basic/object/nc.h"
+#include "bacnet/basic/object/netport.h"
+#include "bacnet/basic/object/osv.h"
+#include "bacnet/basic/object/piv.h"
+#include "bacnet/basic/object/schedule.h"
+#include "bacnet/basic/object/trendlog.h"
 
 #include "lua5.3/lua.h"
 #include "lua5.3/lauxlib.h"
 #include "lua5.3/lualib.h"
 
 #include <pthread.h>
-
 
 static void cleanup(void);
 
@@ -127,7 +140,6 @@ static int get_analog_input_present_value(lua_State *L)
 }
 
 //ANALOG OUTPUT
-
 static int set_analog_output (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
@@ -222,7 +234,7 @@ static int get_binary_input_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Input_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
@@ -255,7 +267,7 @@ static int get_binary_output_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Output_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
@@ -288,7 +300,7 @@ static int get_binary_value_present_value(lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   BACNET_BINARY_PV value = Binary_Value_Present_Value(object_instance);
-  lua_pushnumber(L, (u_int8_t) value);
+  lua_pushnumber(L, (uint8_t) value);
   return 1;
 }
 
@@ -551,6 +563,48 @@ static void simulated_init (const char * file_path)
 
 /**---------SIMULATED Device scripting end ----------**/
 
+static void populate_server_objects(void)
+{
+  printf("Populating server... ");
+
+  Accumulator_Add(1);
+  Analog_Input_Add(1);
+  Analog_Output_Add(1);
+  Analog_Value_Add(1);
+  bacfile_add(1);
+  Binary_Input_Add(1);
+  Binary_Output_Add(1);
+  Binary_Value_Add(1);
+  Channel_Add(1);
+  Command_Add(1);
+  CharacterString_Value_Add(1);
+
+  Integer_Value_Add(1);
+  PositiveInteger_Value_Add(1);
+
+  Trend_Log_Add(1);
+  Schedule_Add(1);
+
+  Life_Safety_Point_Add(1);
+  Lighting_Output_Add(1);
+  Load_Control_Add(1);
+
+  Multistate_Input_Add(1);
+  Multistate_Output_Add(1);
+  Multistate_Value_Add(1);
+
+  Network_Port_Add(1);
+
+  OctetString_Value_Add(1);
+  
+  #if defined(INTRINSIC_REPORTING)
+  Notification_Class_Add(1);
+  #endif /* defined(INTRINSIC_REPORTING) */
+  
+  printf("Done \n");
+
+}
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -641,7 +695,7 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
+    printf("Usage: %s [--populate] [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
@@ -655,6 +709,8 @@ static void print_help(const char *filename)
            "trying simulate.\n"
            "--name:\n"
            "The Device object-name is the text name for the device.\n"
+           "--populate:\n"
+           "Populates the server with one instance of each object type."
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
            "%s --instance 123\n",
@@ -719,6 +775,7 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
+    bool populate_server = false;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -764,6 +821,10 @@ int main(int argc, char *argv[])
           }
           argi++;
           devicename = argv[argi]; 
+        }
+
+        if (strcmp(argv[argi], "--populate") == 0) {
+          populate_server = true;
         }
 
     }
@@ -812,6 +873,11 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
+
+    if (populate_server)
+    {
+      populate_server_objects();
+    }
   
     if (scriptpath != NULL)
     {
