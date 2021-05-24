@@ -78,6 +78,26 @@ extern "C" {
         const int **pProprietary);
 
     BACNET_STACK_EXPORT
+    void Analog_Input_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name, 
+        float value,
+        BACNET_EVENT_STATE event_state,
+        bool out_of_service,
+        uint8_t units,
+        float cov_incrememnt,
+        BACNET_RELIABILITY reliability,
+        uint32_t time_delay, 
+        uint32_t notification_class,
+        float high_limit,
+        float low_limit,
+        float deadband,
+        unsigned limit_enable,
+        unsigned event_enable,
+        unsigned notify_type    
+    );
+
+    BACNET_STACK_EXPORT
     bool Analog_Input_Valid_Instance(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -100,7 +120,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Input_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     char *Analog_Input_Description(

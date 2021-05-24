@@ -47,6 +47,7 @@
 #include "bacnet/basic/binding/address.h"
 
 #include "bacnet/basic/service/h_cov.h"
+#include "bacnet/bacenum.h"
 
 /* include the device object */
 #include "bacnet/basic/object/device.h"
@@ -565,11 +566,35 @@ static void simulated_init (const char * file_path)
 
 static void populate_server_objects(void)
 {
-  printf("Populating server... ");
+  printf("Populating server with objects... ");
 
   Accumulator_Add(1);
+  Accumulator_Set_Properties(0, "test_accumulator", 42, 10, 1000, 100);
+
   Analog_Input_Add(1);
+  Analog_Input_Set_Properties(0, 
+                              "test_analog_input", 
+                              58.2f, EVENT_STATE_HIGH_LIMIT, 
+                              false, 
+                              100, 
+                              0.25f,
+                              RELIABILITY_MULTI_STATE_FAULT,
+                              321, 
+                              1,
+                              120.5f,
+                              20.2f,
+                              1.5f,
+                              EVENT_HIGH_LIMIT_ENABLE,
+                              EVENT_ENABLE_TO_NORMAL,
+                              NOTIFY_MAX
+                              );
+
+
   Analog_Output_Add(1);
+
+
+
+
   Analog_Value_Add(1);
   bacfile_add(1);
   Binary_Input_Add(1);

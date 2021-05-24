@@ -77,6 +77,25 @@ void Accumulator_Property_Lists(
     return;
 }
 
+void Accumulator_Set_Properties(uint32_t object_instance, 
+                                const char *object_name, 
+                                BACNET_UNSIGNED_INTEGER value,
+                                int32_t scale, 
+                                BACNET_UNSIGNED_INTEGER max_present_value,
+                                uint16_t units
+                              )
+{
+    unsigned int index = Accumulator_Instance_To_Index(object_instance);
+    if (index >= Acc_Descr_Size)
+    {
+        return;
+    }
+
+    Accumulator_Name_Set(object_instance, object_name);
+    Accumulator_Present_Value_Set(object_instance, value);
+    Accumulator_Scale_Integer_Set(object_instance, scale);
+}
+
 /**
  * Determines if a given Accumulator instance is valid
  *
@@ -131,7 +150,7 @@ unsigned Accumulator_Instance_To_Index(uint32_t object_instance)
 
     if (object_instance < Acc_Descr_Size) {
         index = object_instance;
-}
+    }
 
     return index;
 }
@@ -174,7 +193,7 @@ bool Accumulator_Name(
     return status;
 }
 
-bool Accumulator_Name_Set(uint32_t object_instance, char *new_name)
+bool Accumulator_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == Acc_Descr) return false;
 
