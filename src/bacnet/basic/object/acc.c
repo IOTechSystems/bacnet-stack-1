@@ -145,11 +145,9 @@ uint32_t Accumulator_Index_To_Instance(unsigned index)
 unsigned Accumulator_Instance_To_Index(uint32_t object_instance)
 {
     unsigned index = Acc_Descr_Size;
-
     if (object_instance < Acc_Descr_Size) {
         index = object_instance;
     }
-
     return index;
 }
 

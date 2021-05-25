@@ -507,7 +507,6 @@ static void simulated_cleanup(void)
   {
     lua_close (lua_update_state);
   }
-
 }
 
 //calls update function in lua script
@@ -567,7 +566,6 @@ static void simulated_init (const char * file_path)
 static void populate_server_objects(void)
 {
   printf("Populating server with objects...\n");
-
 
   Analog_Input_Add(1);
   Analog_Input_Set_Properties(
@@ -651,7 +649,6 @@ static void populate_server_objects(void)
     false,
     UNITS_KILOWATTS
   );
-
 
   Accumulator_Add(1);
   Accumulator_Set_Properties(0, "test_accumulator", 23, 23);

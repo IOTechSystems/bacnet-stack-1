@@ -128,7 +128,6 @@ void Analog_Value_Set_Properties(
 #endif
 
     pthread_mutex_unlock(&AV_Descr_Mutex);
-
 }
 
 void Analog_Value_Resize(size_t new_size)

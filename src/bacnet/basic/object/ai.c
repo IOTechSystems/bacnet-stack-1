@@ -125,8 +125,6 @@ void Analog_Input_Set_Properties(
     AI_Descr[index].Notify_Type = notify_type;
 #endif
     pthread_mutex_unlock(&AI_Descr_Mutex);
-
-
 }
 
 void Analog_Input_Add(size_t count)

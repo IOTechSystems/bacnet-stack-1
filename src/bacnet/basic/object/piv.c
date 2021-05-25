@@ -95,7 +95,6 @@ void PositiveInteger_Value_Set_Properties(
     PIV_Descr[index].Units = units;
     PIV_Descr[index].Out_Of_Service = out_of_service;
     pthread_mutex_unlock(&PIV_Descr_Mutex);
-
 }
 
 void PositiveInteger_Value_Resize(size_t new_size)
