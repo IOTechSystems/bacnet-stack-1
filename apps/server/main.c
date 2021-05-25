@@ -602,9 +602,9 @@ static void populate_server_objects(void)
     UNITS_MILLIAMPERES, 
     2, 
     2,
-    2f,
-    2f,
-    2f,
+    2.0f,
+    2.0f,
+    2.0f,
     EVENT_HIGH_LIMIT_ENABLE,
     EVENT_ENABLE_TO_NORMAL,
     NOTIFY_ACK_NOTIFICATION
@@ -616,7 +616,7 @@ static void populate_server_objects(void)
     "test_binary_input",
     BINARY_ACTIVE,
     false, 
-    POLARIBINARY_INACTIVETY_NORMAL
+    POLARITY_NORMAL
   );
 
   Binary_Output_Add(1);
