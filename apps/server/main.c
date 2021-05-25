@@ -654,7 +654,7 @@ static void populate_server_objects(void)
 
 
   Accumulator_Add(1);
-  Accumulator_Set_Properties(0, "test_accumulator", 23, 100);
+  Accumulator_Set_Properties(0, "test_accumulator", 23, 23);
 
   printf("Done \n");
 }
