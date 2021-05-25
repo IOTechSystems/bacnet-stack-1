@@ -573,20 +573,20 @@ static void populate_server_objects(void)
   Analog_Input_Set_Properties(
     0, 
     "test_analog_input", 
-    58.2f,
-    EVENT_STATE_HIGH_LIMIT, 
+    100.0f,
+    EVENT_STATE_OFFNORMAL, 
     false, 
-    100, 
-    0.25f,
-    RELIABILITY_MULTI_STATE_FAULT,
-    321, 
-    1,
-    120.5f,
-    20.2f,
-    1.5f,
+    UNITS_SQUARE_METERS, 
+    0.0f,
+    RELIABILITY_NO_FAULT_DETECTED,
+    0, 
+    0,
+    0.0f,
+    0.0f,
+    0.0f,
     EVENT_HIGH_LIMIT_ENABLE,
-    EVENT_ENABLE_TO_NORMAL,
-    NOTIFY_MAX
+    EVENT_ENABLE_TO_OFFNORMAL,
+    NOTIFY_ALARM
   );
 
   Analog_Output_Add(1);
@@ -596,19 +596,18 @@ static void populate_server_objects(void)
   Analog_Value_Set_Properties(
     0, 
     "test_analog_value", 
-    58.2f,
-    EVENT_STATE_HIGH_LIMIT, 
+    2.0f,
+    EVENT_STATE_OFFNORMAL, 
     false, 
-    100, 
-    0.25f,
-    321, 
-    1,
-    120.5f,
-    20.2f,
-    1.5f,
+    UNITS_MILLIAMPERES, 
+    2, 
+    2,
+    2f,
+    2f,
+    2f,
     EVENT_HIGH_LIMIT_ENABLE,
     EVENT_ENABLE_TO_NORMAL,
-    NOTIFY_MAX
+    NOTIFY_ACK_NOTIFICATION
   );
 
   Binary_Input_Add(1);
@@ -617,7 +616,7 @@ static void populate_server_objects(void)
     "test_binary_input",
     BINARY_ACTIVE,
     false, 
-    POLARITY_NORMAL
+    POLARIBINARY_INACTIVETY_NORMAL
   );
 
   Binary_Output_Add(1);
@@ -639,23 +638,23 @@ static void populate_server_objects(void)
   Integer_Value_Set_Properties(
     0,
     "test_integer_value",
-    12345,
+    45,
     false,
-    UNITS_DECIBELS_VOLT
+    UNITS_POUNDS_MASS_PER_MINUTE
   );
 
   PositiveInteger_Value_Add(1);
   PositiveInteger_Value_Set_Properties(
     0,
     "test_positive_integer_value",
-    12345,
+    48,
     false,
-    UNITS_DECIBELS_VOLT
+    UNITS_KILOWATTS
   );
 
 
   Accumulator_Add(1);
-  Accumulator_Set_Properties(0, "test_accumulator", 42, 100);
+  Accumulator_Set_Properties(0, "test_accumulator", 23, 100);
 
   printf("Done \n");
 }
