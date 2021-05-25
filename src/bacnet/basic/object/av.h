@@ -78,6 +78,25 @@ extern "C" {
         const int **pOptional,
         const int **pProprietary);
     BACNET_STACK_EXPORT
+
+    void Analog_Value_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name, 
+        float value,
+        BACNET_EVENT_STATE event_state,
+        bool out_of_service,
+        uint8_t units,
+        float cov_incrememnt,
+        uint32_t time_delay, 
+        uint32_t notification_class,
+        float high_limit,
+        float low_limit,
+        float deadband,
+        unsigned limit_enable,
+        unsigned event_enable,
+        unsigned notify_type   
+    );
+
     bool Analog_Value_Valid_Instance(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -97,7 +116,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Value_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     int Analog_Value_Read_Property(

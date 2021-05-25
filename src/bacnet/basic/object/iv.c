@@ -91,6 +91,26 @@ void Integer_Value_Property_Lists(
     return;
 }
 
+void Integer_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char* object_name,
+    int32_t value,
+    bool out_of_service,
+    uint16_t units
+)
+{
+    unsigned int index = Integer_Value_Instance_To_Index(object_instance);
+    if (index >= I_Descr_Size)
+    {
+        return;
+    }   
+
+    Integer_Value_Name_Set(object_instance, object_name);
+    Integer_Value_Present_Value_Set(object_instance, value, false);
+    Integer_Value_Out_Of_Service_Set(object_instance, out_of_service);
+    Integer_Value_Units_Set(object_instance, units);
+}
+
 /**
  * Determines if a given Analog Value instance is valid
  *
@@ -130,11 +150,7 @@ unsigned Integer_Value_Count(void)
  */
 uint32_t Integer_Value_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**
@@ -242,7 +258,7 @@ bool Integer_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRIN
     return status;
 }
 
-bool Integer_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool Integer_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == I_Descr) return false;
 

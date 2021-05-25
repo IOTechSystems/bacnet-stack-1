@@ -51,6 +51,13 @@ extern "C" {
         const int **pRequired,
         const int **pOptional,
         const int **pProprietary);
+    void Binary_Input_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name, 
+        BACNET_BINARY_PV value,
+        bool out_of_service,
+        BACNET_POLARITY polarity
+    );
 
     BACNET_STACK_EXPORT
     bool Binary_Input_Valid_Instance(
@@ -75,7 +82,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Binary_Input_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     BACNET_BINARY_PV Binary_Input_Present_Value(

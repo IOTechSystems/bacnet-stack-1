@@ -82,8 +82,25 @@ void Binary_Value_Property_Lists(
     if (pProprietary) {
         *pProprietary = Binary_Value_Properties_Proprietary;
     }
-
     return;
+}
+
+void Binary_Value_Set_Properties(
+    uint32_t object_instance,
+    const char* object_name,
+    BACNET_BINARY_PV value,
+    bool out_of_service
+)
+{
+    unsigned int index = Binary_Value_Instance_To_Index(object_instance);
+    if (index >= BV_Descr_Size)
+    {
+        return;
+    }   
+
+    Binary_Value_Name_Set(object_instance, object_name);
+    Binary_Value_Present_Value_Set(object_instance, value, 1);
+    Binary_Value_Out_Of_Service_Set(object_instance, out_of_service);
 }
 
 void Binary_Value_Resize(size_t new_size)
@@ -313,7 +330,7 @@ bool Binary_Value_Object_Name(
 }
 
 
-bool Binary_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool Binary_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == BV_Descr) return false;
 
@@ -352,7 +369,7 @@ bool Binary_Value_Out_Of_Service(uint32_t instance)
     if (index < BV_Descr_Size) {
         pthread_mutex_lock(&BV_Descr_Mutex);
         oos_flag = BV_Descr[index].Out_Of_Service;
-        pthread_mutex_lock(&BV_Descr_Mutex);
+        pthread_mutex_unlock(&BV_Descr_Mutex);
 
     }
 
@@ -373,7 +390,7 @@ void Binary_Value_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     if (index < BV_Descr_Size) {
         pthread_mutex_lock(&BV_Descr_Mutex);
         BV_Descr[index].Out_Of_Service = oos_flag;
-        pthread_mutex_lock(&BV_Descr_Mutex);
+        pthread_mutex_unlock(&BV_Descr_Mutex);
     }
 }
 

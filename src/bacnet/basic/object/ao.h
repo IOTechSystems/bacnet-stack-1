@@ -48,6 +48,13 @@ extern "C" {
         const int **pRequired,
         const int **pOptional,
         const int **pProprietary);
+
+    BACNET_STACK_EXPORT
+    void Analog_Output_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name
+    );
+
     BACNET_STACK_EXPORT
     bool Analog_Output_Valid_Instance(
         uint32_t object_instance);
@@ -113,7 +120,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Output_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     char *Analog_Output_Description(

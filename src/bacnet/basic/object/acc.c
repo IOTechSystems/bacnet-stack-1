@@ -80,9 +80,7 @@ void Accumulator_Property_Lists(
 void Accumulator_Set_Properties(uint32_t object_instance, 
                                 const char *object_name, 
                                 BACNET_UNSIGNED_INTEGER value,
-                                int32_t scale, 
-                                BACNET_UNSIGNED_INTEGER max_present_value,
-                                uint16_t units
+                                int32_t scale
                               )
 {
     unsigned int index = Accumulator_Instance_To_Index(object_instance);

@@ -73,6 +73,26 @@ void Binary_Input_Property_Lists(
     return;
 }
 
+void Binary_Input_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    BACNET_BINARY_PV value,
+    bool out_of_service,
+    BACNET_POLARITY polarity
+)
+{
+    unsigned int index = Binary_Input_Instance_To_Index(object_instance);
+    if (index >= BI_Descr_Size)
+    {
+        return;
+    }
+
+    Binary_Input_Name_Set(object_instance, object_name);
+    Binary_Input_Present_Value_Set(object_instance, value);
+    Binary_Input_Out_Of_Service_Set(object_instance, out_of_service);
+    Binary_Input_Polarity_Set(object_instance, polarity);
+}
+
 /* we simply have 0-n object instances.  Yours might be */
 /* more complex, and then you need validate that the */
 /* given instance exists */
@@ -379,7 +399,7 @@ bool Binary_Input_Object_Name(
     return status;
 }
 
-bool Binary_Input_Name_Set(uint32_t object_instance, char *new_name)
+bool Binary_Input_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == BI_Descr) return false;
 

@@ -74,6 +74,30 @@ void PositiveInteger_Value_Property_Lists(
     return;
 }
 
+void PositiveInteger_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char* object_name,
+    int32_t value,
+    bool out_of_service,
+    uint16_t units
+)
+{
+    unsigned int index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size)
+    {
+        return;
+    }   
+
+    PositiveInteger_Value_Name_Set(object_instance, object_name);
+    PositiveInteger_Value_Present_Value_Set(object_instance, value, false);
+    
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    PIV_Descr[index].Units = units;
+    PIV_Descr[index].Out_Of_Service = out_of_service;
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+}
+
 void PositiveInteger_Value_Resize(size_t new_size)
 {
     //could maybe copy state of old array to new one with memcpy?
@@ -81,7 +105,6 @@ void PositiveInteger_Value_Resize(size_t new_size)
     PositiveInteger_Value_Alloc(new_size);
     PositiveInteger_Value_Objects_Init();
 }
-
 
 void PositiveInteger_Value_Add(size_t count)
 {
@@ -252,7 +275,7 @@ bool PositiveInteger_Value_Object_Name(
     return status;
 }
 
-bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool PositiveInteger_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == PIV_Descr) return false;
 

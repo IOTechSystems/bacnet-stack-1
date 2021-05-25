@@ -50,6 +50,15 @@ extern "C" {
         const int **pOptional,
         const int **pProprietary);
     BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Set_Properties(
+        uint32_t object_instance, 
+        const char* object_name,
+        int32_t value,
+        bool out_of_service,
+        uint16_t units
+    );
+
+    BACNET_STACK_EXPORT
     bool PositiveInteger_Value_Valid_Instance(uint32_t object_instance);
     unsigned PositiveInteger_Value_Count(void);
     BACNET_STACK_EXPORT
@@ -61,7 +70,7 @@ extern "C" {
     bool PositiveInteger_Value_Object_Name(uint32_t object_instance,
         BACNET_CHARACTER_STRING * object_name);
     BACNET_STACK_EXPORT
-    bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name);
+    bool PositiveInteger_Value_Name_Set(uint32_t object_instance, const char *new_name);
 
     BACNET_STACK_EXPORT
     int PositiveInteger_Value_Read_Property(BACNET_READ_PROPERTY_DATA *

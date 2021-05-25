@@ -78,9 +78,27 @@ void Binary_Output_Property_Lists(
     return;
 }
 
+void Binary_Output_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    bool out_of_service   
+)
+{
+    unsigned int index = Binary_Output_Instance_To_Index(object_instance);
+    if (index >= BO_Descr_Size)
+    {
+        return;
+    }   
+
+    Binary_Output_Name_Set(object_instance, object_name);
+    
+    pthread_mutex_lock(&BO_Descr_Mutex);
+    BO_Descr[index].Out_Of_Service = out_of_service;
+    pthread_mutex_unlock(&BO_Descr_Mutex);
+}
+
 void Binary_Output_Resize(size_t new_size)
 {
-    //could maybe copy state of old array to new one with memcpy?
     Binary_Output_Free();
     Binary_Output_Alloc(new_size);
     Binary_Output_Objects_Init();
@@ -281,7 +299,7 @@ bool Binary_Output_Object_Name(
 }
 
 
-bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
+bool Binary_Output_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == BO_Descr) return false;
 
@@ -299,7 +317,6 @@ bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
     {
         strcpy(BO_Descr[index].Name, new_name);
     }
-    
     pthread_mutex_unlock(&BO_Descr_Mutex);
 
     return true;
@@ -365,7 +382,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 Binary_Output_Instance_To_Index(rpdata->object_instance);
             pthread_mutex_lock(&BO_Descr_Mutex);
             state = BO_Descr[object_index].Out_Of_Service;
-            pthread_mutex_lock(&BO_Descr_Mutex);
+            pthread_mutex_unlock(&BO_Descr_Mutex);
 
             apdu_len = encode_application_boolean(&apdu[0], state);
             break;
@@ -425,7 +442,6 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                     apdu_len = BACNET_STATUS_ERROR;
                 }
             }
-
             break;
         case PROP_RELINQUISH_DEFAULT:
             present_value = RELINQUISH_DEFAULT;
@@ -438,8 +454,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             break;
         case PROP_INACTIVE_TEXT:
             characterstring_init_ansi(&char_string, "off");
-            apdu_len =
-                encode_application_character_string(&apdu[0], &char_string);
+            apdu_len = encode_application_character_string(&apdu[0], &char_string);
             break;
         default:
             rpdata->error_class = ERROR_CLASS_PROPERTY;

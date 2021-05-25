@@ -31,9 +31,7 @@ extern "C" {
         uint32_t object_instance, 
         const char *object_name, 
         BACNET_UNSIGNED_INTEGER value,
-        int32_t scale, 
-        BACNET_UNSIGNED_INTEGER max_present_value,
-        uint16_t units
+        int32_t scale
     );
 
     BACNET_STACK_EXPORT

@@ -86,6 +86,52 @@ void Analog_Value_Property_Lists(
     return;
 }
 
+void Analog_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    float value,
+    BACNET_EVENT_STATE event_state,
+    bool out_of_service,
+    uint8_t units,
+    float cov_incrememnt,
+    uint32_t time_delay, 
+    uint32_t notification_class,
+    float high_limit,
+    float low_limit,
+    float deadband,
+    unsigned limit_enable,
+    unsigned event_enable,
+    unsigned notify_type   
+)
+{
+    unsigned int index = Analog_Value_Instance_To_Index(object_instance);
+    if (index >= AV_Descr_Size)
+    {
+        return;
+    }
+
+    Analog_Value_Name_Set(object_instance, object_name);
+    Analog_Value_Present_Value_Set (object_instance, value, 1);
+    Analog_Value_Out_Of_Service_Set (object_instance, out_of_service);
+
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    AV_Descr[index].Units = units;
+#if defined(INTRINSIC_REPORTING)
+    AV_Descr[index].Event_State = event_state;
+    AV_Descr[index].Time_Delay = time_delay;
+    AV_Descr[index].Notification_Class = notification_class;
+    AV_Descr[index].High_Limit = high_limit;
+    AV_Descr[index].Low_Limit = low_limit;
+    AV_Descr[index].Deadband = deadband;
+    AV_Descr[index].Limit_Enable = limit_enable;
+    AV_Descr[index].Event_Enable = event_enable;
+    AV_Descr[index].Notify_Type = notify_type;
+#endif
+
+    pthread_mutex_unlock(&AV_Descr_Mutex);
+
+}
+
 void Analog_Value_Resize(size_t new_size)
 {
     //could maybe copy state of old array to new one with memcpy?
@@ -363,7 +409,7 @@ bool Analog_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRING
     return status;
 }
 
-bool Analog_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool Analog_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == AV_Descr) return false;
 

@@ -58,6 +58,15 @@ extern "C" {
         const int **pOptional,
         const int **pProprietary);
     BACNET_STACK_EXPORT
+    void Integer_Value_Set_Properties(
+        uint32_t object_instance, 
+        const char* object_name,
+        int32_t value,
+        bool out_of_service,
+        uint16_t units
+    );
+
+    BACNET_STACK_EXPORT
     bool Integer_Value_Valid_Instance(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -76,7 +85,7 @@ extern "C" {
         BACNET_CHARACTER_STRING * object_name);
     BACNET_STACK_EXPORT
     bool Integer_Value_Name_Set(
-        uint32_t object_instance, char *new_name);
+        uint32_t object_instance, const char *new_name);
 
     BACNET_STACK_EXPORT
     int Integer_Value_Read_Property(

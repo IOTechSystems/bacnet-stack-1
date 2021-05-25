@@ -94,7 +94,7 @@ extern "C" {
         float deadband,
         unsigned limit_enable,
         unsigned event_enable,
-        unsigned notify_type    
+        unsigned notify_type   
     );
 
     BACNET_STACK_EXPORT

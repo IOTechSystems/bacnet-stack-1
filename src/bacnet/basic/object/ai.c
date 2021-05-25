@@ -107,8 +107,10 @@ void Analog_Input_Set_Properties(
     Analog_Input_Name_Set(object_instance, object_name);
     Analog_Input_Present_Value_Set(object_instance, value);
     Analog_Input_Out_Of_Service_Set(object_instance, out_of_service);
-    AI_Descr[index].Units = units;
     Analog_Input_COV_Increment_Set(object_instance, cov_incrememnt);
+
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    AI_Descr[index].Units = units;
 
 #if defined(INTRINSIC_REPORTING)
     AI_Descr[index].Event_State = event_state;
@@ -122,6 +124,7 @@ void Analog_Input_Set_Properties(
     AI_Descr[index].Event_Enable = event_enable;
     AI_Descr[index].Notify_Type = notify_type;
 #endif
+    pthread_mutex_unlock(&AI_Descr_Mutex);
 
 
 }

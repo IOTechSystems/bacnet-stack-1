@@ -566,68 +566,98 @@ static void simulated_init (const char * file_path)
 
 static void populate_server_objects(void)
 {
-  printf("Populating server with objects... ");
+  printf("Populating server with objects...\n");
 
-  Accumulator_Add(1);
-  Accumulator_Set_Properties(0, "test_accumulator", 42, 10, 1000, 100);
 
   Analog_Input_Add(1);
-  Analog_Input_Set_Properties(0, 
-                              "test_analog_input", 
-                              58.2f, EVENT_STATE_HIGH_LIMIT, 
-                              false, 
-                              100, 
-                              0.25f,
-                              RELIABILITY_MULTI_STATE_FAULT,
-                              321, 
-                              1,
-                              120.5f,
-                              20.2f,
-                              1.5f,
-                              EVENT_HIGH_LIMIT_ENABLE,
-                              EVENT_ENABLE_TO_NORMAL,
-                              NOTIFY_MAX
-                              );
-
+  Analog_Input_Set_Properties(
+    0, 
+    "test_analog_input", 
+    58.2f,
+    EVENT_STATE_HIGH_LIMIT, 
+    false, 
+    100, 
+    0.25f,
+    RELIABILITY_MULTI_STATE_FAULT,
+    321, 
+    1,
+    120.5f,
+    20.2f,
+    1.5f,
+    EVENT_HIGH_LIMIT_ENABLE,
+    EVENT_ENABLE_TO_NORMAL,
+    NOTIFY_MAX
+  );
 
   Analog_Output_Add(1);
-
-
-
-
+  Analog_Output_Set_Properties(0, "test_analog_output");
+                              
   Analog_Value_Add(1);
-  bacfile_add(1);
+  Analog_Value_Set_Properties(
+    0, 
+    "test_analog_value", 
+    58.2f,
+    EVENT_STATE_HIGH_LIMIT, 
+    false, 
+    100, 
+    0.25f,
+    321, 
+    1,
+    120.5f,
+    20.2f,
+    1.5f,
+    EVENT_HIGH_LIMIT_ENABLE,
+    EVENT_ENABLE_TO_NORMAL,
+    NOTIFY_MAX
+  );
+
   Binary_Input_Add(1);
+  Binary_Input_Set_Properties(
+    0,
+    "test_binary_input",
+    BINARY_ACTIVE,
+    false, 
+    POLARITY_NORMAL
+  );
+
   Binary_Output_Add(1);
+  Binary_Output_Set_Properties(
+    0,
+    "test_binary_output",
+    false
+  );
+
   Binary_Value_Add(1);
-  Channel_Add(1);
-  Command_Add(1);
-  CharacterString_Value_Add(1);
+  Binary_Value_Set_Properties(
+    0, 
+    "test_binary_value",
+    BINARY_ACTIVE,
+    false
+  );
 
   Integer_Value_Add(1);
+  Integer_Value_Set_Properties(
+    0,
+    "test_integer_value",
+    12345,
+    false,
+    UNITS_DECIBELS_VOLT
+  );
+
   PositiveInteger_Value_Add(1);
+  PositiveInteger_Value_Set_Properties(
+    0,
+    "test_positive_integer_value",
+    12345,
+    false,
+    UNITS_DECIBELS_VOLT
+  );
 
-  Trend_Log_Add(1);
-  Schedule_Add(1);
 
-  Life_Safety_Point_Add(1);
-  Lighting_Output_Add(1);
-  Load_Control_Add(1);
+  Accumulator_Add(1);
+  Accumulator_Set_Properties(0, "test_accumulator", 42, 100);
 
-  Multistate_Input_Add(1);
-  Multistate_Output_Add(1);
-  Multistate_Value_Add(1);
-
-  Network_Port_Add(1);
-
-  OctetString_Value_Add(1);
-  
-  #if defined(INTRINSIC_REPORTING)
-  Notification_Class_Add(1);
-  #endif /* defined(INTRINSIC_REPORTING) */
-  
   printf("Done \n");
-
 }
 
 /** @file server/main.c  Example server application using the BACnet Stack. */

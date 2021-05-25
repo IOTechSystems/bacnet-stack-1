@@ -85,6 +85,15 @@ void Analog_Output_Property_Lists(
     return;
 }
 
+    
+void Analog_Output_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name
+)
+{
+    Analog_Output_Name_Set(object_instance, object_name);
+}
+
 void Analog_Output_Resize(size_t new_size)
 {
     //could maybe copy state of old array to new one with memcpy?
@@ -322,7 +331,7 @@ bool Analog_Output_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRIN
     return status;
 }
 
-bool Analog_Output_Name_Set( uint32_t object_instance, char *new_name)
+bool Analog_Output_Name_Set( uint32_t object_instance, const char *new_name)
 {
     if (NULL == AO_Descr) return false;
 
