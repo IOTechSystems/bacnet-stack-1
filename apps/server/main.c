@@ -570,8 +570,8 @@ static void populate_server_objects(void)
   Analog_Input_Add(1);
   Analog_Input_Set_Properties(
     0, 
-    "test_analog_input", 
-    100.0f,
+    "analog_input_0", 
+    0.0f,
     EVENT_STATE_OFFNORMAL, 
     false, 
     UNITS_SQUARE_METERS, 
@@ -588,12 +588,12 @@ static void populate_server_objects(void)
   );
 
   Analog_Output_Add(1);
-  Analog_Output_Set_Properties(0, "test_analog_output");
+  Analog_Output_Set_Properties(0, "analog_output_0", 1.0f);
                               
   Analog_Value_Add(1);
   Analog_Value_Set_Properties(
     0, 
-    "test_analog_value", 
+    "analog_value_0", 
     2.0f,
     EVENT_STATE_OFFNORMAL, 
     false, 
@@ -605,13 +605,13 @@ static void populate_server_objects(void)
     2.0f,
     EVENT_HIGH_LIMIT_ENABLE,
     EVENT_ENABLE_TO_NORMAL,
-    NOTIFY_ACK_NOTIFICATION
+    NOTIFY_EVENT
   );
 
   Binary_Input_Add(1);
   Binary_Input_Set_Properties(
     0,
-    "test_binary_input",
+    "binary_input_0",
     BINARY_ACTIVE,
     false, 
     POLARITY_NORMAL
@@ -620,14 +620,15 @@ static void populate_server_objects(void)
   Binary_Output_Add(1);
   Binary_Output_Set_Properties(
     0,
-    "test_binary_output",
-    false
+    "binary_output_0",
+    BINARY_ACTIVE,
+    false    
   );
 
   Binary_Value_Add(1);
   Binary_Value_Set_Properties(
     0, 
-    "test_binary_value",
+    "binary_value_0",
     BINARY_ACTIVE,
     false
   );
@@ -635,7 +636,7 @@ static void populate_server_objects(void)
   Integer_Value_Add(1);
   Integer_Value_Set_Properties(
     0,
-    "test_integer_value",
+    "integer_value_0",
     45,
     false,
     UNITS_POUNDS_MASS_PER_MINUTE
@@ -644,14 +645,14 @@ static void populate_server_objects(void)
   PositiveInteger_Value_Add(1);
   PositiveInteger_Value_Set_Properties(
     0,
-    "test_positive_integer_value",
+    "positive_integer_value_0",
     48,
     false,
     UNITS_KILOWATTS
   );
 
   Accumulator_Add(1);
-  Accumulator_Set_Properties(0, "test_accumulator", 23, 23);
+  Accumulator_Set_Properties(0, "accumulator_0", 23, 23);
 
   printf("Done \n");
 }

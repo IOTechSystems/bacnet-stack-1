@@ -52,7 +52,8 @@ extern "C" {
     BACNET_STACK_EXPORT
     void Analog_Output_Set_Properties(
         uint32_t object_instance, 
-        const char *object_name
+        const char *object_name,
+        float value
     );
 
     BACNET_STACK_EXPORT

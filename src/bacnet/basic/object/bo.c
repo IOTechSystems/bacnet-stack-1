@@ -81,6 +81,7 @@ void Binary_Output_Property_Lists(
 void Binary_Output_Set_Properties(
     uint32_t object_instance, 
     const char *object_name, 
+    BACNET_BINARY_PV value,
     bool out_of_service   
 )
 {
@@ -91,6 +92,7 @@ void Binary_Output_Set_Properties(
     }   
 
     Binary_Output_Name_Set(object_instance, object_name);
+    Binary_Output_Present_Value_Set(object_instance, value,1);
     
     pthread_mutex_lock(&BO_Descr_Mutex);
     BO_Descr[index].Out_Of_Service = out_of_service;

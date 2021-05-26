@@ -57,6 +57,7 @@ extern "C" {
     void Binary_Output_Set_Properties(
         uint32_t object_instance, 
         const char *object_name, 
+        BACNET_BINARY_PV value,
         bool out_of_service
     );
 

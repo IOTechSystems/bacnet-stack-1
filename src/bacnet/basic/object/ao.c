@@ -88,10 +88,12 @@ void Analog_Output_Property_Lists(
     
 void Analog_Output_Set_Properties(
     uint32_t object_instance, 
-    const char *object_name
+    const char *object_name,
+    float value
 )
 {
     Analog_Output_Name_Set(object_instance, object_name);
+    Analog_Output_Present_Value_Set(object_instance, value, 1);
 }
 
 void Analog_Output_Resize(size_t new_size)
