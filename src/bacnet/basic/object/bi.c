@@ -140,7 +140,10 @@ void Binary_Input_Add(size_t count)
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
+        pthread_mutex_lock(&BI_Descr_Mutex);
         BI_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
+
         snprintf(name_buffer, 64, "binary_input_%zu", i);
         Binary_Input_Set_Properties(
             i,

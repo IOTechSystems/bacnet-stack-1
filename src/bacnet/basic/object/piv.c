@@ -117,7 +117,10 @@ void PositiveInteger_Value_Add(size_t count)
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
         PIV_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
+
         snprintf(name_buffer, 64, "positiveinteger_value_%zu", i);
         PositiveInteger_Value_Set_Properties(
             i,

@@ -503,7 +503,10 @@ void Accumulator_Add(size_t count)
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
         Acc_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+
         snprintf(name_buffer, 64, "accumulator_%zu", i);
         Accumulator_Set_Properties(i, name_buffer, i, 10);
     }

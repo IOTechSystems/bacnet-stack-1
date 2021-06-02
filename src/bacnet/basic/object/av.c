@@ -151,7 +151,10 @@ void Analog_Value_Add(size_t count)
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
+        pthread_mutex_lock(&AV_Descr_Mutex);
         AV_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&AV_Descr_Mutex);
+
         snprintf(name_buffer, 64, "analog_value_%zu", i);
         Analog_Value_Set_Properties(
             i, 

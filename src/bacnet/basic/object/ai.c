@@ -147,7 +147,10 @@ void Analog_Input_Add(size_t count)
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
+        pthread_mutex_lock(&AI_Descr_Mutex);
         AI_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+
         snprintf(name_buffer, 64, "analog_input_%zu", i);
         Analog_Input_Set_Properties(
             i, 
