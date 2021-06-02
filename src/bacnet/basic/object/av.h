@@ -208,11 +208,7 @@ extern "C" {
 #endif
 
     BACNET_STACK_EXPORT
-    void Analog_Value_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Analog_Value_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Analog_Value_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Analog_Value_Free(void);
     BACNET_STACK_EXPORT

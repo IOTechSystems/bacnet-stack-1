@@ -99,29 +99,38 @@ void Binary_Output_Set_Properties(
     pthread_mutex_unlock(&BO_Descr_Mutex);
 }
 
-void Binary_Output_Resize(size_t new_size)
-{
-    Binary_Output_Free();
-    Binary_Output_Alloc(new_size);
-    Binary_Output_Objects_Init();
-}
 
 void Binary_Output_Add(size_t count)
 {
-    Binary_Output_Resize(BO_Descr_Size + count);
+    size_t prev_size = BO_Descr_Size;
+    size_t new_size = BO_Descr_Size + count;
+   
+    pthread_mutex_lock(&BO_Descr_Mutex);
+    BINARY_OUTPUT_DESCR *tmp = realloc(BO_Descr, sizeof(*BO_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
+    {
+        pthread_mutex_unlock(&BO_Descr_Mutex);
+        return;
+    }
+    BO_Descr_Size = new_size;
+    BO_Descr = tmp;
+    pthread_mutex_unlock(&BO_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        BO_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "binary_output_%zu", i);
+        Binary_Output_Set_Properties(
+            i,
+            name_buffer,
+            BINARY_ACTIVE,
+            false    
+        );
+    }
 }
 
-void Binary_Output_Alloc(size_t size)
-{
-    pthread_mutex_lock(&BO_Descr_Mutex);
-    
-    BO_Descr = calloc(size, sizeof (*BO_Descr));
-    if(NULL != BO_Descr)
-    {
-        BO_Descr_Size = size;
-    }
-    pthread_mutex_unlock(&BO_Descr_Mutex);
-}
 
 void Binary_Output_Free(void)
 {

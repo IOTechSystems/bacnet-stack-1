@@ -202,10 +202,6 @@ extern "C" {
 #endif
 
     BACNET_STACK_EXPORT
-    void Analog_Input_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
-    void Analog_Input_Alloc(size_t new_size);
-    BACNET_STACK_EXPORT
     void Analog_Input_Add(size_t count);
     BACNET_STACK_EXPORT
     void Analog_Input_Free(void);

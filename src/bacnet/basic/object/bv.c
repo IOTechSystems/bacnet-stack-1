@@ -103,28 +103,36 @@ void Binary_Value_Set_Properties(
     Binary_Value_Out_Of_Service_Set(object_instance, out_of_service);
 }
 
-void Binary_Value_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Binary_Value_Free();
-    Binary_Value_Alloc(new_size);
-    Binary_Value_Objects_Init();
-}
 
 void Binary_Value_Add(size_t count)
 {
-    Binary_Value_Resize(BV_Descr_Size + count);
-}
-
-void Binary_Value_Alloc(size_t size)
-{
+    size_t prev_size = BV_Descr_Size;
+    size_t new_size = BV_Descr_Size + count;
+   
     pthread_mutex_lock(&BV_Descr_Mutex);
-    BV_Descr = calloc(size, sizeof (*BV_Descr));
-    if(NULL != BV_Descr)
+    BINARY_VALUE_DESCR *tmp = realloc(BV_Descr, sizeof(*BV_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        BV_Descr_Size = size;
+        pthread_mutex_unlock(&BV_Descr_Mutex);
+        return;
     }
+    BV_Descr_Size = new_size;
+    BV_Descr = tmp;
     pthread_mutex_unlock(&BV_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        BV_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "binary_value_%zu", i);
+        Binary_Value_Set_Properties(
+            i, 
+            name_buffer,
+            BINARY_ACTIVE,
+            false
+        );
+    }
 }
 
 void Binary_Value_Free(void)

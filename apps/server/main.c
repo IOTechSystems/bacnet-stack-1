@@ -561,102 +561,6 @@ static void simulated_init (const char * file_path)
   fflush(stdout);
 }
 
-/**---------SIMULATED Device scripting end ----------**/
-
-static void populate_server_objects(void)
-{
-  printf("Populating server with objects...\n");
-
-  Analog_Input_Add(1);
-  Analog_Input_Set_Properties(
-    0, 
-    "analog_input_0", 
-    0.0f,
-    EVENT_STATE_OFFNORMAL, 
-    false, 
-    UNITS_SQUARE_METERS, 
-    0.0f,
-    RELIABILITY_NO_FAULT_DETECTED,
-    0, 
-    0,
-    0.0f,
-    0.0f,
-    0.0f,
-    EVENT_HIGH_LIMIT_ENABLE,
-    EVENT_ENABLE_TO_OFFNORMAL,
-    NOTIFY_ALARM
-  );
-
-  Analog_Output_Add(1);
-  Analog_Output_Set_Properties(0, "analog_output_0", 1.0f);
-                              
-  Analog_Value_Add(1);
-  Analog_Value_Set_Properties(
-    0, 
-    "analog_value_0", 
-    2.0f,
-    EVENT_STATE_OFFNORMAL, 
-    false, 
-    UNITS_MILLIAMPERES, 
-    2, 
-    2,
-    2.0f,
-    2.0f,
-    2.0f,
-    EVENT_HIGH_LIMIT_ENABLE,
-    EVENT_ENABLE_TO_NORMAL,
-    NOTIFY_EVENT
-  );
-
-  Binary_Input_Add(1);
-  Binary_Input_Set_Properties(
-    0,
-    "binary_input_0",
-    BINARY_ACTIVE,
-    false, 
-    POLARITY_NORMAL
-  );
-
-  Binary_Output_Add(1);
-  Binary_Output_Set_Properties(
-    0,
-    "binary_output_0",
-    BINARY_ACTIVE,
-    false    
-  );
-
-  Binary_Value_Add(1);
-  Binary_Value_Set_Properties(
-    0, 
-    "binary_value_0",
-    BINARY_ACTIVE,
-    false
-  );
-
-  Integer_Value_Add(1);
-  Integer_Value_Set_Properties(
-    0,
-    "integer_value_0",
-    45,
-    false,
-    UNITS_POUNDS_MASS_PER_MINUTE
-  );
-
-  PositiveInteger_Value_Add(1);
-  PositiveInteger_Value_Set_Properties(
-    0,
-    "positive_integer_value_0",
-    48,
-    false,
-    UNITS_KILOWATTS
-  );
-
-  Accumulator_Add(1);
-  Accumulator_Set_Properties(0, "accumulator_0", 23, 23);
-
-  printf("Done \n");
-}
-
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -747,7 +651,7 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [--populate] [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
+    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
@@ -761,8 +665,6 @@ static void print_help(const char *filename)
            "trying simulate.\n"
            "--name:\n"
            "The Device object-name is the text name for the device.\n"
-           "--populate:\n"
-           "Populates the server with one instance of each object type."
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
            "%s --instance 123\n",
@@ -827,7 +729,6 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
-    bool populate_server = false;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -875,10 +776,6 @@ int main(int argc, char *argv[])
           devicename = argv[argi]; 
         }
 
-        if (strcmp(argv[argi], "--populate") == 0) {
-          populate_server = true;
-        }
-
     }
 #if defined(BAC_UCI)
     ctx = ucix_init("bacnet_dev");
@@ -902,7 +799,6 @@ int main(int argc, char *argv[])
       Device_Set_Object_Instance_Number(instance_num);
     }
 
-
     printf("BACnet Server Demo\n"
            "BACnet Stack Version %s\n"
            "BACnet Device ID: %u\n"
@@ -925,11 +821,6 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
-
-    if (populate_server)
-    {
-      populate_server_objects();
-    }
   
     if (scriptpath != NULL)
     {

@@ -120,29 +120,36 @@ uint32_t Binary_Input_Index_To_Instance(unsigned index)
     return index;
 }
 
-
-void Binary_Input_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Binary_Input_Free();
-    Binary_Input_Alloc(new_size);
-    Binary_Input_Objects_Init();
-}
-
 void Binary_Input_Add(size_t count)
 {
-    Binary_Input_Resize(BI_Descr_Size + count);
-}
-
-void Binary_Input_Alloc(size_t size)
-{
+    size_t prev_size = BI_Descr_Size;
+    size_t new_size = BI_Descr_Size + count;
+   
     pthread_mutex_lock(&BI_Descr_Mutex);
-    BI_Descr = calloc(size, sizeof (*BI_Descr));
-    if(NULL != BI_Descr)
+    BINARY_INPUT_DESCR *tmp = realloc(BI_Descr, sizeof(*BI_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        BI_Descr_Size = size;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
+        return;
     }
+    BI_Descr_Size = new_size;
+    BI_Descr = tmp;
     pthread_mutex_unlock(&BI_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        BI_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "binary_input_%zu", i);
+        Binary_Input_Set_Properties(
+            i,
+            name_buffer,
+            BINARY_ACTIVE,
+            false, 
+            POLARITY_NORMAL
+        );
+    }
 }
 
 void Binary_Input_Free(void)

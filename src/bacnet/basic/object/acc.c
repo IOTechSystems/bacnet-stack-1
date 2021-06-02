@@ -483,29 +483,30 @@ bool Accumulator_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return false;
 }
 
-void Accumulator_Resize(size_t new_size)
-{
-    Accumulator_Free();
-    Accumulator_Alloc(new_size);
-    Accumulator_Objects_Init();
-}
-
 void Accumulator_Add(size_t count)
 {
-    Accumulator_Resize(Acc_Descr_Size + count);
-}
-
-void Accumulator_Alloc(size_t size)
-{
+    size_t prev_size = Acc_Descr_Size;
+    size_t new_size = Acc_Descr_Size + count;
+   
     pthread_mutex_lock(&Acc_Descr_Mutex);
-    
-    Acc_Descr = calloc(size, sizeof (*Acc_Descr));
-    if (NULL != Acc_Descr)
+    ACCUMULATOR_DESCR *tmp = realloc(Acc_Descr, sizeof(*Acc_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        Acc_Descr_Size = size;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+        return;
     }
-  
+    Acc_Descr_Size = new_size;
+    Acc_Descr = tmp;
     pthread_mutex_unlock(&Acc_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        Acc_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "accumulator_%zu", i);
+        Accumulator_Set_Properties(i, name_buffer, i, 10);
+    }
 }
 
 void Accumulator_Free(void)

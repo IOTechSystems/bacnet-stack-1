@@ -97,28 +97,36 @@ void PositiveInteger_Value_Set_Properties(
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 }
 
-void PositiveInteger_Value_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    PositiveInteger_Value_Free();
-    PositiveInteger_Value_Alloc(new_size);
-    PositiveInteger_Value_Objects_Init();
-}
-
 void PositiveInteger_Value_Add(size_t count)
 {
-    PositiveInteger_Value_Resize(PIV_Descr_Size + count);
-}
-
-void PositiveInteger_Value_Alloc(size_t size)
-{
+    size_t prev_size = PIV_Descr_Size;
+    size_t new_size = PIV_Descr_Size + count;
+   
     pthread_mutex_lock(&PIV_Descr_Mutex);
-    PIV_Descr = calloc(size, sizeof(*PIV_Descr));
-    if(NULL != PIV_Descr)
+    POSITIVEINTEGER_VALUE_DESCR *tmp = realloc(PIV_Descr, sizeof(*PIV_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        PIV_Descr_Size = size;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
+        return;
     }
+    PIV_Descr_Size = new_size;
+    PIV_Descr = tmp;
     pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        PIV_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "positiveinteger_value_%zu", i);
+        PositiveInteger_Value_Set_Properties(
+            i,
+            name_buffer,
+            i,
+            false,
+            UNITS_KILOWATTS
+        );
+    }
 }
 
 void PositiveInteger_Value_Free(void)

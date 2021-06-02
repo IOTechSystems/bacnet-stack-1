@@ -130,28 +130,46 @@ void Analog_Value_Set_Properties(
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
-void Analog_Value_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Value_Free();
-    Analog_Value_Alloc(new_size);
-    Analog_Value_Objects_Init();
-}
-
 void Analog_Value_Add(size_t count)
 {
-    Analog_Value_Resize(AV_Descr_Size + count);
-}
-
-void Analog_Value_Alloc(size_t size)
-{
+    size_t prev_size = AV_Descr_Size;
+    size_t new_size = AV_Descr_Size + count;
+    
     pthread_mutex_lock(&AV_Descr_Mutex);
-    AV_Descr = calloc(size, sizeof (*AV_Descr));
-    if (NULL != AV_Descr)
+    ANALOG_VALUE_DESCR *tmp = realloc(AV_Descr, sizeof(*AV_Descr) * new_size);
+
+    if (NULL == tmp) //unsuccessful resize
     {
-        AV_Descr_Size = size;
+        pthread_mutex_unlock(&AV_Descr_Mutex);
+        return;
     }
+    AV_Descr_Size = new_size;
+    AV_Descr = tmp;
     pthread_mutex_unlock(&AV_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        AV_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "analog_value_%zu", i);
+        Analog_Value_Set_Properties(
+            i, 
+            name_buffer, 
+            (float) i,
+            EVENT_STATE_NORMAL, 
+            false, 
+            UNITS_NO_UNITS, 
+            2, 
+            2,
+            2.0f,
+            2.0f,
+            2.0f,
+            EVENT_HIGH_LIMIT_ENABLE,
+            EVENT_ENABLE_TO_NORMAL,
+            NOTIFY_EVENT
+        );
+    }
 }
 
 void Analog_Value_Free(void)

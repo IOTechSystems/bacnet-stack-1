@@ -163,11 +163,7 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
-    void Analog_Output_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Analog_Output_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Analog_Output_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Analog_Output_Free(void);
     BACNET_STACK_EXPORT

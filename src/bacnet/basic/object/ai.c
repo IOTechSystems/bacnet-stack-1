@@ -129,26 +129,45 @@ void Analog_Input_Set_Properties(
 
 void Analog_Input_Add(size_t count)
 {
-    Analog_Input_Resize(AI_Descr_Size + count);
-}
-
-void Analog_Input_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Input_Free();
-    Analog_Input_Alloc(new_size);
-    Analog_Input_Objects_Init();
-}
-
-void Analog_Input_Alloc(size_t size)
-{
+    size_t prev_size = AI_Descr_Size;
+    size_t new_size = AI_Descr_Size + count;
+   
     pthread_mutex_lock(&AI_Descr_Mutex);
-    AI_Descr = calloc(size, sizeof(*AI_Descr));
-    if (NULL != AI_Descr)
+    ANALOG_INPUT_DESCR *tmp = realloc(AI_Descr, sizeof(*AI_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        AI_Descr_Size = size;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+        return;
     }
+    AI_Descr_Size = new_size;
+    AI_Descr = tmp;
     pthread_mutex_unlock(&AI_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        AI_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "analog_input_%zu", i);
+        Analog_Input_Set_Properties(
+            i, 
+            &name_buffer[0], 
+            (float) i,
+            EVENT_STATE_NORMAL, 
+            false, 
+            UNITS_PERCENT, 
+            0.0f,
+            RELIABILITY_NO_FAULT_DETECTED,
+            0, 
+            0,
+            0.0f,
+            0.0f,
+            0.0f,
+            EVENT_HIGH_LIMIT_ENABLE,
+            EVENT_ENABLE_TO_OFFNORMAL,
+            NOTIFY_ALARM
+        );
+    }
 }
 
 void Analog_Input_Free(void)

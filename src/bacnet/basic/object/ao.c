@@ -96,30 +96,30 @@ void Analog_Output_Set_Properties(
     Analog_Output_Present_Value_Set(object_instance, value, 1);
 }
 
-void Analog_Output_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Output_Free();
-    Analog_Output_Alloc(new_size);
-    Analog_Output_Objects_Init();
-}
-
 void Analog_Output_Add(size_t count)
 {
-    Analog_Output_Resize(AO_Descr_Size + count);
-}
-
-void Analog_Output_Alloc(size_t size)
-{
+    size_t prev_size = AO_Descr_Size;
+    size_t new_size = AO_Descr_Size + count;
+   
     pthread_mutex_lock(&AO_Descr_Mutex);
-
-    AO_Descr = calloc(size, sizeof (*AO_Descr));
-    if (NULL != AO_Descr)
+    ANALOG_OUTPUT_DESCR *tmp = realloc(AO_Descr, sizeof(*AO_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        AO_Descr_Size = size;
+        pthread_mutex_unlock(&AO_Descr_Mutex);
+        return;
     }
-    
+    AO_Descr_Size = new_size;
+    AO_Descr = tmp;
     pthread_mutex_unlock(&AO_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        AO_Descr[i].Name = NULL;
+        snprintf(name_buffer, 64, "analog_output_%zu", i);
+        Analog_Output_Set_Properties(i, name_buffer, (float) i);
+    }
 }
 
 void Analog_Output_Free(void)

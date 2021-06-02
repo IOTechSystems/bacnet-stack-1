@@ -147,11 +147,7 @@ extern "C" {
         bool oos_flag);
 
     BACNET_STACK_EXPORT
-    void Integer_Value_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Integer_Value_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Integer_Value_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Integer_Value_Free(void);
     BACNET_STACK_EXPORT
