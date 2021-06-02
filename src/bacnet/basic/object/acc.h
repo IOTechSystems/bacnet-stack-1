@@ -27,6 +27,14 @@ extern "C" {
         const int **pProprietary);
 
     BACNET_STACK_EXPORT
+    void Accumulator_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name, 
+        BACNET_UNSIGNED_INTEGER value,
+        int32_t scale
+    );
+
+    BACNET_STACK_EXPORT
     bool Accumulator_Valid_Instance(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -48,7 +56,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Accumulator_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     char *Accumulator_Description(
@@ -94,11 +102,7 @@ extern "C" {
     bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t);
 
     BACNET_STACK_EXPORT
-    void Accumulator_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Accumulator_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Accumulator_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Accumulator_Free(void);
     BACNET_STACK_EXPORT

@@ -85,30 +85,44 @@ void Analog_Output_Property_Lists(
     return;
 }
 
-void Analog_Output_Resize(size_t new_size)
+    
+void Analog_Output_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name,
+    float value
+)
 {
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Output_Free();
-    Analog_Output_Alloc(new_size);
-    Analog_Output_Objects_Init();
+    Analog_Output_Name_Set(object_instance, object_name);
+    Analog_Output_Present_Value_Set(object_instance, value, 1);
 }
 
 void Analog_Output_Add(size_t count)
 {
-    Analog_Output_Resize(AO_Descr_Size + count);
-}
-
-void Analog_Output_Alloc(size_t size)
-{
+    size_t prev_size = AO_Descr_Size;
+    size_t new_size = AO_Descr_Size + count;
+   
     pthread_mutex_lock(&AO_Descr_Mutex);
-
-    AO_Descr = calloc(size, sizeof (*AO_Descr));
-    if (NULL != AO_Descr)
+    ANALOG_OUTPUT_DESCR *tmp = realloc(AO_Descr, sizeof(*AO_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        AO_Descr_Size = size;
+        pthread_mutex_unlock(&AO_Descr_Mutex);
+        return;
     }
-    
+    AO_Descr_Size = new_size;
+    AO_Descr = tmp;
     pthread_mutex_unlock(&AO_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&AO_Descr_Mutex);
+        AO_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&AO_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "analog_output_%zu", i);
+        Analog_Output_Set_Properties(i, name_buffer, (float) i);
+    }
 }
 
 void Analog_Output_Free(void)
@@ -322,7 +336,7 @@ bool Analog_Output_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRIN
     return status;
 }
 
-bool Analog_Output_Name_Set( uint32_t object_instance, char *new_name)
+bool Analog_Output_Name_Set( uint32_t object_instance, const char *new_name)
 {
     if (NULL == AO_Descr) return false;
 

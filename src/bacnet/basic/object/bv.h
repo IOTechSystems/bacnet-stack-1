@@ -55,6 +55,13 @@ extern "C" {
         const int **pProprietary);
 
     BACNET_STACK_EXPORT
+    void Binary_Value_Set_Properties(
+        uint32_t object_instance,
+        const char* object_name,
+        BACNET_BINARY_PV value,
+        bool out_of_service);
+
+    BACNET_STACK_EXPORT
     bool Binary_Value_Valid_Instance(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
@@ -77,7 +84,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Binary_Value_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     char *Binary_Value_Description(
@@ -178,11 +185,7 @@ extern "C" {
         BACNET_POLARITY polarity);
 
     BACNET_STACK_EXPORT
-    void Binary_Value_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Binary_Value_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Binary_Value_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Binary_Value_Free(void);
     BACNET_STACK_EXPORT

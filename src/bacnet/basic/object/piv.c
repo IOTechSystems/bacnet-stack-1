@@ -74,29 +74,62 @@ void PositiveInteger_Value_Property_Lists(
     return;
 }
 
-void PositiveInteger_Value_Resize(size_t new_size)
+void PositiveInteger_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char* object_name,
+    int32_t value,
+    bool out_of_service,
+    uint16_t units
+)
 {
-    //could maybe copy state of old array to new one with memcpy?
-    PositiveInteger_Value_Free();
-    PositiveInteger_Value_Alloc(new_size);
-    PositiveInteger_Value_Objects_Init();
-}
+    unsigned int index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size)
+    {
+        return;
+    }   
 
+    PositiveInteger_Value_Name_Set(object_instance, object_name);
+    PositiveInteger_Value_Present_Value_Set(object_instance, value, false);
+    
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    PIV_Descr[index].Units = units;
+    PIV_Descr[index].Out_Of_Service = out_of_service;
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+}
 
 void PositiveInteger_Value_Add(size_t count)
 {
-    PositiveInteger_Value_Resize(PIV_Descr_Size + count);
-}
-
-void PositiveInteger_Value_Alloc(size_t size)
-{
+    size_t prev_size = PIV_Descr_Size;
+    size_t new_size = PIV_Descr_Size + count;
+   
     pthread_mutex_lock(&PIV_Descr_Mutex);
-    PIV_Descr = calloc(size, sizeof(*PIV_Descr));
-    if(NULL != PIV_Descr)
+    POSITIVEINTEGER_VALUE_DESCR *tmp = realloc(PIV_Descr, sizeof(*PIV_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        PIV_Descr_Size = size;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
+        return;
     }
+    PIV_Descr_Size = new_size;
+    PIV_Descr = tmp;
     pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&PIV_Descr_Mutex);
+        PIV_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "positiveinteger_value_%zu", i);
+        PositiveInteger_Value_Set_Properties(
+            i,
+            name_buffer,
+            i,
+            false,
+            UNITS_KILOWATTS
+        );
+    }
 }
 
 void PositiveInteger_Value_Free(void)
@@ -252,7 +285,7 @@ bool PositiveInteger_Value_Object_Name(
     return status;
 }
 
-bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool PositiveInteger_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == PIV_Descr) return false;
 

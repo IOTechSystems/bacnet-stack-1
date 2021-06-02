@@ -53,6 +53,13 @@ extern "C" {
         const int **pRequired,
         const int **pOptional,
         const int **pProprietary);
+    BACNET_STACK_EXPORT
+    void Binary_Output_Set_Properties(
+        uint32_t object_instance, 
+        const char *object_name, 
+        BACNET_BINARY_PV value,
+        bool out_of_service
+    );
 
     BACNET_STACK_EXPORT
     bool Binary_Output_Valid_Instance(
@@ -77,7 +84,7 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Binary_Output_Name_Set(
         uint32_t object_instance,
-        char *new_name);
+        const char *new_name);
 
     BACNET_STACK_EXPORT
     char *Binary_Output_Description(
@@ -161,11 +168,7 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
-    void Binary_Output_Resize(size_t new_size);
-    BACNET_STACK_EXPORT
     void Binary_Output_Add(size_t count);
-    BACNET_STACK_EXPORT
-    void Binary_Output_Alloc(size_t new_size);
     BACNET_STACK_EXPORT
     void Binary_Output_Free(void);
     BACNET_STACK_EXPORT

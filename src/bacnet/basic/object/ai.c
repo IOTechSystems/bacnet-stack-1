@@ -78,30 +78,99 @@ void Analog_Input_Property_Lists(
 
     return;
 }
+ 
+void Analog_Input_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    float value,
+    BACNET_EVENT_STATE event_state,
+    bool out_of_service,
+    uint8_t units,
+    float cov_incrememnt,
+    BACNET_RELIABILITY reliability,
+    uint32_t time_delay, 
+    uint32_t notification_class,
+    float high_limit,
+    float low_limit,
+    float deadband,
+    unsigned limit_enable,
+    unsigned event_enable,
+    unsigned notify_type   
+)
+{
+    unsigned int index = Analog_Input_Instance_To_Index(object_instance);
+    if (index >= AI_Descr_Size)
+    {
+        return;
+    }
+
+    Analog_Input_Name_Set(object_instance, object_name);
+    Analog_Input_Present_Value_Set(object_instance, value);
+    Analog_Input_Out_Of_Service_Set(object_instance, out_of_service);
+    Analog_Input_COV_Increment_Set(object_instance, cov_incrememnt);
+
+    pthread_mutex_lock(&AI_Descr_Mutex);
+    AI_Descr[index].Units = units;
+
+#if defined(INTRINSIC_REPORTING)
+    AI_Descr[index].Event_State = event_state;
+    AI_Descr[index].Reliability = reliability;
+    AI_Descr[index].Time_Delay = time_delay;
+    AI_Descr[index].Notification_Class = notification_class;
+    AI_Descr[index].High_Limit = high_limit;
+    AI_Descr[index].Low_Limit = low_limit;
+    AI_Descr[index].Deadband = deadband;
+    AI_Descr[index].Limit_Enable = limit_enable;
+    AI_Descr[index].Event_Enable = event_enable;
+    AI_Descr[index].Notify_Type = notify_type;
+#endif
+    pthread_mutex_unlock(&AI_Descr_Mutex);
+}
 
 void Analog_Input_Add(size_t count)
 {
-    Analog_Input_Resize(AI_Descr_Size + count);
-}
-
-void Analog_Input_Resize(size_t new_size)
-{
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Input_Free();
-    Analog_Input_Alloc(new_size);
-    Analog_Input_Objects_Init();
-
-}
-
-void Analog_Input_Alloc(size_t size)
-{
+    size_t prev_size = AI_Descr_Size;
+    size_t new_size = AI_Descr_Size + count;
+   
     pthread_mutex_lock(&AI_Descr_Mutex);
-    AI_Descr = calloc(size, sizeof(*AI_Descr));
-    if (NULL != AI_Descr)
+    ANALOG_INPUT_DESCR *tmp = realloc(AI_Descr, sizeof(*AI_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        AI_Descr_Size = size;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+        return;
     }
+    AI_Descr_Size = new_size;
+    AI_Descr = tmp;
     pthread_mutex_unlock(&AI_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&AI_Descr_Mutex);
+        AI_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&AI_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "analog_input_%zu", i);
+        Analog_Input_Set_Properties(
+            i, 
+            &name_buffer[0], 
+            (float) i,
+            EVENT_STATE_NORMAL, 
+            false, 
+            UNITS_PERCENT, 
+            0.0f,
+            RELIABILITY_NO_FAULT_DETECTED,
+            0, 
+            0,
+            0.0f,
+            0.0f,
+            0.0f,
+            EVENT_HIGH_LIMIT_ENABLE,
+            EVENT_ENABLE_TO_OFFNORMAL,
+            NOTIFY_ALARM
+        );
+    }
 }
 
 void Analog_Input_Free(void)
@@ -299,7 +368,7 @@ bool Analog_Input_Object_Name(
     return status;
 }
 
-bool Analog_Input_Name_Set(uint32_t object_instance, char *new_name)
+bool Analog_Input_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == AI_Descr) return false;
 
