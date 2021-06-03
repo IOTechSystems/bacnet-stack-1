@@ -861,7 +861,9 @@ int main(int argc, char *argv[])
             handler_timesync_task(&bdatetime);
 #endif
         }
-        handler_cov_task();
+
+        while (!handler_cov_fsm());
+
         /* scan cache address */
         address_binding_tmr += elapsed_seconds;
         if (address_binding_tmr >= 60) {
