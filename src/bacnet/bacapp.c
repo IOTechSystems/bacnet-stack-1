@@ -787,7 +787,7 @@ int bacapp_decode_context_data(uint8_t *apdu,
                 /* Decode more complex data */
                 len = bacapp_decode_context_data_complex(&apdu[apdu_len],
                     max_apdu_len - apdu_len, tag_number, value, property);
-                /* putting the tag as MAX so that the application will
+                /* IOTech: putting the tag as MAX so that the application will
                 * not process this value */
                 value->tag = MAX_BACNET_APPLICATION_TAG;
                 if (len < 0)
