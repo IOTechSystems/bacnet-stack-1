@@ -781,6 +781,9 @@ int bacapp_decode_context_data(uint8_t *apdu,
                 /* Unknown value : (constructed type) */
                 /* SHOULD NOT HAPPEN, EXCEPTED WHEN READING UNKNOWN CONTEXTUAL PROPERTY */
 
+                /* Addition to stack to allow it to step through the
+                * whole packet even with complex types */
+                
                 /* Decode more complex data */
                 len = bacapp_decode_context_data_complex(&apdu[apdu_len],
                     max_apdu_len - apdu_len, tag_number, value, property);
