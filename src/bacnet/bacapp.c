@@ -64,7 +64,7 @@ static int bacapp_decode_context_data_complex(
     int max_apdu_len,
     uint8_t tag_number,
     BACNET_APPLICATION_DATA_VALUE * value,
-    BACNET_PROPERTY_ID prop)
+    BACNET_PROPERTY_ID prop);
 
 /** @brief Encode application data given by a pointer into the APDU.
  *  Return the number encoded bytes.
