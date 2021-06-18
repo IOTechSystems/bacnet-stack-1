@@ -1705,19 +1705,6 @@ static int bacapp_decode_context_data_complex(
     int apdu_len = 0;
     uint8_t inner_tag_number = 0;
 
-#if 0
-    FILE *f = fopen("log_decode_context_complex.txt", "a");
-    fprintf(f, "CONTEXT DATA :\r\n");
-    fprintf(f, "PROPERTY: %d, %s\r\n", prop, bactext_property_name(prop));
-    fprintf(f, "TAG: %d\r\n", tag_number);
-    fprintf(f,
-        "DATA: %02x %02x %02x %02x %02x %02x %02x %02x   %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
-        apdu[0], apdu[1], apdu[2], apdu[3], apdu[4], apdu[5], apdu[6], apdu[7],
-        apdu[8], apdu[9], apdu[10], apdu[11], apdu[12], apdu[13], apdu[14],
-        apdu[15]);
-    fclose(f);
-#endif
-
     /* If it's closed : leave */
     while (!decode_is_closing_tag_number(&apdu[apdu_len], tag_number) &&
            (apdu_len < max_apdu_len)) {
