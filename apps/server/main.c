@@ -561,6 +561,41 @@ static void simulated_init (const char * file_path)
   fflush(stdout);
 }
 
+static void populate_sim (long instances)
+{
+  printf("Populating server with objects...\n");
+
+  Accumulator_Add (instances); 
+  Analog_Input_Add (instances);
+  Analog_Output_Add (instances);                   
+  Analog_Value_Add (instances);
+  bacfile_add (instances); 
+  Binary_Input_Add (instances);
+  Binary_Output_Add (instances);
+  Binary_Value_Add (instances);
+  Channel_Add (instances);
+  Command_Add (instances);
+  CharacterString_Value_Add (instances);
+  Integer_Value_Add (instances);
+  Load_Control_Add (instances);
+  Lighting_Output_Add (instances);
+  Life_Safety_Point_Add (instances);
+  Multistate_Input_Add (instances);
+  Multistate_Output_Add (instances); 
+  Multistate_Value_Add (instances); 
+#if defined(INTRINSIC_REPORTING)
+  Notification_Class_Add (instances);
+#endif
+  Network_Port_Add (instances);
+  OctetString_Value_Add (instances);
+  PositiveInteger_Value_Add (instances);
+  Schedule_Add (instances);
+  Trend_Log_Add (instances);
+
+  printf("Done \n");
+
+}
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -651,7 +686,7 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
+    printf("Usage: %s [--populate instances] [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
@@ -665,6 +700,8 @@ static void print_help(const char *filename)
            "trying simulate.\n"
            "--name:\n"
            "The Device object-name is the text name for the device.\n"
+           "--populate:\n"
+           "Populates the simulator with n instances of each object type\n"
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
            "%s --instance 123\n",
@@ -729,6 +766,7 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
+    long populate_instances = 0;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -774,6 +812,15 @@ int main(int argc, char *argv[])
           }
           argi++;
           devicename = argv[argi]; 
+        }
+
+        if (strcmp(argv[argi], "--populate") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          populate_instances = strtol(argv[argi], NULL, 0);
         }
 
     }
@@ -825,6 +872,11 @@ int main(int argc, char *argv[])
     if (scriptpath != NULL)
     {
       simulated_init(scriptpath);
+    }
+
+    if (populate_instances > 0)
+    {
+      populate_sim (populate_instances);
     }
 
     signal(SIGINT, sigint);

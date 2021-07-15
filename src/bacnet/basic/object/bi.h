@@ -167,12 +167,6 @@ extern "C" {
     void Binary_Input_Objects_Init(void);
 
     BACNET_STACK_EXPORT
-    bool Binary_Input_Create(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
-    bool Binary_Input_Delete(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
     void Binary_Input_Cleanup(
         void);
     BACNET_STACK_EXPORT

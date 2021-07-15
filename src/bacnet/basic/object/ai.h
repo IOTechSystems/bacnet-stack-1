@@ -210,12 +210,6 @@ extern "C" {
 
 
     BACNET_STACK_EXPORT
-    bool Analog_Input_Create(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
-    bool Analog_Input_Delete(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
     void Analog_Input_Cleanup(
         void);
     BACNET_STACK_EXPORT
