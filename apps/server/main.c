@@ -563,7 +563,7 @@ static void simulated_init (const char * file_path)
 
 static void populate_sim (long instances)
 {
-  printf("Populating server with objects...\n");
+  printf("Populating server with %ld of each object...\n", instances);
 
   Accumulator_Add (instances); 
   Analog_Input_Add (instances);
@@ -786,9 +786,10 @@ int main(int argc, char *argv[])
         }
 
         if (strcmp(argv[argi], "--script") == 0) {
-          if (argi == argc)
+          if (argi == argc - 1)
           {
-            continue;
+            print_usage (filename);
+            return 0;
           }
           argi++;
           scriptpath = argv[argi];
@@ -796,9 +797,10 @@ int main(int argc, char *argv[])
         }
 
         if (strcmp(argv[argi], "--instance") == 0) {
-          if (argi == argc)
+          if (argi == argc - 1)
           {
-            continue;
+            print_usage (filename);
+            return 0;
           }
           argi++;
           instance_num = strtol(argv[argi], NULL, 0);
@@ -806,24 +808,27 @@ int main(int argc, char *argv[])
         }
 
         if (strcmp(argv[argi], "--name") == 0) {
-          if (argi == argc)
+          if (argi == argc - 1)
           {
-            continue;
+            print_usage (filename);
+            return 0;
           }
           argi++;
           devicename = argv[argi]; 
         }
 
         if (strcmp(argv[argi], "--populate") == 0) {
-          if (argi == argc)
+          if (argi == argc - 1)
           {
-            continue;
+            print_usage (filename);
+            return 0;
           }
           argi++;
           populate_instances = strtol(argv[argi], NULL, 0);
         }
 
     }
+
 #if defined(BAC_UCI)
     ctx = ucix_init("bacnet_dev");
     if (!ctx)
