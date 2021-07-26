@@ -213,13 +213,6 @@ extern "C" {
     void Analog_Value_Free(void);
     BACNET_STACK_EXPORT
     void Analog_Value_Objects_Init(void);
-
-    BACNET_STACK_EXPORT
-    bool Analog_Value_Create(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
-    bool Analog_Value_Delete(
-        uint32_t object_instance);
     BACNET_STACK_EXPORT
     void Analog_Value_Cleanup(
         void);

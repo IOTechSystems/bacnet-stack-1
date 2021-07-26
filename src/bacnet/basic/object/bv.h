@@ -190,13 +190,6 @@ extern "C" {
     void Binary_Value_Free(void);
     BACNET_STACK_EXPORT
     void Binary_Value_Objects_Init(void);
-
-    BACNET_STACK_EXPORT
-    bool Binary_Value_Create(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
-    bool Binary_Value_Delete(
-        uint32_t object_instance);
     BACNET_STACK_EXPORT
     void Binary_Value_Cleanup(
         void);
