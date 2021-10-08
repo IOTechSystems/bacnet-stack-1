@@ -300,12 +300,7 @@ bool Binary_Input_Encode_Value_List(
         value_list->value.context_specific = false;
         value_list->value.tag = BACNET_APPLICATION_TAG_ENUMERATED;
         value_list->value.next = NULL;
-
-        pthread_mutex_lock(&BI_Descr_Mutex);
-        value_list->value.type.Enumerated =
-            Binary_Input_Present_Value(object_instance);
-        pthread_mutex_unlock(&BI_Descr_Mutex);
-
+        value_list->value.type.Enumerated = Binary_Input_Present_Value(object_instance);
         value_list->priority = BACNET_NO_PRIORITY;
         value_list = value_list->next;
     }
