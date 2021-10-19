@@ -105,7 +105,7 @@ void Notification_Class_Alloc(size_t size)
 
 void Notification_Class_Objects_Init()
 {
-    uint8_t NotifyIdx = 0;
+    size_t NotifyIdx = 0;
 
     for (NotifyIdx = 0; NotifyIdx < NC_Info_Size; NotifyIdx++) {
         /* init with zeros */
