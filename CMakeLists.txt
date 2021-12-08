@@ -17,11 +17,11 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   option (BACNET_STACK_BUILD_APPS "build apps" OFF)
   option (BAC_ROUTING "enable bac routing" OFF)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (BIG_OBJECTS "include support for bigger objects" OFF)
+  option (SERVER_OBJECTS "include support for bigger objects" OFF)
 else ()
   option (BAC_ROUTING "enable bac routing" ON)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (BIG_OBJECTS "include support for bigger objects" ON)
+  option (SERVER_OBJECTS "include support for bigger objects" ON)
 endif ()
 
 #
@@ -114,72 +114,72 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/npdu/h_routed_npdu.h
     src/bacnet/basic/npdu/s_router.c
     src/bacnet/basic/npdu/s_router.h
-    src/bacnet/basic/object/access_credential.c
-    src/bacnet/basic/object/access_credential.h
-    src/bacnet/basic/object/access_door.c
-    src/bacnet/basic/object/access_door.h
-    src/bacnet/basic/object/access_point.c
-    src/bacnet/basic/object/access_point.h
-    src/bacnet/basic/object/access_rights.c
-    src/bacnet/basic/object/access_rights.h
-    src/bacnet/basic/object/access_user.c
-    src/bacnet/basic/object/access_user.h
-    src/bacnet/basic/object/access_zone.c
-    src/bacnet/basic/object/access_zone.h
-    src/bacnet/basic/object/acc.c
-    src/bacnet/basic/object/ai.c
-    src/bacnet/basic/object/ai.h
-    src/bacnet/basic/object/ao.c
-    src/bacnet/basic/object/ao.h
-    src/bacnet/basic/object/av.c
-    src/bacnet/basic/object/av.h
-    src/bacnet/basic/object/bi.c
-    src/bacnet/basic/object/bi.h
-    src/bacnet/basic/object/bo.c
-    src/bacnet/basic/object/bo.h
-    src/bacnet/basic/object/bv.c
-    src/bacnet/basic/object/bv.h
-    src/bacnet/basic/object/channel.c
-    src/bacnet/basic/object/channel.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_credential.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_credential.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_door.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_door.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_point.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_point.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_rights.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_rights.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_user.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_user.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_zone.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/access_zone.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/acc.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ai.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ai.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ao.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ao.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/av.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/av.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bi.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bi.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bo.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bo.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bv.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/bv.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/channel.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/channel.h
     # src/bacnet/basic/object/client/device-client.c
-    src/bacnet/basic/object/command.c
-    src/bacnet/basic/object/command.h
-    src/bacnet/basic/object/credential_data_input.c
-    src/bacnet/basic/object/credential_data_input.h
-    src/bacnet/basic/object/csv.c
-    src/bacnet/basic/object/csv.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/command.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/command.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/credential_data_input.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/credential_data_input.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/csv.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/csv.h
     src/bacnet/basic/object/device.c
     src/bacnet/basic/object/device.h
     $<$<BOOL:${BAC_ROUTING}>:src/bacnet/basic/object/gateway/gw_device.c>
-    src/bacnet/basic/object/iv.c
-    src/bacnet/basic/object/iv.h
-    src/bacnet/basic/object/lc.c
-    src/bacnet/basic/object/lc.h
-    src/bacnet/basic/object/lo.c
-    src/bacnet/basic/object/lo.h
-    src/bacnet/basic/object/lsp.c
-    src/bacnet/basic/object/lsp.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/iv.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/iv.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lc.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lc.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lo.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lo.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lsp.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/lsp.h
     src/bacnet/basic/object/Makefile
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.h>
-    src/bacnet/basic/object/nc.c
-    src/bacnet/basic/object/nc.h
-    src/bacnet/basic/object/netport.c
-    src/bacnet/basic/object/netport.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ms-input.c>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/ms-input.h>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/mso.c>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/mso.h>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/msv.c>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/msv.h>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/nc.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/nc.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/netport.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/netport.h
     src/bacnet/basic/object/objects.c
     src/bacnet/basic/object/objects.h
-    src/bacnet/basic/object/osv.c
-    src/bacnet/basic/object/osv.h
-    src/bacnet/basic/object/piv.c
-    src/bacnet/basic/object/piv.h
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.h>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/osv.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/osv.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/piv.c
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/piv.h
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/schedule.c>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/schedule.h>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/trendlog.c>
+    $<$<BOOL:${SERVER_OBJECTS}>:src/bacnet/basic/object/trendlog.h>
     src/bacnet/basic/service/h_alarm_ack.c
     src/bacnet/basic/service/h_alarm_ack.h
     src/bacnet/basic/service/h_apdu.c
