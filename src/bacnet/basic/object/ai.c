@@ -43,6 +43,8 @@
 #include "bacnet/timestamp.h"
 #include "bacnet/basic/object/ai.h"
 
+#define EVENT_ENABLE_ALL    7
+#define LIMIT_ENABLE_ALL    3
 
 static ANALOG_INPUT_DESCR *AI_Descr = NULL;
 static size_t AI_Descr_Size = 0;
@@ -163,11 +165,11 @@ void Analog_Input_Add(size_t count)
             RELIABILITY_NO_FAULT_DETECTED,
             0, 
             0,
+            1000.0f,
+            -1000.0f,
             0.0f,
-            0.0f,
-            0.0f,
-            EVENT_HIGH_LIMIT_ENABLE,
-            EVENT_ENABLE_TO_OFFNORMAL,
+            LIMIT_ENABLE_ALL,
+            EVENT_ENABLE_ALL,
             NOTIFY_ALARM
         );
     }

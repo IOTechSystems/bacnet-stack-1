@@ -109,7 +109,7 @@ static pthread_t script_runner_pthread;
 static bool script_running = false;
 
 //ANALOG INPUT
-static int set_analog_input (lua_State *L)
+static int set_analog_input_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
@@ -141,7 +141,7 @@ static int get_analog_input_present_value(lua_State *L)
 }
 
 //ANALOG OUTPUT
-static int set_analog_output (lua_State *L)
+static int set_analog_output_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
@@ -174,7 +174,7 @@ static int get_analog_output_present_value(lua_State *L)
 }
 
 //ANALOG VALUE
-static int set_analog_value (lua_State *L)
+static int set_analog_value_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   float value = lua_tonumber(L, 2);
@@ -208,7 +208,7 @@ static int get_analog_value_present_value(lua_State *L)
 
 //BINARY INPUT
 
-static int set_binary_input (lua_State *L)
+static int set_binary_input_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
@@ -240,7 +240,7 @@ static int get_binary_input_present_value(lua_State *L)
 }
 
 //BINARY OUTPUT
-static int set_binary_output (lua_State *L)
+static int set_binary_output_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
@@ -273,7 +273,7 @@ static int get_binary_output_present_value(lua_State *L)
 }
 
 //BINARY VALUE
-static int set_binary_value (lua_State *L)
+static int set_binary_value_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber(L, 1);
   uint8_t value = lua_tonumber(L, 2);
@@ -306,7 +306,7 @@ static int get_binary_value_present_value(lua_State *L)
 }
 
 //INTEGER VALUE
-static int set_integer_value (lua_State *L)
+static int set_integer_value_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
   int32_t value = lua_tonumber (L, 2);
@@ -339,7 +339,7 @@ static int get_integer_value_present_value(lua_State *L)
 }
 
 //POSITIVE INTEGER VALUE
-static int set_positive_integer_value (lua_State *L)
+static int set_positive_integer_value_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
   uint32_t value = lua_tonumber (L, 2);
@@ -372,7 +372,7 @@ static int get_positive_integer_value_present_value(lua_State *L)
 }
 
 //ACCUMULATOR 
-static int set_accumulator_value (lua_State *L)
+static int set_accumulator_value_present_value (lua_State *L)
 {
   uint32_t object_instance = lua_tonumber (L, 1);
   uint32_t value = lua_tonumber (L, 2);
@@ -412,15 +412,15 @@ static int is_server_running(lua_State *L)
 static void setup_lua_callbacks(lua_State *L)
 {
   static const struct luaL_Reg callbacks [] = {
-      {"setAnalogInput", set_analog_input},
-      {"setAnalogOutput", set_analog_output},
-      {"setAnalogValue", set_analog_value},
-      {"setBinaryInput", set_binary_input},
-      {"setBinaryOutput", set_binary_output},
-      {"setBinaryValue", set_binary_value},
-      {"setIntegerValue", set_integer_value},
-      {"setPositiveIntegerValue", set_positive_integer_value},
-      {"setAccumulator", set_accumulator_value},
+      {"setAnalogInputPresentValue", set_analog_input_present_value},
+      {"setAnalogOutputPresentValue", set_analog_output_present_value},
+      {"setAnalogValuePresentValue", set_analog_value_present_value},
+      {"setBinaryInputPresentValue", set_binary_input_present_value},
+      {"setBinaryOutputPresentValue", set_binary_output_present_value},
+      {"setBinaryValuePresentValue", set_binary_value_present_value},
+      {"setIntegerValuePresentValue", set_integer_value_present_value},
+      {"setPositiveIntegerValuePresentValue", set_positive_integer_value_present_value},
+      {"setAccumulatorPresentValue", set_accumulator_value_present_value},
 
       {"setAnalogInputName", set_analog_input_name},
       {"setAnalogOutputName", set_analog_output_name},
