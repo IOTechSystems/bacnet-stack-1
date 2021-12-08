@@ -13,34 +13,22 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   set (AZURESPHERE_API "${AZURE_SPHERE_TARGET_API_SET}")
   set (AZURESPHERE_SDK_DIR /opt/azurespheresdk/Sysroots/${AZURESPHERE_API})
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_AZURESPHERE_ -D_GNU_SOURCE -UBACFILE")
-  option (BUILD_TESTING "build tests" OFF)
-  option (BACNET_STACK_BUILD_APPS "build apps" OFF)
-  option (BAC_ROUTING "enable bac routing" OFF)
-  option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (SERVER_OBJECTS "include support for bigger objects" OFF)
-else ()
-  option (BAC_ROUTING "enable bac routing" ON)
-  option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (SERVER_OBJECTS "include support for bigger objects" ON)
 endif ()
 
 #
 # options
 #
+option (SERVER_OBJECTS "include server bacnet object files" OFF)
+option (BACNET_PROPERTY_LISTS "enable property lists" ON)
+option (BAC_ROUTING "enable bac routing" ON)
+option (BUILD_TESTING "build tests" OFF)
 option (BACNET_STACK_BUILD_APPS "build apps" OFF)
-  
 option (BACDL_NONE "compile without datalink" OFF)
-
 option (BACDL_BIP "compile without ip support" OFF)
-
 option (BACNET_BUILD_PIFACE_APP "compile the piface app" OFF)
-
 option (BACDL_ETHERNET "compile with ethernet support" OFF)
-
 option (BACDL_MSTP "compile with mstp support" OFF)
-
 option (BACDL_ARCNET "compile with arcnet support" OFF)
-
 option (BACDL_BIP6 "compile with ipv6 support" OFF)
 
 set(BACNET_PROTOCOL_REVISION 19)
