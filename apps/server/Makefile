@@ -49,7 +49,7 @@ OBJS = ${SRCS:.c=.o}
 LUA_FLAGS = -I/usr/include/lua5.3/ -L/usr/lib/lua5.3/ -llua5.3 #-L/usr/lib/lua5.3/ is needed for alpine build
 PTHREADLIB = -lpthread
 
-DEFINES = -DINTRINSIC_REPORTING=1
+DEFINES = -DINTRINSIC_REPORTING=1 -DBACNET_SIMULATOR=1
 
 .PHONY: all
 all: Makefile ${TARGET_BIN}
