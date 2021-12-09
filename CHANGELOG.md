@@ -11,6 +11,6 @@
 
 ### Related to Simulator
 
-- Updated names of Lua present value setting functions  eg. setAnalogInput() -> setAnalogInputPresentValue()
+- Updated names of Lua present value setting functions eg. setAnalogInput() -> setAnalogInputPresentValue()
 - Updated some initial values of the simulators object properties
 - Updated identifying values of device object
