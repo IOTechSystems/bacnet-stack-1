@@ -99,7 +99,11 @@ void Binary_Value_Set_Properties(
     }   
 
     Binary_Value_Name_Set(object_instance, object_name);
-    Binary_Value_Present_Value_Set(object_instance, value, 1);
+    Binary_Value_Present_Value_Set(object_instance, value, 16);
+    for (uint8_t i = 1; i < BACNET_MAX_PRIORITY; i++)
+    {
+        Binary_Value_Present_Value_Set(object_instance, BINARY_NULL, i);
+    }
     Binary_Value_Out_Of_Service_Set(object_instance, out_of_service);
 }
 
