@@ -14,3 +14,5 @@
 - Updated names of Lua present value setting functions eg. setAnalogInput() -> setAnalogInputPresentValue()
 - Updated some initial values of the simulators object properties
 - Updated identifying values of device object
+- Updated handling logic of script and populate arguments
+- Updated default behaviour when no arguments provided where device instance is 1234 and it populates the sim with 1 of each object

@@ -766,6 +766,7 @@ int main(int argc, char *argv[])
     long instance_num = 0;
     bool instance_set = false;
     bool using_script = false;
+    bool using_populate = false;
     long populate_instances = 0;
 
     filename = filename_remove_path(argv[0]);
@@ -825,6 +826,7 @@ int main(int argc, char *argv[])
           }
           argi++;
           populate_instances = strtol(argv[argi], NULL, 0);
+          using_populate = true;
         }
 
     }
@@ -873,15 +875,26 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
-  
-    if (scriptpath != NULL)
-    {
-      simulated_init(scriptpath);
-    }
 
-    if (populate_instances > 0)
+    if (using_script && using_populate)
     {
-      populate_sim (populate_instances);
+        printf("Both script and populate arguments included, defaulting to the script\n");
+        fflush(stdout);
+        simulated_init (scriptpath);
+    }
+    else if (using_script)
+    {
+        simulated_init (scriptpath);
+    }
+    else if (using_populate)
+    {
+        populate_sim (populate_instances);
+    }
+    else
+    {
+        printf("Neither script or populate arguments included, defaulting to a populate of 1\n");
+        fflush(stdout);
+        populate_sim (1);
     }
 
     signal(SIGINT, sigint);
