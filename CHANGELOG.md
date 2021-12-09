@@ -7,9 +7,10 @@
     - Any of these files are now not built for both Azure Sphere and standard builds of the library
     - These files will still be included in a build of the simulator as that build process uses the Makefile
 - Disable BACnet routing as is currently not used in the device service
-    - This now provided the option to set the instance ID of the device service
+    - Because of this, we can now set our device ID as something other than 0
 
 ### Related to Simulator
 
 - Updated names of Lua present value setting functions  eg. setAnalogInput() -> setAnalogInputPresentValue()
 - Updated some initial values of the simulators object properties
+- Updated identifying values of device object

@@ -73,7 +73,7 @@
 #define BACNET_VENDOR_ID 1313
 #endif
 #if !defined(BACNET_VENDOR_NAME)
-#define BACNET_VENDOR_NAME "IOTech Systems"
+#define BACNET_VENDOR_NAME "IOTech"
 #endif
 
 /* Max number of bytes in an APDU. */

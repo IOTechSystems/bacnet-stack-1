@@ -851,7 +851,7 @@ int main(int argc, char *argv[])
       Device_Set_Object_Instance_Number(instance_num);
     }
 
-    printf("BACnet Server Demo\n"
+    printf("IOTech BACnet Simulator\n"
            "BACnet Stack Version %s\n"
            "BACnet Device ID: %u\n"
            "Max APDU: %d\n",

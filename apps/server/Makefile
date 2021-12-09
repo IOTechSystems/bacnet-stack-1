@@ -55,7 +55,7 @@ DEFINES = -DINTRINSIC_REPORTING=1 -DBACNET_SIMULATOR=1
 all: Makefile ${TARGET_BIN}
 
 ${TARGET_BIN}: ${OBJS}
-	${CC} ${DEFINES} ${PFLAGS} ${OBJS} ${LFLAGS} ${LUA_FLAGS} ${PTHREADLIB} -o $@ 
+	${CC} ${DEFINES} ${PFLAGS} ${OBJS} ${LFLAGS} ${LUA_FLAGS} ${PTHREADLIB} -o $@
 	size $@
 	cp $@ ../../bin
 
