@@ -43,6 +43,9 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/object/av.h"
 
+#define EVENT_ENABLE_ALL    7
+#define LIMIT_ENABLE_ALL    3
+
 static ANALOG_VALUE_DESCR *AV_Descr = NULL;
 static size_t AV_Descr_Size = 0;
 static pthread_mutex_t AV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -163,13 +166,13 @@ void Analog_Value_Add(size_t count)
             EVENT_STATE_NORMAL, 
             false, 
             UNITS_NO_UNITS, 
-            2, 
-            2,
-            2.0f,
-            2.0f,
-            2.0f,
-            EVENT_HIGH_LIMIT_ENABLE,
-            EVENT_ENABLE_TO_NORMAL,
+            0,
+            0,
+            1000.0f,
+            -1000.0f,
+            0.0f,
+            LIMIT_ENABLE_ALL,
+            EVENT_ENABLE_ALL,
             NOTIFY_EVENT
         );
     }
