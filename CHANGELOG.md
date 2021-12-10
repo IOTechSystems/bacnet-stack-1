@@ -17,6 +17,6 @@
 - Updated identifying values of device object
 - Updated handling logic of script and populate arguments
 - Updated default behaviour when no arguments provided where device instance is 1234 and it populates the sim with 1 of each object
-- Updated how the priority arrays are initialised for Binary Analog Output, Binary Output and Binary Value
+- Updated how the priority arrays are initialised for Analog Output, Binary Output and Binary Value
 - Removed any rules on setting certain priority levels
 - Updated device object name for simulator
