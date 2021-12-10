@@ -93,7 +93,11 @@ void Analog_Output_Set_Properties(
 )
 {
     Analog_Output_Name_Set(object_instance, object_name);
-    Analog_Output_Present_Value_Set(object_instance, value, 1);
+    Analog_Output_Present_Value_Set(object_instance, value, 16);
+    for (uint8_t i = 1; i < BACNET_MAX_PRIORITY; i++)
+    {
+        Analog_Output_Present_Value_Set(object_instance, AO_LEVEL_NULL, i);
+    }
 }
 
 void Analog_Output_Add(size_t count)
@@ -264,9 +268,7 @@ bool Analog_Output_Present_Value_Set(
 
     index = Analog_Output_Instance_To_Index(object_instance);
     if (index < AO_Descr_Size) {
-        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
-            (priority != 6 /* reserved */) && (value >= 0.0) &&
-            (value <= 100.0)) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             pthread_mutex_lock(&AO_Descr_Mutex);
             AO_Descr[index].Level[priority - 1] = value;
             pthread_mutex_unlock(&AO_Descr_Mutex);

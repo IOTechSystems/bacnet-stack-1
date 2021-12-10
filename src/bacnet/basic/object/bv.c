@@ -99,7 +99,11 @@ void Binary_Value_Set_Properties(
     }   
 
     Binary_Value_Name_Set(object_instance, object_name);
-    Binary_Value_Present_Value_Set(object_instance, value, 1);
+    Binary_Value_Present_Value_Set(object_instance, value, 16);
+    for (uint8_t i = 1; i < BACNET_MAX_PRIORITY; i++)
+    {
+        Binary_Value_Present_Value_Set(object_instance, BINARY_NULL, i);
+    }
     Binary_Value_Out_Of_Service_Set(object_instance, out_of_service);
 }
 
@@ -127,15 +131,8 @@ void Binary_Value_Add(size_t count)
         pthread_mutex_lock(&BV_Descr_Mutex);
         BV_Descr[i].Name = NULL;
         pthread_mutex_unlock(&BV_Descr_Mutex);
-
-
         snprintf(name_buffer, 64, "binary_value_%zu", i);
-        Binary_Value_Set_Properties(
-            i, 
-            name_buffer,
-            BINARY_ACTIVE,
-            false
-        );
+        Binary_Value_Set_Properties(i, name_buffer, BINARY_ACTIVE, false);
     }
 }
 
@@ -291,12 +288,10 @@ bool Binary_Value_Present_Value_Set(
 
     index = Binary_Value_Instance_To_Index(object_instance);
     if (index < BV_Descr_Size) {
-        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
-            (priority != 6 /* reserved */)) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             pthread_mutex_lock(&BV_Descr_Mutex);
             BV_Descr[index].Level[priority -1] = binary_value;
             pthread_mutex_unlock(&BV_Descr_Mutex);
-            
             status = true;
         }
     }

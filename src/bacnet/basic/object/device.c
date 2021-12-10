@@ -1842,7 +1842,11 @@ void Device_Init(object_functions_t *object_table)
         characterstring_init_ansi(&My_Object_Name, uciname);
     } else {
 #endif /* defined(BAC_UCI) */
-        characterstring_init_ansi(&My_Object_Name, "SimpleServer");
+#ifdef BACNET_SIMULATOR
+        characterstring_init_ansi(&My_Object_Name, "IOTech BACnet Simulator");
+#else
+        characterstring_init_ansi(&My_Object_Name, "IOTech Edge XRT BACnet Device Service Component");
+#endif
 #if defined(BAC_UCI)
     }
     ucix_cleanup(ctx);
