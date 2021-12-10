@@ -261,8 +261,7 @@ bool Binary_Output_Present_Value_Set(
 
     index = Binary_Output_Instance_To_Index(object_instance);
     if (index < BO_Descr_Size) {
-        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
-            (priority != 6 /* reserved */)) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             pthread_mutex_lock(&BO_Descr_Mutex);
             BO_Descr[index].Level[priority - 1] = binary_value;
             pthread_mutex_unlock(&BO_Descr_Mutex);
