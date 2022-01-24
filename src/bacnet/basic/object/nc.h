@@ -45,7 +45,7 @@ extern "C" {
         RECIPIENT_TYPE_ADDRESS = 2
     } NC_RECIPIENT_TYPE;
 
-#if defined(INTRINSIC_REPORTING)
+//#if defined(INTRINSIC_REPORTING)
 /* BACnetRecipient structure */
 /*
 BACnetRecipient ::= CHOICE {
@@ -157,7 +157,7 @@ BACnetRecipient ::= CHOICE {
     BACNET_STACK_EXPORT
     void Notification_Class_find_recipient(
         void);
-#endif /* defined(INTRINSIC_REPORTING) */
+//#endif /* defined(INTRINSIC_REPORTING) */
 
 
 #ifdef __cplusplus
