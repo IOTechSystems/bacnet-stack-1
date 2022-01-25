@@ -497,6 +497,100 @@ int event_notify_encode_service_request(
                         len = encode_closing_tag(&apdu[apdu_len], 13);
                         apdu_len += len;
                         break;
+
+                        ////////// NEW ADDITIONS ////////////////
+                    case EVENT_DOUBLE_OUT_OF_RANGE:
+                        len = encode_opening_tag(&apdu[apdu_len], 14);
+                        apdu_len += len;
+
+                        len = encode_context_double(&apdu[apdu_len], 0,
+                            data->notificationParams.doubleOutOfRange.exceedingValue);
+                        apdu_len += len;
+
+                        len = encode_context_bitstring(&apdu[apdu_len], 1,
+                            &data->notificationParams.doubleOutOfRange.statusFlags);
+                        apdu_len += len;
+
+                        len = encode_context_double(&apdu[apdu_len], 2,
+                            data->notificationParams.doubleOutOfRange.deadband);
+                        apdu_len += len;
+
+                        len = encode_context_double(&apdu[apdu_len], 3,
+                            data->notificationParams.doubleOutOfRange.exceededLimit);
+                        apdu_len += len;
+
+                        len = encode_closing_tag(&apdu[apdu_len], 14);
+                        apdu_len += len;
+                        break;
+
+                    case EVENT_SIGNED_OUT_OF_RANGE:
+                        len = encode_opening_tag(&apdu[apdu_len], 15);
+                        apdu_len += len;
+
+                        len = encode_context_signed(&apdu[apdu_len], 0,
+                            data->notificationParams.signedOutOfRange.exceedingValue);
+                        apdu_len += len;
+
+                        len = encode_context_bitstring(&apdu[apdu_len], 1,
+                            &data->notificationParams.signedOutOfRange.statusFlags);
+                        apdu_len += len;
+
+                        len = encode_context_unsigned(&apdu[apdu_len], 2,
+                            data->notificationParams.signedOutOfRange.deadband);
+                        apdu_len += len;
+
+                        len = encode_context_signed(&apdu[apdu_len], 3,
+                            data->notificationParams.signedOutOfRange.exceededLimit);
+                        apdu_len += len;
+
+                        len = encode_closing_tag(&apdu[apdu_len], 15);
+                        apdu_len += len;
+                        break;
+
+                    case EVENT_UNSIGNED_OUT_OF_RANGE:
+                        len = encode_opening_tag(&apdu[apdu_len], 16);
+                        apdu_len += len;
+
+                        len = encode_context_unsigned(&apdu[apdu_len], 0,
+                            data->notificationParams.unsignedOutOfRange.exceedingValue);
+                        apdu_len += len;
+
+                        len = encode_context_bitstring(&apdu[apdu_len], 1,
+                            &data->notificationParams.unsignedOutOfRange.statusFlags);
+                        apdu_len += len;
+
+                        len = encode_context_unsigned(&apdu[apdu_len], 2,
+                            data->notificationParams.unsignedOutOfRange.deadband);
+                        apdu_len += len;
+
+                        len = encode_context_unsigned(&apdu[apdu_len], 3,
+                            data->notificationParams.unsignedOutOfRange.exceededLimit);
+                        apdu_len += len;
+
+                        len = encode_closing_tag(&apdu[apdu_len], 16);
+                        apdu_len += len;
+                        break;
+
+                    case EVENT_CHANGE_OF_CHARACTERSTRING:
+                        len = encode_opening_tag(&apdu[apdu_len], 17);
+                        apdu_len += len;
+
+                        len = encode_context_character_string(&apdu[apdu_len], 0,
+                            &data->notificationParams.changeOfCharacterstring.changedValue);
+                        apdu_len += len;
+
+                        len = encode_context_bitstring(&apdu[apdu_len], 1,
+                            &data->notificationParams.changeOfCharacterstring.statusFlags);
+                        apdu_len += len;
+
+                        len = encode_context_character_string(&apdu[apdu_len], 2,
+                            &data->notificationParams.changeOfCharacterstring.alarmValue);
+                        apdu_len += len;
+
+                        len = encode_closing_tag(&apdu[apdu_len], 17);
+                        apdu_len += len;
+                        break;
+                        //////////////////////////
                     case EVENT_EXTENDED:
                     default:
                         assert(0);
@@ -1110,6 +1204,105 @@ int event_notify_decode_service_request(
                             len += section_length;
                         }
                         break;
+
+                        ///////// NEW ADDITONS /////////////
+
+                    case EVENT_DOUBLE_OUT_OF_RANGE:
+                        if (-1 == (section_length = decode_context_double(&apdu[len], 0,
+                                       &data->notificationParams.doubleOutOfRange.exceedingValue))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 ==
+                            (section_length = decode_context_bitstring(&apdu[len], 1,
+                                 &data->notificationParams.doubleOutOfRange.statusFlags))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        if (-1 == (section_length = decode_context_double(&apdu[len], 2,
+                                       &data->notificationParams.doubleOutOfRange.deadband))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_double(&apdu[len], 3,
+                                       &data->notificationParams.doubleOutOfRange.exceededLimit))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        break;
+
+                    case EVENT_SIGNED_OUT_OF_RANGE:
+                        if (-1 == (section_length = decode_context_signed(&apdu[len], 0,
+                                       &data->notificationParams.signedOutOfRange.exceedingValue))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_bitstring(&apdu[len], 1,
+                                       &data->notificationParams.signedOutOfRange.statusFlags))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        if (-1 == (section_length = decode_context_unsigned(&apdu[len], 2,
+                                       &data->notificationParams.signedOutOfRange.deadband))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_signed(&apdu[len], 3,
+                                       &data->notificationParams.signedOutOfRange.exceededLimit))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        break;
+
+                    case EVENT_UNSIGNED_OUT_OF_RANGE:
+                        if (-1 == (section_length = decode_context_unsigned(&apdu[len], 0,
+                                       &data->notificationParams.unsignedOutOfRange.exceedingValue))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_bitstring(&apdu[len], 1,
+                                       &data->notificationParams.unsignedOutOfRange.statusFlags))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        if (-1 == (section_length = decode_context_unsigned(&apdu[len], 2,
+                                       &data->notificationParams.unsignedOutOfRange.deadband))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_unsigned(&apdu[len], 3,
+                                       &data->notificationParams.unsignedOutOfRange.exceededLimit))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        break;
+
+                    case EVENT_CHANGE_OF_CHARACTERSTRING:
+                        if (-1 == (section_length = decode_context_character_string(&apdu[len], 0,
+                                       &data->notificationParams.changeOfCharacterstring.changedValue))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_bitstring(&apdu[len], 1,
+                                       &data->notificationParams.changeOfCharacterstring.statusFlags))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        if (-1 == (section_length = decode_context_character_string(&apdu[len], 2,
+                                       &data->notificationParams.changeOfCharacterstring.alarmValue))) {
+                            return -1;
+                        }
+                        len += section_length;
+                        break;
+
+                        //////////////////////
 
                     default:
                         return -1;

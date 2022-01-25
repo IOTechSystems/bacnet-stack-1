@@ -168,7 +168,46 @@ typedef struct BACnet_Event_Notification_Data {
             /* OPTIONAL - Set authenticationFactor.format_type to
                AUTHENTICATION_FACTOR_MAX if not being used */
         } accessEvent;
+
+        ////  NEW ADDITIONS /////////////////
+        /*
+         ** EVENT_DOUBLE_OUT_OF_RANGE
+        */
+        struct {
+            double exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            double deadband;
+            double exceededLimit;
+            } doubleOutOfRange;
+        /*
+         ** EVENT_SIGNED_OUT_OF_RANGE
+        */
+        struct {
+            int32_t exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_UNSIGNED_INTEGER deadband;
+            int32_t exceededLimit;
+        } signedOutOfRange;
+        /*
+         ** EVENT_UNSIGNED_OUT_OF_RANGE
+        */
+        struct {
+            BACNET_UNSIGNED_INTEGER exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_UNSIGNED_INTEGER deadband;
+            BACNET_UNSIGNED_INTEGER exceededLimit;
+        } unsignedOutOfRange;
+        /*
+         ** EVENT_CHANGE_OF_CHARACTERSTRING
+        */
+        struct {
+            BACNET_CHARACTER_STRING changedValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_CHARACTER_STRING alarmValue;
+        } changeOfCharacterstring;
     } notificationParams;
+        ///////////////////////////////
+
 } BACNET_EVENT_NOTIFICATION_DATA;
 
 
