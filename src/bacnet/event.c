@@ -590,6 +590,44 @@ int event_notify_encode_service_request(
                         len = encode_closing_tag(&apdu[apdu_len], 17);
                         apdu_len += len;
                         break;
+
+                    case EVENT_CHANGE_OF_TIMER:
+                        len = encode_opening_tag(&apdu[apdu_len], 22);
+                        apdu_len += len;
+
+                        len = encode_context_enumerated(&apdu[apdu_len], 0,
+                            data->notificationParams.changeOfTimer.newState);
+                        apdu_len += len;
+
+                        len = encode_context_bitstring(&apdu[apdu_len], 1,
+                            &data->notificationParams.changeOfTimer.statusFlags);
+                        apdu_len += len;
+
+                        len = bacapp_encode_context_datetime(&apdu[apdu_len], 2,
+                            &data->notificationParams.changeOfTimer.updateTime);
+                        apdu_len += len;
+
+                        if (data->notificationParams.changeOfTimer.lastStateChange < BACNET_TIMER_STATE_MAX) {
+                            len = encode_context_enumerated(&apdu[apdu_len], 3,
+                                data->notificationParams.changeOfTimer.lastStateChange);
+                            apdu_len += len;
+                        }
+
+                        if (data->notificationParams.changeOfTimer.initialTimeoutSet) {
+                            len = encode_context_unsigned(&apdu[apdu_len], 4,
+                            data->notificationParams.changeOfTimer.initialTimeout);
+                            apdu_len += len;
+                        }
+
+                        if (data->notificationParams.changeOfTimer.expirationTimeSet) {
+                            len = bacapp_encode_context_datetime(&apdu[apdu_len], 5,
+                            &data->notificationParams.changeOfTimer.expirationTime);
+                            apdu_len += len;
+                        }
+
+                        len = encode_closing_tag(&apdu[apdu_len], 22);
+                        apdu_len += len;
+                        break;
                         //////////////////////////
                     case EVENT_EXTENDED:
                     default:
@@ -1205,7 +1243,7 @@ int event_notify_decode_service_request(
                         }
                         break;
 
-                        ///////// NEW ADDITONS /////////////
+                        ///////// NEW ADDITIONS /////////////
 
                     case EVENT_DOUBLE_OUT_OF_RANGE:
                         if (-1 == (section_length = decode_context_double(&apdu[len], 0,
@@ -1300,6 +1338,52 @@ int event_notify_decode_service_request(
                             return -1;
                         }
                         len += section_length;
+                        break;
+
+                    case EVENT_CHANGE_OF_TIMER:
+                        if (-1 == (section_length = decode_context_enumerated(&apdu[len], 0,
+                                       &data->notificationParams.changeOfTimer.newState))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = decode_context_bitstring(&apdu[len], 1,
+                                       &data->notificationParams.changeOfTimer.statusFlags))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (-1 == (section_length = bacapp_decode_context_datetime(&apdu[len], 2,
+                                       &data->notificationParams.changeOfTimer.updateTime))) {
+                            return -1;
+                        }
+                        len += section_length;
+
+                        if (decode_is_context_tag(&apdu[len], 3)) {
+                            if (-1 == (section_length = decode_context_enumerated(&apdu[len], 3,
+                                           &data->notificationParams.changeOfTimer.lastStateChange))) {
+                                return -1;
+                            }
+                            len += section_length;
+                        }
+
+                        if (decode_is_context_tag(&apdu[len], 4)) {
+                            if (-1 == (section_length = decode_context_unsigned(&apdu[len], 4,
+                                           &data->notificationParams.changeOfTimer.initialTimeout))) {
+                                return -1;
+                            }
+                            data->notificationParams.changeOfTimer.initialTimeoutSet = true;
+                            len += section_length;
+                        }
+
+                        if (decode_is_context_tag(&apdu[len], 5)) {
+                            if (-1 == (section_length = bacapp_decode_context_datetime(&apdu[len], 5,
+                                           &data->notificationParams.changeOfTimer.expirationTime))) {
+                                return -1;
+                            }
+                            data->notificationParams.changeOfTimer.expirationTimeSet = true;
+                            len += section_length;
+                        }
                         break;
 
                         //////////////////////

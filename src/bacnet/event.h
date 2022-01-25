@@ -205,6 +205,19 @@ typedef struct BACnet_Event_Notification_Data {
             BACNET_BIT_STRING statusFlags;
             BACNET_CHARACTER_STRING alarmValue;
         } changeOfCharacterstring;
+        /*
+         ** EVENT_CHANGE_OF_TIMER
+        */
+        struct {
+            BACNET_TIMER_STATE newState;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_DATE_TIME updateTime;
+            BACNET_TIMER_TRANSITION lastStateChange;
+            bool initialTimeoutSet;
+            BACNET_UNSIGNED_INTEGER initialTimeout;
+            bool expirationTimeSet;
+            BACNET_DATE_TIME expirationTime;
+        } changeOfTimer;
     } notificationParams;
         ///////////////////////////////
 
