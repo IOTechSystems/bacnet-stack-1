@@ -66,6 +66,15 @@
 
 /**---------SIMULATED Device scripting ----------**/
 
+#define LUA_ENUM(L, name, val) \
+lua_pushlstring(L, #name, sizeof(#name)-1); \
+lua_pushnumber(L, val); \
+lua_settable(L, -3);
+
+#define LUA_API_ENUM_EVENT_TYPE "EventType"
+
+static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance);
+
 #include "bacnet/basic/object/ai.h"
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/object/av.h"
@@ -107,6 +116,34 @@ static lua_State *lua_thread_state = NULL; //lua state for the thread
 
 static pthread_t script_runner_pthread;
 static bool script_running = false;
+
+static void lua_register_datatype_enums (lua_State *L)
+{
+    lua_newtable(L);
+    {
+        LUA_ENUM(L, CHANGE_OF_BITSTRING, EVENT_CHANGE_OF_BITSTRING);
+        LUA_ENUM(L, CHANGE_OF_STATE, EVENT_CHANGE_OF_STATE);
+        LUA_ENUM(L, CHANGE_OF_VALUE, EVENT_CHANGE_OF_VALUE);
+        LUA_ENUM(L, COMMAND_FAILURE, EVENT_COMMAND_FAILURE);
+        LUA_ENUM(L, FLOATING_LIMIT, EVENT_FLOATING_LIMIT);
+        LUA_ENUM(L, OUT_OF_RANGE, EVENT_OUT_OF_RANGE);
+        LUA_ENUM(L, CHANGE_OF_LIFE_SAFETY, EVENT_CHANGE_OF_LIFE_SAFETY);
+        LUA_ENUM(L, EXTENDED, EVENT_EXTENDED);
+        LUA_ENUM(L, BUFFER_READY, EVENT_BUFFER_READY);
+        LUA_ENUM(L, UNSIGNED_RANGE, EVENT_UNSIGNED_RANGE);
+        LUA_ENUM(L, ACCESS_EVENT, EVENT_ACCESS_EVENT);
+        LUA_ENUM(L, DOUBLE_OUT_OF_RANGE, EVENT_DOUBLE_OUT_OF_RANGE);
+        LUA_ENUM(L, SIGNED_OUT_OF_RANGE, EVENT_SIGNED_OUT_OF_RANGE);
+        LUA_ENUM(L, UNSIGNED_OUT_OF_RANGE, EVENT_UNSIGNED_OUT_OF_RANGE);
+        LUA_ENUM(L, CHANGE_OF_CHARACTERSTRING, EVENT_CHANGE_OF_CHARACTERSTRING);
+        LUA_ENUM(L, CHANGE_OF_STATUS_FLAGS, EVENT_CHANGE_OF_STATUS_FLAGS);
+        LUA_ENUM(L, CHANGE_OF_RELIABILITY, EVENT_CHANGE_OF_RELIABILITY);
+        LUA_ENUM(L, NONE, EVENT_NONE);
+        LUA_ENUM(L, CHANGE_OF_DISCRETE_VALUE, EVENT_CHANGE_OF_DISCRETE_VALUE);
+        LUA_ENUM(L, CHANGE_OF_TIMER, EVENT_CHANGE_OF_TIMER);
+    }
+    lua_setglobal(L, LUA_API_ENUM_EVENT_TYPE);
+}
 
 //ANALOG INPUT
 static int set_analog_input_present_value (lua_State *L)
@@ -402,6 +439,37 @@ static int get_accumulator_present_value(lua_State *L)
   lua_pushnumber(L, value);
   return 1;
 }
+///////  EVENTS   /////////////
+
+
+static void luai_check_type (lua_State *L, int index, int expected_parameter_type)
+{
+    int type = lua_type (L, index);
+
+    luaL_argcheck (
+        L,
+        type == expected_parameter_type,
+        index,
+        ""
+        );
+}
+
+static BACNET_EVENT_TYPE lua_check_type_event_type (lua_State *L, int index)
+{
+    luai_check_type (L, index, LUA_TNUMBER);
+    uint8_t type_int = (uint8_t) lua_tointeger(L, index);
+    luaL_argcheck (L, type_int <= EVENT_CHANGE_OF_TIMER, index, "Argument must be a valid" LUA_API_ENUM_EVENT_TYPE " enum: ");
+    BACNET_EVENT_TYPE event_type = (BACNET_EVENT_TYPE) lua_tointeger(L, index);
+    return event_type;
+}
+
+static void generate_event (lua_State *L)
+{
+    BACNET_EVENT_TYPE event_type = lua_check_type_event_type (L, 1);
+    uint32_t nc_instance = lua_tonumber (L, 2);
+    send_event (event_type, nc_instance);
+}
+//////////////////////
 
 static int is_server_running(lua_State *L)
 {
@@ -409,7 +477,7 @@ static int is_server_running(lua_State *L)
   return 1;
 }
 
-static void setup_lua_callbacks(lua_State *L)
+static void lua_setup_callbacks(lua_State *L)
 {
   static const struct luaL_Reg callbacks [] = {
       {"setAnalogInputPresentValue", set_analog_input_present_value},
@@ -452,6 +520,8 @@ static void setup_lua_callbacks(lua_State *L)
       {"getPositiveIntegerValuePresentValue", get_positive_integer_value_present_value},
       {"getAccumulatorPresentValue", get_accumulator_present_value},
 
+      {"generateEvent", generate_event},
+
       {NULL, NULL} //required
   };
 
@@ -483,8 +553,10 @@ static bool lua_init_state(lua_State **L, const char* file_path)
 {
   *L = luaL_newstate();
   luaL_openlibs (*L);
+
+  lua_register_datatype_enums (*L);
   
-  setup_lua_callbacks (*L);
+  lua_setup_callbacks (*L);
 
   if (luaL_loadfile (*L, file_path) || lua_pcall (*L, 0, 0, 0)) 
   {
@@ -963,3 +1035,256 @@ int main(int argc, char *argv[])
 /* @} */
 
 /* End group ServerDemo */
+
+
+static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance)
+{
+    BACNET_EVENT_NOTIFICATION_DATA event_data;
+    BACNET_CHARACTER_STRING messageText;
+    characterstring_init_ansi(&messageText, "Generated event\n");
+
+    event_data.processIdentifier = rand() % 1024;
+    event_data.eventObjectIdentifier.type = OBJECT_ANALOG_INPUT;
+    event_data.eventObjectIdentifier.instance = rand() % 100;
+    event_data.notificationClass = nc_instance;
+    event_data.priority = rand() % 255;
+    event_data.notifyType = rand() % 2;
+    event_data.messageText = messageText;
+    event_data.fromState = EVENT_STATE_NORMAL;
+    event_data.toState = EVENT_STATE_OFFNORMAL;
+    event_data.eventType = event_type;
+
+    event_data.timeStamp.tag = rand() % 3;
+    switch (event_data.timeStamp.tag)
+    {
+        case TIME_STAMP_SEQUENCE:
+            event_data.timeStamp.value.sequenceNum = rand() % 1024;
+            break;
+        case TIME_STAMP_DATETIME:
+            Device_getCurrentDateTime(&event_data.timeStamp.value.dateTime);
+            break;
+        case TIME_STAMP_TIME:
+            Device_getCurrentTime(&event_data.timeStamp.value.time);
+            break;
+    }
+
+    switch (event_data.eventType)
+    {
+        case EVENT_CHANGE_OF_STATE:
+        {
+            event_data.notificationParams.changeOfState.newState.tag = rand() % 14;
+            switch (event_data.notificationParams.changeOfState.newState.tag) 
+            {
+                case BOOLEAN_VALUE:
+
+                    break;
+                case BINARY_VALUE:
+
+                    break;
+                case EVENT_TYPE:
+
+                    break;
+                case POLARITY:
+
+                    break;
+                case PROGRAM_CHANGE:
+
+                    break;
+                case PROGRAM_STATE:
+
+                    break;
+                case REASON_FOR_HALT:
+
+                    break;
+                case RELIABILITY:
+
+                    break;
+                case STATE:
+
+                    break;
+                case SYSTEM_STATUS:
+
+                    break;
+                case UNITS:
+
+                    break;
+                case UNSIGNED_VALUE:
+
+                    break;
+                case LIFE_SAFETY_MODE:
+
+                    break;
+                case UNSIGNED_VALUE:
+
+                    break;
+
+            }
+
+            event_data.notificationParams.changeOfState.newState.tag = UNITS;  // TODO: different options
+            event_data.notificationParams.changeOfState.newState.state.units = UNITS_SQUARE_METERS;
+            bitstring_init(&event_data.notificationParams.changeOfState.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.changeOfState.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfState.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfState.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfState.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_CHANGE_OF_BITSTRING:
+        {
+            bitstring_init(&event_data.notificationParams.changeOfBitstring.referencedBitString);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 0, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 1, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 2, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 2, false);
+            bitstring_init(&event_data.notificationParams.changeOfBitstring.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_CHANGE_OF_VALUE:
+        {
+            event_data.notificationParams.changeOfValue.tag = rand() % 2;
+            if (event_data.notificationParams.changeOfValue.tag == CHANGE_OF_VALUE_REAL)
+            {
+                event_data.notificationParams.changeOfValue.newValue.changeValue = 1.23f;
+            }
+            else if (event_data.notificationParams.changeOfValue.tag == CHANGE_OF_VALUE_BITS)
+            {
+                bitstring_init(&event_data.notificationParams.changeOfValue.newValue.changedBits);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 0, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 1, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 2, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 3, false);
+            }
+            bitstring_init(&event_data.notificationParams.changeOfValue.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.changeOfValue.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfValue.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfValue.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfValue.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_COMMAND_FAILURE:
+        {
+            event_data.notificationParams.commandFailure.tag = rand() % 2;
+            if (event_data.notificationParams.commandFailure.tag == COMMAND_FAILURE_BINARY_PV)
+            {
+                event_data.notificationParams.commandFailure.commandValue.binaryValue = BINARY_INACTIVE;
+                event_data.notificationParams.commandFailure.feedbackValue.binaryValue = BINARY_ACTIVE;
+            }
+            else if (event_data.notificationParams.commandFailure.tag == COMMAND_FAILURE_UNSIGNED)
+            {
+                event_data.notificationParams.commandFailure.commandValue.unsignedValue = rand() % 500;
+                event_data.notificationParams.commandFailure.feedbackValue.unsignedValue = rand() % 25;
+            }
+            bitstring_init(&event_data.notificationParams.commandFailure.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.commandFailure.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.commandFailure.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.commandFailure.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.commandFailure.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_FLOATING_LIMIT:
+        {
+            event_data.notificationParams.floatingLimit.referenceValue = 1.23f;
+            event_data.notificationParams.floatingLimit.setPointValue = 2.34f;
+            daevent_datata.notificationParams.floatingLimit.errorLimit = 3.45f;
+            bitstring_init(&event_data.notificationParams.floatingLimit.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.floatingLimit.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.floatingLimit.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.floatingLimit.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.floatingLimit.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_OUT_OF_RANGE:
+        {
+            event_data.notificationParams.outOfRange.exceedingValue = 3.45f;
+            event_data.notificationParams.outOfRange.deadband = 2.34f;
+            event_data.notificationParams.outOfRange.exceededLimit = 1.23f;
+            bitstring_init(&event_data.notificationParams.outOfRange.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.outOfRange.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.outOfRange.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.outOfRange.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.outOfRange.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_CHANGE_OF_LIFE_SAFETY:
+        {
+            event_data.notificationParams.changeOfLifeSafety.newState = LIFE_SAFETY_STATE_ALARM;
+            event_data.notificationParams.changeOfLifeSafety.newMode = LIFE_SAFETY_MODE_ARMED;
+            event_data.notificationParams.changeOfLifeSafety.operationExpected = LIFE_SAFETY_OP_RESET;
+            bitstring_init(&event_data.notificationParams.changeOfLifeSafety.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.changeOfLifeSafety.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfLifeSafety.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfLifeSafety.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfLifeSafety.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_UNSIGNED_RANGE:
+        {
+            event_data.notificationParams.unsignedRange.exceedingValue = 1234;
+            event_data.notificationParams.unsignedRange.exceededLimit = 2345;
+            bitstring_init(&event_data.notificationParams.unsignedRange.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.unsignedRange.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.unsignedRange.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.unsignedRange.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.unsignedRange.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        case EVENT_BUFFER_READY:
+        {
+            event_data.notificationParams.bufferReady.previousNotification = 1234;
+            event_data.notificationParams.bufferReady.currentNotification = 2345;
+            event_data.notificationParams.bufferReady.bufferProperty.deviceIdentifier.type = OBJECT_DEVICE;
+            event_data.notificationParams.bufferReady.bufferProperty.deviceIdentifier.instance = rand() % 100;
+            event_data.notificationParams.bufferReady.bufferProperty.objectIdentifier.type = OBJECT_ANALOG_INPUT;
+            event_data.notificationParams.bufferReady.bufferProperty.objectIdentifier.instance = rand() % 100;
+            event_data.notificationParams.bufferReady.bufferProperty.propertyIdentifier = PROP_PRESENT_VALUE;
+            event_data.notificationParams.bufferReady.bufferProperty.arrayIndex = 0;
+            break;
+        }
+        case EVENT_ACCESS_EVENT:
+        {
+            event_data.notificationParams.accessEvent.accessEvent = ACCESS_EVENT_LOCKED_BY_HIGHER_AUTHORITY;
+            event_data.notificationParams.accessEvent.accessEventTag = 7;
+            event_data.notificationParams.accessEvent.accessEventTime.tag = rand() % 3;
+            switch (event_data.notificationParams.accessEvent.accessEventTime.tag)
+            {
+                case TIME_STAMP_SEQUENCE:
+                    event_data.notificationParams.accessEvent.accessEventTime.value.sequenceNum = rand() % 1024;
+                    break;
+                case TIME_STAMP_DATETIME:
+                    Device_getCurrentDateTime(&event_data.notificationParams.accessEvent.accessEventTime.value.dateTime);
+                    break;
+                case TIME_STAMP_TIME:
+                    Device_getCurrentTime(&event_data.notificationParams.accessEvent.accessEventTime.value.time);
+                    break;
+            }
+            event_data.notificationParams.accessEvent.accessCredential.deviceIdentifier.instance = rand() % 1000;
+            event_data.notificationParams.accessEvent.accessCredential.deviceIdentifier.type = OBJECT_DEVICE;
+            event_data.notificationParams.accessEvent.accessCredential.objectIdentifier.instance = rand() % 1000;
+            event_data.notificationParams.accessEvent.accessCredential.objectIdentifier.type = OBJECT_ACCESS_POINT;
+            event_data.notificationParams.accessEvent.authenticationFactor.format_type = (rand() % 2) == 0 ? AUTHENTICATION_FACTOR_SIMPLE_NUMBER16 : AUTHENTICATION_FACTOR_MAX;
+            if (event_data.notificationParams.accessEvent.authenticationFactor.format_type == AUTHENTICATION_FACTOR_SIMPLE_NUMBER16)
+            {
+                event_data.notificationParams.accessEvent.authenticationFactor.format_class = 215;
+                uint8_t octetstringValue[2] = { 0x00, 0x10 };
+                octetstring_init(&event_data.notificationParams.accessEvent.authenticationFactor.value, octetstringValue, 2);
+            }
+            bitstring_init(&event_data.notificationParams.accessEvent.statusFlags);
+            bitstring_set_bit(&event_data.notificationParams.accessEvent.statusFlags, STATUS_FLAG_IN_ALARM, true);
+            bitstring_set_bit(&event_data.notificationParams.accessEvent.statusFlags, STATUS_FLAG_FAULT, false);
+            bitstring_set_bit(&event_data.notificationParams.accessEvent.statusFlags, STATUS_FLAG_OVERRIDDEN, false);
+            bitstring_set_bit(&event_data.notificationParams.accessEvent.statusFlags, STATUS_FLAG_OUT_OF_SERVICE, false);
+            break;
+        }
+        default:
+            break;
+    }
+
+    /* add data from notification class */
+    Notification_Class_common_reporting_function(&event_data);
+}
+
+
