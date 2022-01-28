@@ -607,7 +607,7 @@ int event_notify_encode_service_request(
                             &data->notificationParams.changeOfTimer.updateTime);
                         apdu_len += len;
 
-                        if (data->notificationParams.changeOfTimer.lastStateChange < BACNET_TIMER_STATE_MAX) {
+                        if (data->notificationParams.changeOfTimer.lastStateChange <= BACNET_TIMER_TRANSITION_EXPIRED_TO_RUNNING) {
                             len = encode_context_enumerated(&apdu[apdu_len], 3,
                                 data->notificationParams.changeOfTimer.lastStateChange);
                             apdu_len += len;

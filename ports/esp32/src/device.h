@@ -236,6 +236,9 @@ extern "C" {
     void Device_getCurrentDateTime(
         BACNET_DATE_TIME * DateTime);
 
+    void Device_getCurrentTime(
+        BACNET_TIME * Time);
+
     int32_t Device_UTC_Offset(void);
     void Device_UTC_Offset_Set(int16_t offset);
 
