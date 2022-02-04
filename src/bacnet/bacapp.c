@@ -794,8 +794,6 @@ int bacapp_decode_context_data(uint8_t *apdu,
                     return BACNET_STATUS_ERROR;
                 apdu_len += len;
             }
-        } else if (tag_len == 1) { /* and is a Closing tag */
-            apdu_len = 0; /* Don't advance over that closing tag. */
         }
     }
 
@@ -1666,32 +1664,6 @@ void bacapp_property_value_list_init(BACNET_PROPERTY_VALUE *value, size_t count)
     }
 }
 
-/* auto alloc-and-copy data */
-static
-BACNET_APPLICATION_DATA_VALUE *bacapp_allocate_new_value(
-    bool * needed,
-    BACNET_APPLICATION_DATA_VALUE * current,
-    BACNET_APPLICATION_DATA_VALUE * temp_value)
-{
-    BACNET_APPLICATION_DATA_VALUE *nvalue;
-    if (!*needed) {
-        *needed = true;
-        *current = *temp_value;
-        nvalue = current;
-    } else {
-        /* Alloc new data block, link it to current block */
-        nvalue = calloc(1, sizeof(BACNET_APPLICATION_DATA_VALUE));
-        current->next = nvalue;
-        *nvalue = *temp_value;
-    }
-    /* clear temporary data */
-    memset(temp_value, 0, sizeof(BACNET_APPLICATION_DATA_VALUE));
-    /* return * last * block */
-    while (nvalue->next)
-        nvalue = nvalue->next;
-    return nvalue;
-}
-
 static int bacapp_decode_context_data_complex(
     uint8_t * apdu,
     int max_apdu_len,
@@ -1701,14 +1673,12 @@ static int bacapp_decode_context_data_complex(
 {
     BACNET_APPLICATION_DATA_VALUE tmpvalue = { 0 };
     int len = 0;
-    bool allocate_data = false;
     int apdu_len = 0;
     uint8_t inner_tag_number = 0;
 
     /* If it's closed : leave */
     while (!decode_is_closing_tag_number(&apdu[apdu_len], tag_number) &&
            (apdu_len < max_apdu_len)) {
-        allocate_data = false;          // IOTech: added this to ensure complex data is not allocated
         /* Context ou pas ! */
         if (IS_CONTEXT_SPECIFIC(apdu[apdu_len])) {
             /* open a new tag area */
@@ -1721,7 +1691,6 @@ static int bacapp_decode_context_data_complex(
                     max_apdu_len - apdu_len, inner_tag_number, &tmpvalue, prop);
                 if (len >= 0) {
                     apdu_len += len;
-                    value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
                 } else
                     return -1;
                 continue;
@@ -1731,7 +1700,6 @@ static int bacapp_decode_context_data_complex(
                     max_apdu_len - apdu_len, &tmpvalue, prop);
                 if (len > 0) {
                     apdu_len += len;
-                    value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
                 } else
                     return -1;
             }
@@ -1741,7 +1709,6 @@ static int bacapp_decode_context_data_complex(
                 max_apdu_len - apdu_len, &tmpvalue);
             if (len > 0) {
                 apdu_len += len;
-                value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
             } else
                 return -1;
         }
