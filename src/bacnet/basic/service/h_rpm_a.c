@@ -116,7 +116,6 @@ int rpm_ack_decode_service_request(
                 rpm_property->value = value;
                 if (decode_is_closing_tag_number(apdu, 4))
                 {
-                  fprintf(stderr, "closing tag 4! property empty!!!\n");
                   value->tag = MAX_BACNET_APPLICATION_TAG;
                   decoded_len++;
                   apdu_len--;
