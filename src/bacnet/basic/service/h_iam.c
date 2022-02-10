@@ -97,6 +97,5 @@ void handler_i_am_bind(
         /* only add address if requested to bind */
         address_add_binding(device_id, max_apdu, src);
     }
-
     return;
 }

@@ -899,6 +899,7 @@ void Notification_Class_common_reporting_function(
     /* pointer to first recipient */
     pBacDest = &CurrentNotify->Recipient_List[0];
     for (index = 0; index < NC_MAX_RECIPIENTS; index++, pBacDest++) {
+
         /* check if recipient is defined */
         if (pBacDest->Recipient.RecipientType == RECIPIENT_TYPE_NOTINITIALIZED)
             break; /* recipient doesn't defined - end of list */
@@ -914,6 +915,7 @@ void Notification_Class_common_reporting_function(
             /* send notification */
             if (pBacDest->Recipient.RecipientType == RECIPIENT_TYPE_DEVICE) {
                 /* send notification to the specified device */
+
                 device_id = pBacDest->Recipient._.DeviceIdentifier;
 
                 if (pBacDest->ConfirmedNotify == true)
@@ -975,7 +977,7 @@ void Notification_Class_find_recipient(void)
 void register_destination (uint32_t device_id, uint16_t nc_instance, bool confirmed)
 {
     bool empty_space = false;
-    bool already_registered = true;
+    bool already_registered = false;
     BACNET_DESTINATION *RecipientEntry;
     if (nc_instance >= NC_Info_Size)
     {

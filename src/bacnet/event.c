@@ -631,7 +631,7 @@ int event_notify_encode_service_request(
                         //////////////////////////
                     case EVENT_EXTENDED:
                     default:
-                        assert(0);
+                        //assert(0);
                         break;
                 }
                 len = encode_closing_tag(&apdu[apdu_len], 12);
@@ -733,7 +733,6 @@ int event_notify_decode_service_request(
             if (data->messageText != NULL) {
                 if ((section_length = decode_context_character_string(
                          &apdu[len], 7, data->messageText)) == -1) {
-                    /*FIXME This is an optional parameter */
                     return -1;
                 } else {
                     len += section_length;
@@ -799,9 +798,11 @@ int event_notify_decode_service_request(
                 } else {
                     return -1;
                 }
+
                 if (decode_is_opening_tag_number(
                         &apdu[len], (uint8_t)data->eventType)) {
                     len++;
+                    if (IS_EXTENDED_TAG_NUMBER(apdu[len-1]))  len++;
                 } else {
                     return -1;
                 }
@@ -923,6 +924,7 @@ int event_notify_decode_service_request(
                                             commandValue.binaryValue))) {
                                     return -1;
                                 }
+                                data->notificationParams.commandFailure.tag = COMMAND_FAILURE_BINARY_PV;
                                 break;
 
                             case BACNET_APPLICATION_TAG_UNSIGNED_INT:
@@ -933,6 +935,7 @@ int event_notify_decode_service_request(
                                             commandValue.unsignedValue))) {
                                     return -1;
                                 }
+                                data->notificationParams.commandFailure.tag = COMMAND_FAILURE_UNSIGNED;
                                 break;
 
                             default:
@@ -1283,6 +1286,7 @@ int event_notify_decode_service_request(
                             return -1;
                         }
                         len += section_length;
+
                         if (-1 == (section_length = decode_context_unsigned(&apdu[len], 2,
                                        &data->notificationParams.signedOutOfRange.deadband))) {
                             return -1;
@@ -1333,6 +1337,7 @@ int event_notify_decode_service_request(
                             return -1;
                         }
                         len += section_length;
+
                         if (-1 == (section_length = decode_context_character_string(&apdu[len], 2,
                                        &data->notificationParams.changeOfCharacterstring.alarmValue))) {
                             return -1;
@@ -1391,12 +1396,15 @@ int event_notify_decode_service_request(
                     default:
                         return -1;
                 }
+
                 if (decode_is_closing_tag_number(
                         &apdu[len], (uint8_t)data->eventType)) {
                     len++;
+                    if (IS_EXTENDED_TAG_NUMBER (apdu[len-1])) len++;
                 } else {
                     return -1;
                 }
+
                 if (decode_is_closing_tag_number(&apdu[len], 12)) {
                     len++;
                 } else {
