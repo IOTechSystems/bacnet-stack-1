@@ -1002,7 +1002,7 @@ void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_in
 
     if (already_registered)
     {
-        printf(stdout, "Already Registered as a Recipient\n");
+        fprintf(stdout, "Already Registered as a Recipient\n");
         return;
     }
     else if (!empty_space)
@@ -1033,7 +1033,7 @@ void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_in
             BACNET_ADDRESS src = {0};
             unsigned max_apdu = 0;
             address_bind_request(device_id, &max_apdu, &src);
-
+            Send_WhoIs (device_id, device_id);
             fprintf(stdout, "Successfully registered device_id %u to the Recipient List of NC instance %u\n", device_id, nc_instance);
             break;
         }
