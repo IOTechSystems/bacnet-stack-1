@@ -20,3 +20,20 @@
 - Updated how the priority arrays are initialised for Analog Output, Binary Output and Binary Value
 - Removed any rules on setting certain priority levels
 - Updated device object name for simulator
+
+# Whats Changed in v1.0.3
+
+- Fixed infinite loop of RPM decode
+
+# Whats Changed in v1.0.4
+
+- Added new abilities for simulator: registerRecipient(), generateEvent(), createNotificationClasses()
+- Added new decode and encode abilities for new event types:
+  - EVENT_COMMAND_FAILURE
+  - EVENT_ACCESS_EVENT
+  - EVENT_DOUBLE_OUT_OF_RANGE
+  - EVENT_SIGNED_OUT_OF_RANGE
+  - EVENT_UNSIGNED_OUT_OF_RANGE
+  - EVENT_CHANGE_OF_CHARACTERSTRING
+  - EVENT_CHANGE_OF_TIMER
+
