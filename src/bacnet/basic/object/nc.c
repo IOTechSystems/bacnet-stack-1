@@ -48,7 +48,7 @@
 #include "bacnet/wp.h"
 #include "bacnet/basic/object/nc.h"
 
-//#if defined(INTRINSIC_REPORTING)
+#if defined(INTRINSIC_REPORTING)
 static NOTIFICATION_CLASS_INFO *NC_Info = NULL;
 static size_t NC_Info_Size = 0;
 
@@ -95,7 +95,8 @@ void Notification_Class_Free(void)
 void Notification_Class_Alloc(size_t size)
 {
     NC_Info = calloc(size, sizeof(*NC_Info));
-    if (NULL != NC_Info) {
+    if (NULL != NC_Info)
+    {
         NC_Info_Size = size;
     }
 }
@@ -899,7 +900,6 @@ void Notification_Class_common_reporting_function(
     /* pointer to first recipient */
     pBacDest = &CurrentNotify->Recipient_List[0];
     for (index = 0; index < NC_MAX_RECIPIENTS; index++, pBacDest++) {
-
         /* check if recipient is defined */
         if (pBacDest->Recipient.RecipientType == RECIPIENT_TYPE_NOTINITIALIZED)
             break; /* recipient doesn't defined - end of list */
@@ -915,7 +915,6 @@ void Notification_Class_common_reporting_function(
             /* send notification */
             if (pBacDest->Recipient.RecipientType == RECIPIENT_TYPE_DEVICE) {
                 /* send notification to the specified device */
-
                 device_id = pBacDest->Recipient._.DeviceIdentifier;
 
                 if (pBacDest->ConfirmedNotify == true)
@@ -941,7 +940,7 @@ void Notification_Class_common_reporting_function(
 
 /* This function tries to find the addresses of the defined devices. */
 /* It should be called periodically (example once per minute). */
-void Notification_Class_find_recipient(void)
+void Notification_Class_Find_Recipient(void)
 {
     NOTIFICATION_CLASS_INFO *CurrentNotify;
     BACNET_DESTINATION *pBacDest;
@@ -974,15 +973,14 @@ void Notification_Class_find_recipient(void)
     }
 }
 
-void register_destination (uint32_t device_id, uint16_t nc_instance, bool confirmed)
+void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_instance, bool confirmed)
 {
     bool empty_space = false;
     bool already_registered = false;
     BACNET_DESTINATION *RecipientEntry;
     if (nc_instance >= NC_Info_Size)
     {
-        printf("NC instance is larger than maximum in the Simulator\n");
-        fflush(stdout);
+        fprintf(stdout, "NC instance is larger than maximum in the Simulator\n");
         return;
     }
     NOTIFICATION_CLASS_INFO *NC_Instance = &NC_Info[nc_instance];
@@ -1004,14 +1002,12 @@ void register_destination (uint32_t device_id, uint16_t nc_instance, bool confir
 
     if (already_registered)
     {
-        printf("Already Registered as a Recipient\n");
-        fflush(stdout);
+        printf(stdout, "Already Registered as a Recipient\n");
         return;
     }
     else if (!empty_space)
     {
-        printf("No empty spaces left in the recipient list\n");
-        fflush(stdout);
+        fprintf(stdout, "No empty spaces left in the recipient list\n");
         return;
     }
 
@@ -1038,12 +1034,10 @@ void register_destination (uint32_t device_id, uint16_t nc_instance, bool confir
             unsigned max_apdu = 0;
             address_bind_request(device_id, &max_apdu, &src);
 
-            printf("Successfully registered device_id %u to the Recipient List of NC instance %u\n", device_id, nc_instance);
-            fflush(stdout);
+            fprintf(stdout, "Successfully registered device_id %u to the Recipient List of NC instance %u\n", device_id, nc_instance);
             break;
         }
     }
 }
 
-
-//#endif /* defined(INTRINSIC_REPORTING) */
+#endif /* defined(INTRINSIC_REPORTING) */

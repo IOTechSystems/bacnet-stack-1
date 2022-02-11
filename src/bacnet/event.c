@@ -498,7 +498,7 @@ int event_notify_encode_service_request(
                         apdu_len += len;
                         break;
 
-                        ////////// NEW ADDITIONS ////////////////
+                        ////////// SELF ADDITIONS ////////////////
                     case EVENT_DOUBLE_OUT_OF_RANGE:
                         len = encode_opening_tag(&apdu[apdu_len], 14);
                         apdu_len += len;
@@ -628,8 +628,10 @@ int event_notify_encode_service_request(
                         len = encode_closing_tag(&apdu[apdu_len], 22);
                         apdu_len += len;
                         break;
-                        //////////////////////////
                     case EVENT_EXTENDED:
+                    case EVENT_CHANGE_OF_STATUS_FLAGS:
+                    case EVENT_CHANGE_OF_RELIABILITY:
+                    case EVENT_CHANGE_OF_DISCRETE_VALUE:
                     default:
                         //assert(0);
                         break;
@@ -733,6 +735,7 @@ int event_notify_decode_service_request(
             if (data->messageText != NULL) {
                 if ((section_length = decode_context_character_string(
                          &apdu[len], 7, data->messageText)) == -1) {
+                    /*FIXME This is an optional parameter */
                     return -1;
                 } else {
                     len += section_length;
@@ -760,7 +763,7 @@ int event_notify_decode_service_request(
                 /* tag 9 - ackRequired */
                 section_length =
                     decode_context_boolean2(&apdu[len], 9, &data->ackRequired);
-                if (section_length == BACNET_STATUS_ERROR) {
+                if (section_length == -1) {
                     return -1;
                 }
                 len += section_length;
@@ -798,7 +801,6 @@ int event_notify_decode_service_request(
                 } else {
                     return -1;
                 }
-
                 if (decode_is_opening_tag_number(
                         &apdu[len], (uint8_t)data->eventType)) {
                     len++;
@@ -1246,8 +1248,7 @@ int event_notify_decode_service_request(
                         }
                         break;
 
-                        ///////// NEW ADDITIONS /////////////
-
+                        ///////// SELF ADDITIONS /////////////
                     case EVENT_DOUBLE_OUT_OF_RANGE:
                         if (-1 == (section_length = decode_context_double(&apdu[len], 0,
                                        &data->notificationParams.doubleOutOfRange.exceedingValue))) {
@@ -1390,13 +1391,13 @@ int event_notify_decode_service_request(
                             len += section_length;
                         }
                         break;
-
-                        //////////////////////
-
+                    case EVENT_EXTENDED:
+                    case EVENT_CHANGE_OF_STATUS_FLAGS:
+                    case EVENT_CHANGE_OF_RELIABILITY:
+                    case EVENT_CHANGE_OF_DISCRETE_VALUE:
                     default:
                         return -1;
                 }
-
                 if (decode_is_closing_tag_number(
                         &apdu[len], (uint8_t)data->eventType)) {
                     len++;
@@ -1404,7 +1405,6 @@ int event_notify_decode_service_request(
                 } else {
                     return -1;
                 }
-
                 if (decode_is_closing_tag_number(&apdu[len], 12)) {
                     len++;
                 } else {
@@ -1419,7 +1419,9 @@ int event_notify_decode_service_request(
                 break;
         }
     }
-
+    /**********************************************************************************/
+    /**********************************************************************************/
+    /**********************************************************************************/
     return len;
 }
 

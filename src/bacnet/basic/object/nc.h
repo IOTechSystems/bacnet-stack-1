@@ -155,10 +155,10 @@ BACnetRecipient ::= CHOICE {
         BACNET_EVENT_NOTIFICATION_DATA * event_data);
 
     BACNET_STACK_EXPORT
-    void Notification_Class_find_recipient(
+    void Notification_Class_Find_Recipient(
         void);
 
-    void register_destination (uint32_t device_id, uint16_t nc_instance, bool confirmed);
+    void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_instance, bool confirmed);
 
 //#endif /* defined(INTRINSIC_REPORTING) */
 

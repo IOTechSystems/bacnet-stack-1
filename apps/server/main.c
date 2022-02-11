@@ -171,7 +171,7 @@ static int register_recipient (lua_State *L)
     uint32_t device_id = lua_tonumber (L, 1);
     uint16_t nc_instance = lua_tonumber (L, 2);
     bool confirmed = lua_toboolean (L, 3);
-    register_destination (device_id, nc_instance, confirmed);
+    Notification_Class_Register_Destination (device_id, nc_instance, confirmed);
     return 0;
 }
 
@@ -517,7 +517,6 @@ static void lua_setup_callbacks(lua_State *L)
       {"createPositiveIntegerValues", create_positive_integer_values},
       {"createAccumulators", create_accumulators},
       {"createNotificationClasses", create_notification_classes},
-
 
       {"getAnalogInputPresentValue", get_analog_input_present_value},
       {"getAnalogOutputPresentValue", get_analog_output_present_value},
@@ -1015,7 +1014,7 @@ int main(int argc, char *argv[])
         /* try to find addresses of recipients */
         recipient_scan_tmr += elapsed_seconds;
         if (recipient_scan_tmr >= NC_RESCAN_RECIPIENTS_SECS) {
-            Notification_Class_find_recipient();
+            Notification_Class_Find_Recipient();
             recipient_scan_tmr = 0;
         }
 #endif
@@ -1357,8 +1356,6 @@ static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance)
     }
     Notification_Class_common_reporting_function(&event_data);
 }
-
-// TODO missing DOUBLE out of range
 
 /* @} */
 

@@ -168,8 +168,7 @@ typedef struct BACnet_Event_Notification_Data {
             /* OPTIONAL - Set authenticationFactor.format_type to
                AUTHENTICATION_FACTOR_MAX if not being used */
         } accessEvent;
-
-        ////  NEW ADDITIONS /////////////////
+        ////  SELF ADDITIONS /////////////////
         /*
          ** EVENT_DOUBLE_OUT_OF_RANGE
         */
@@ -219,8 +218,6 @@ typedef struct BACnet_Event_Notification_Data {
             BACNET_DATE_TIME expirationTime;
         } changeOfTimer;
     } notificationParams;
-        ///////////////////////////////
-
 } BACNET_EVENT_NOTIFICATION_DATA;
 
 
