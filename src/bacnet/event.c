@@ -633,7 +633,6 @@ int event_notify_encode_service_request(
                     case EVENT_CHANGE_OF_RELIABILITY:
                     case EVENT_CHANGE_OF_DISCRETE_VALUE:
                     default:
-                        //assert(0);
                         break;
                 }
                 len = encode_closing_tag(&apdu[apdu_len], 12);
@@ -1419,9 +1418,6 @@ int event_notify_decode_service_request(
                 break;
         }
     }
-    /**********************************************************************************/
-    /**********************************************************************************/
-    /**********************************************************************************/
     return len;
 }
 
