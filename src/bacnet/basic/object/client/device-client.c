@@ -698,6 +698,16 @@ void Device_getCurrentDateTime(BACNET_DATE_TIME *DateTime)
     DateTime->time = Local_Time;
 }
 
+void Device_getCurrentTime(BACNET_TIME *Time)
+{
+    Update_Current_Time();
+
+    Time->hour = Local_Time.hour;
+    Time->min = Local_Time.min;
+    Time->sec = Local_Time.sec;
+    Time->hundredths = Local_Time.hundredths;
+}
+
 int32_t Device_UTC_Offset(void)
 {
     Update_Current_Time();

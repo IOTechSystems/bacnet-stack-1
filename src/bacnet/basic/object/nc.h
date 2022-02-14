@@ -45,7 +45,6 @@ extern "C" {
         RECIPIENT_TYPE_ADDRESS = 2
     } NC_RECIPIENT_TYPE;
 
-#if defined(INTRINSIC_REPORTING)
 /* BACnetRecipient structure */
 /*
 BACnetRecipient ::= CHOICE {
@@ -95,7 +94,7 @@ BACnetRecipient ::= CHOICE {
         uint8_t EventState;
     } ACK_NOTIFICATION;
 
-
+#if defined(INTRINSIC_REPORTING)
 
     BACNET_STACK_EXPORT
     void Notification_Class_Property_Lists(
@@ -155,10 +154,12 @@ BACnetRecipient ::= CHOICE {
         BACNET_EVENT_NOTIFICATION_DATA * event_data);
 
     BACNET_STACK_EXPORT
-    void Notification_Class_find_recipient(
+    void Notification_Class_Find_Recipient(
         void);
-#endif /* defined(INTRINSIC_REPORTING) */
 
+    void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_instance, bool confirmed);
+
+#endif /* defined(INTRINSIC_REPORTING) */
 
 #ifdef __cplusplus
 }

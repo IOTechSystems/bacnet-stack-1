@@ -32,11 +32,17 @@
 #include "bacnet/timestamp.h"
 #include "bacnet/bacpropstates.h"
 #include "bacnet/bacdevobjpropref.h"
+#include "bacnet/authentication_factor.h"
 
 typedef enum {
     CHANGE_OF_VALUE_BITS,
     CHANGE_OF_VALUE_REAL
 } CHANGE_OF_VALUE_TYPE;
+
+typedef enum {
+    COMMAND_FAILURE_BINARY_PV,
+    COMMAND_FAILURE_UNSIGNED
+} COMMAND_FAILURE_TYPE;
 
 /*
 ** Based on UnconfirmedEventNotification-Request
@@ -87,10 +93,20 @@ typedef struct BACnet_Event_Notification_Data {
             BACNET_BIT_STRING statusFlags;
         } changeOfValue;
         /*
-         ** EVENT_COMMAND_FAILURE
-         **
-         ** Not Supported!
-         */
+          ** EVENT_COMMAND_FAILURE
+          */
+        struct {
+            union {
+                BACNET_BINARY_PV binaryValue;
+                BACNET_UNSIGNED_INTEGER unsignedValue;
+            } commandValue;
+            COMMAND_FAILURE_TYPE tag;
+            BACNET_BIT_STRING statusFlags;
+            union {
+                BACNET_BINARY_PV binaryValue;
+                BACNET_UNSIGNED_INTEGER unsignedValue;
+            } feedbackValue;
+        } commandFailure;
         /*
          ** EVENT_FLOATING_LIMIT
          */
@@ -139,6 +155,68 @@ typedef struct BACnet_Event_Notification_Data {
             BACNET_BIT_STRING statusFlags;
             uint32_t exceededLimit;
         } unsignedRange;
+        /*
+         ** EVENT_ACCESS_EVENT
+         */
+        struct {
+            BACNET_ACCESS_EVENT accessEvent;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_UNSIGNED_INTEGER accessEventTag;
+            BACNET_TIMESTAMP accessEventTime;
+            BACNET_DEVICE_OBJECT_REFERENCE accessCredential;
+            BACNET_AUTHENTICATION_FACTOR authenticationFactor;
+            /* OPTIONAL - Set authenticationFactor.format_type to
+               AUTHENTICATION_FACTOR_MAX if not being used */
+        } accessEvent;
+        ////  SELF ADDITIONS /////////////////
+        /*
+         ** EVENT_DOUBLE_OUT_OF_RANGE
+        */
+        struct {
+            double exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            double deadband;
+            double exceededLimit;
+            } doubleOutOfRange;
+        /*
+         ** EVENT_SIGNED_OUT_OF_RANGE
+        */
+        struct {
+            int32_t exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_UNSIGNED_INTEGER deadband;
+            int32_t exceededLimit;
+        } signedOutOfRange;
+        /*
+         ** EVENT_UNSIGNED_OUT_OF_RANGE
+        */
+        struct {
+            BACNET_UNSIGNED_INTEGER exceedingValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_UNSIGNED_INTEGER deadband;
+            BACNET_UNSIGNED_INTEGER exceededLimit;
+        } unsignedOutOfRange;
+        /*
+         ** EVENT_CHANGE_OF_CHARACTERSTRING
+        */
+        struct {
+            BACNET_CHARACTER_STRING changedValue;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_CHARACTER_STRING alarmValue;
+        } changeOfCharacterstring;
+        /*
+         ** EVENT_CHANGE_OF_TIMER
+        */
+        struct {
+            BACNET_TIMER_STATE newState;
+            BACNET_BIT_STRING statusFlags;
+            BACNET_DATE_TIME updateTime;
+            BACNET_TIMER_TRANSITION lastStateChange;
+            bool initialTimeoutSet;
+            BACNET_UNSIGNED_INTEGER initialTimeout;
+            bool expirationTimeSet;
+            BACNET_DATE_TIME expirationTime;
+        } changeOfTimer;
     } notificationParams;
 } BACNET_EVENT_NOTIFICATION_DATA;
 

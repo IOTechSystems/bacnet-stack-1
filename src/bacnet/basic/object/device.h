@@ -251,6 +251,10 @@ extern "C" {
         BACNET_DATE_TIME * DateTime);
 
     BACNET_STACK_EXPORT
+    void Device_getCurrentTime(
+        BACNET_TIME * Time);
+
+    BACNET_STACK_EXPORT
     int32_t Device_UTC_Offset(void);
     BACNET_STACK_EXPORT
     void Device_UTC_Offset_Set(int16_t offset);
