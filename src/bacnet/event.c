@@ -1372,6 +1372,7 @@ int event_notify_decode_service_request(
                             len += section_length;
                         }
 
+                        data->notificationParams.changeOfTimer.initialTimeoutSet = false;
                         if (decode_is_context_tag(&apdu[len], 4)) {
                             if (-1 == (section_length = decode_context_unsigned(&apdu[len], 4,
                                            &data->notificationParams.changeOfTimer.initialTimeout))) {
@@ -1381,6 +1382,7 @@ int event_notify_decode_service_request(
                             len += section_length;
                         }
 
+                        data->notificationParams.changeOfTimer.expirationTimeSet = false;
                         if (decode_is_context_tag(&apdu[len], 5)) {
                             if (-1 == (section_length = bacapp_decode_context_datetime(&apdu[len], 5,
                                            &data->notificationParams.changeOfTimer.expirationTime))) {
