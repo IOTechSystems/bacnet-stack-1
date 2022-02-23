@@ -925,11 +925,11 @@ void Notification_Class_common_reporting_function(
             } else if (pBacDest->Recipient.RecipientType ==
                 RECIPIENT_TYPE_ADDRESS) {
                 /* send notification to the address indicated */
+                dest = pBacDest->Recipient._.Address;
                 if (pBacDest->ConfirmedNotify == true) {
                     if (address_get_device_id(&dest, &device_id))
                         Send_CEvent_Notify(device_id, event_data);
                 } else {
-                    dest = pBacDest->Recipient._.Address;
                     Send_UEvent_Notify(
                         Handler_Transmit_Buffer, event_data, &dest);
                 }

@@ -703,7 +703,7 @@ static void Init_Service_Handlers(void)
     apdu_set_confirmed_handler( SERVICE_CONFIRMED_SUBSCRIBE_COV, handler_cov_subscribe);
 
     /* handle i-am to support binding to other devices */
-    apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_I_AM, handler_i_am_bind);
+    apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_I_AM, handler_i_am_add);
 
     /* set the handler for all the services we don't implement */
     /* It is required to send the proper reject message... */
@@ -1072,7 +1072,15 @@ static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance)
             bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 0, true);
             bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 1, false);
             bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 2, true);
-            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 2, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 3, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 4, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 5, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 6, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 7, false);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 8, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 9, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 10, true);
+            bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.referencedBitString, 11, true);
             bitstring_init(&event_data.notificationParams.changeOfBitstring.statusFlags);
             bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_IN_ALARM, true);
             bitstring_set_bit(&event_data.notificationParams.changeOfBitstring.statusFlags, STATUS_FLAG_FAULT, false);
@@ -1150,7 +1158,19 @@ static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance)
                 bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 0, true);
                 bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 1, false);
                 bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 2, true);
-                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 3, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 3, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 4, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 5, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 6, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 7, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 8, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 9, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 10, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 11, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 12, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 13, false);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 14, true);
+                bitstring_set_bit(&event_data.notificationParams.changeOfValue.newValue.changedBits, 15, false);
             }
             bitstring_init(&event_data.notificationParams.changeOfValue.statusFlags);
             bitstring_set_bit(&event_data.notificationParams.changeOfValue.statusFlags, STATUS_FLAG_IN_ALARM, true);
