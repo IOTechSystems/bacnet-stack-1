@@ -413,7 +413,7 @@ void Device_Property_Lists(
 static uint32_t Object_Instance_Number = 1234;
 static BACNET_CHARACTER_STRING My_Object_Name;
 static BACNET_DEVICE_STATUS System_Status = STATUS_OPERATIONAL;
-static char *Vendor_Name = BACNET_VENDOR_NAME;
+static char Vendor_Name[MAX_DEV_VENDOR_NAME_LEN + 1] = BACNET_VENDOR_NAME;
 static uint16_t Vendor_Identifier = BACNET_VENDOR_ID;
 static char Model_Name[MAX_DEV_MOD_LEN + 1] = "IOTech BACnet Simulator";
 static char Application_Software_Version[MAX_DEV_VER_LEN + 1] = "2.0";
@@ -424,7 +424,7 @@ static char Description[MAX_DEV_DESC_LEN + 1] = "IOTech BACnet Simulator";
 static uint32_t Object_Instance_Number = 0;
 static BACNET_CHARACTER_STRING My_Object_Name;
 static BACNET_DEVICE_STATUS System_Status = STATUS_OPERATIONAL;
-static char *Vendor_Name = BACNET_VENDOR_NAME;
+static char Vendor_Name[MAX_DEV_VENDOR_NAME_LEN + 1] = BACNET_VENDOR_NAME;
 static uint16_t Vendor_Identifier = BACNET_VENDOR_ID;
 static char Model_Name[MAX_DEV_MOD_LEN + 1] = "IOTech Edge XRT BACnet";
 static char Application_Software_Version[MAX_DEV_VER_LEN + 1] = "1.2";
@@ -682,6 +682,19 @@ int Device_Set_System_Status(BACNET_DEVICE_STATUS status, bool local)
 const char *Device_Vendor_Name(void)
 {
     return Vendor_Name;
+}
+
+bool Device_Set_Vendor_Name(const char *name, size_t length)
+{
+    bool status = false; /*return value */
+
+    if (length < sizeof(Vendor_Name)) {
+        memmove(Vendor_Name, name, length);
+        Vendor_Name[length] = 0;
+        status = true;
+    }
+
+    return status;
 }
 
 /** Returns the Vendor ID for this Device.
