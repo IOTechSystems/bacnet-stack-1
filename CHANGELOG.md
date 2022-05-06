@@ -37,3 +37,6 @@
   - EVENT_CHANGE_OF_CHARACTERSTRING
   - EVENT_CHANGE_OF_TIMER
 
+# Whats Changed in v1.0.5
+
+- Added ability to change the Vendor Name

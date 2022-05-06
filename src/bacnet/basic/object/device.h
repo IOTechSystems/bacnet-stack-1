@@ -179,6 +179,7 @@ typedef struct object_functions {
 #define MAX_DEV_MOD_LEN  32
 #define MAX_DEV_VER_LEN  16
 #define MAX_DEV_DESC_LEN 64
+#define MAX_DEV_VENDOR_NAME_LEN 128
 
 /** Structure to define the Object Properties common to all Objects. */
 typedef struct commonBacObj_s {
@@ -354,6 +355,10 @@ extern "C" {
     BACNET_STACK_EXPORT
     const char *Device_Vendor_Name(
         void);
+    BACNET_STACK_EXPORT
+    bool Device_Set_Vendor_Name(
+        const char *name,
+        size_t length);
 
     BACNET_STACK_EXPORT
     uint16_t Device_Vendor_Identifier(
