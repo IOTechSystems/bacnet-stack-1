@@ -91,6 +91,7 @@ extern "C" {
         float high_limit,
         float low_limit,
         float deadband,
+        float cov_increment,
         unsigned limit_enable,
         unsigned event_enable,
         unsigned notify_type   
