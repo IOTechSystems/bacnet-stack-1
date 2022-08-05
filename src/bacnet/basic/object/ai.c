@@ -106,14 +106,14 @@ void Analog_Input_Set_Properties(
         return;
     }
 
-    pthread_mutex_lock(&AI_Descr_Mutex);
     Analog_Input_Name_Set(object_instance, object_name);
     Analog_Input_Present_Value_Set(object_instance, value);
     Analog_Input_COV_Increment_Set(object_instance, cov_incrememnt);
     Analog_Input_Out_Of_Service_Set(object_instance, out_of_service);
 
+    pthread_mutex_lock(&AI_Descr_Mutex);
     AI_Descr[index].Units = units;
-
+    AI_Descr[index].Prior_Value = value;
 #if defined(INTRINSIC_REPORTING)
     AI_Descr[index].Event_State = event_state;
     AI_Descr[index].Reliability = reliability;

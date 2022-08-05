@@ -112,12 +112,12 @@ void Analog_Value_Set_Properties(
     {
         return;
     }
-    pthread_mutex_lock(&AV_Descr_Mutex);
     Analog_Value_Name_Set(object_instance, object_name);
     Analog_Value_Present_Value_Set (object_instance, value, 1);
     Analog_Value_COV_Increment_Set(object_instance, cov_increment);
     Analog_Value_Out_Of_Service_Set (object_instance, out_of_service);
 
+    pthread_mutex_lock(&AV_Descr_Mutex);
     AV_Descr[index].Units = units;
     AV_Descr[index].Prior_Value = value;
 #if defined(INTRINSIC_REPORTING)
