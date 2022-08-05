@@ -40,3 +40,7 @@
 # Whats Changed in v1.0.5
 
 - Added ability to change the Vendor Name
+
+# Whats Changed in v1.0.6
+
+- Added fix for uninitialised cov increment value for simulator
