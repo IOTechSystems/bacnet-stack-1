@@ -47,4 +47,4 @@
 
 # Whats Changed in v1.0.7
 
-- Updated present value property of Command and Positive Integer Values to be uint64 instead of uint32
+- Updated present value property of Positive Integer Value to be uint64 instead of uint32
