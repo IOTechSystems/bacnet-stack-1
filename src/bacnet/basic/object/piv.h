@@ -53,7 +53,7 @@ extern "C" {
     void PositiveInteger_Value_Set_Properties(
         uint32_t object_instance, 
         const char* object_name,
-        int32_t value,
+        BACNET_UNSIGNED_INTEGER value,
         bool out_of_service,
         uint16_t units
     );
