@@ -82,7 +82,7 @@ extern "C" {
         BACNET_ACTION_LIST * bcl);
 
     typedef struct command_descr {
-        BACNET_UNSIGNED_INTEGER Present_Value;
+        uint32_t Present_Value;
         bool In_Process;
         bool All_Writes_Successful;
         BACNET_ACTION_LIST Action[MAX_COMMAND_ACTIONS];
@@ -135,12 +135,12 @@ extern "C" {
         BACNET_WRITE_PROPERTY_DATA * wp_data);
 
     BACNET_STACK_EXPORT
-    BACNET_UNSIGNED_INTEGER Command_Present_Value(
+    uint32_t Command_Present_Value(
         uint32_t object_instance);
     BACNET_STACK_EXPORT
     bool Command_Present_Value_Set(
         uint32_t object_instance,
-        BACNET_UNSIGNED_INTEGER value);
+        uint32_t value);
 
     BACNET_STACK_EXPORT
     bool Command_In_Process(

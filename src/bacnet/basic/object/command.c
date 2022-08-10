@@ -495,9 +495,9 @@ unsigned Command_Instance_To_Index(uint32_t object_instance)
  *
  * @return  present-value of the object
  */
-BACNET_UNSIGNED_INTEGER Command_Present_Value(uint32_t object_instance)
+uint32_t Command_Present_Value(uint32_t object_instance)
 {
-    BACNET_UNSIGNED_INTEGER value = 0;
+    uint32_t value = 0;
     unsigned int index;
 
     index = Command_Instance_To_Index(object_instance);
@@ -516,7 +516,7 @@ BACNET_UNSIGNED_INTEGER Command_Present_Value(uint32_t object_instance)
  *
  * @return  true if values are within range and present-value is set.
  */
-bool Command_Present_Value_Set(uint32_t object_instance, BACNET_UNSIGNED_INTEGER value)
+bool Command_Present_Value_Set(uint32_t object_instance, uint32_t value)
 {
     bool status = false;
     unsigned int index;
