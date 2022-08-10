@@ -77,7 +77,7 @@ void PositiveInteger_Value_Property_Lists(
 void PositiveInteger_Value_Set_Properties(
     uint32_t object_instance, 
     const char* object_name,
-    int32_t value,
+    BACNET_UNSIGNED_INTEGER value,
     bool out_of_service,
     uint16_t units
 )
@@ -226,7 +226,7 @@ unsigned PositiveInteger_Value_Instance_To_Index(uint32_t object_instance)
  * @return  true if values are within range and present-value is set.
  */
 bool PositiveInteger_Value_Present_Value_Set(
-    uint32_t object_instance, uint32_t value, uint8_t priority)
+    uint32_t object_instance, BACNET_UNSIGNED_INTEGER value, uint8_t priority)
 {
     unsigned index = 0;
     bool status = false;
@@ -241,9 +241,9 @@ bool PositiveInteger_Value_Present_Value_Set(
     return status;
 }
 
-uint32_t PositiveInteger_Value_Present_Value(uint32_t object_instance)
+BACNET_UNSIGNED_INTEGER PositiveInteger_Value_Present_Value(uint32_t object_instance)
 {
-    uint32_t value = 0;
+    BACNET_UNSIGNED_INTEGER value = 0;
     unsigned index = 0;
 
     index = PositiveInteger_Value_Instance_To_Index(object_instance);
