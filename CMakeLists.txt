@@ -30,7 +30,6 @@ if ("${LINUX_SYS}" STREQUAL "RISCV32" OR "${LINUX_SYS}" STREQUAL "RISCV64")
   endif ()
   message (STATUS "RISC-V Build flags: ${CMAKE_C_FLAGS}")
 endif ()
-endif ()
 
 #
 # options
