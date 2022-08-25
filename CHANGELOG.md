@@ -48,3 +48,7 @@
 # Whats Changed in v1.0.7
 
 - Updated present value property of Positive Integer Value to be uint64 instead of uint32
+
+# Whats Changed in v1.0.8
+
+- Support added for RISC-V Yocto Linux
