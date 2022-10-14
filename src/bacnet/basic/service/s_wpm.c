@@ -125,3 +125,79 @@ uint8_t Send_Write_Property_Multiple_Request(uint8_t *pdu,
 
     return invoke_id;
 }
+
+/** @file s_wpm.c  Send Write Property Multiple request directly to an address. */
+
+/** Sends a Write Property Multiple request directly to a network address.
+ * @param pdu [out] Buffer to build the outgoing message into
+ * @param max_pdu [in] Length of the pdu buffer.
+ * @param dest [in] address of destination device
+ * @param max_apdu [in] max size of apdu
+ * @param write_access_data [in] Ptr to structure with the linked list of
+ *        objects and properties to be written.
+ * @return invoke id of outgoing message, or 0 if device is not bound or no tsm
+ * available
+ */
+uint8_t Send_Write_Property_Multiple_Request_Direct (uint8_t *pdu,
+    size_t max_pdu,
+    BACNET_ADDRESS *dest,
+    unsigned max_apdu,
+    BACNET_WRITE_ACCESS_DATA *write_access_data)
+{
+    BACNET_ADDRESS my_address;
+    uint8_t invoke_id = 0;
+    int len = 0;
+    int pdu_len = 0;
+#if PRINT_ENABLED
+    int bytes_sent = 0;
+#endif
+    BACNET_NPDU_DATA npdu_data;
+
+    /* if we are forbidden to send, don't send! */
+    if (!dcc_communication_enabled()) {
+        return 0;
+    }
+    /* is there a tsm available? */
+    invoke_id = tsm_next_free_invokeID();
+    if (invoke_id) {
+        /* encode the NPDU portion of the packet */
+        datalink_get_my_address(&my_address);
+        npdu_encode_npdu_data(&npdu_data, true, MESSAGE_PRIORITY_NORMAL);
+        pdu_len = npdu_encode_pdu(&pdu[0], dest, &my_address, &npdu_data);
+        /* encode the APDU portion of the packet */
+        len = wpm_encode_apdu(
+            &pdu[pdu_len], max_pdu - pdu_len, invoke_id, write_access_data);
+        pdu_len += len;
+
+        /* will it fit in the sender?
+           note: if there is a bottleneck router in between
+           us and the destination, we won't know unless
+           we have a way to check for that and update the
+           max_apdu in the address binding table. */
+        if ((unsigned)pdu_len < max_apdu) {
+            tsm_set_confirmed_unsegmented_transaction(
+                invoke_id, dest, &npdu_data, &pdu[0], (uint16_t)pdu_len);
+#if PRINT_ENABLED
+            bytes_sent =
+#endif
+                datalink_send_pdu(dest, &npdu_data, &pdu[0], pdu_len);
+#if PRINT_ENABLED
+            if (bytes_sent <= 0) {
+                fprintf(stderr,
+                    "Failed to Send WritePropertyMultiple Request (%s)!\n",
+                    strerror(errno));
+            }
+#endif
+        } else {
+            tsm_free_invoke_id(invoke_id);
+            invoke_id = 0;
+#if PRINT_ENABLED
+            fprintf(stderr,
+                "Failed to Send WritePropertyMultiple Request "
+                "(exceeds destination maximum APDU)!\n");
+#endif
+        }
+    }
+
+    return invoke_id;
+}

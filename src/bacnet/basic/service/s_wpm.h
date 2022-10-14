@@ -50,6 +50,14 @@ extern "C" {
         uint32_t device_id,
         BACNET_WRITE_ACCESS_DATA * write_access_data);
 
+    BACNET_STACK_EXPORT
+    uint8_t Send_Write_Property_Multiple_Request_Direct(
+        uint8_t *pdu,
+        size_t max_pdu,
+        BACNET_ADDRESS *dest,
+        unsigned max_apdu,
+        BACNET_WRITE_ACCESS_DATA *write_access_data);
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
