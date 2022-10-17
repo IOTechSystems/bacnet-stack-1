@@ -53,71 +53,15 @@ uint8_t Send_Write_Property_Request_Data(uint32_t device_id,
     uint32_t array_index)
 {
     BACNET_ADDRESS dest;
-    BACNET_ADDRESS my_address;
     unsigned max_apdu = 0;
     uint8_t invoke_id = 0;
-    bool status = false;
-    int len = 0;
-    int pdu_len = 0;
-    int bytes_sent = 0;
-    BACNET_WRITE_PROPERTY_DATA data;
-    BACNET_NPDU_DATA npdu_data;
 
-    if (!dcc_communication_enabled()) {
-        return 0;
+    bool status = address_get_by_device(device_id, &max_apdu, &dest);
+    if (status)
+    {
+      invoke_id = Send_Write_Property_Request_Data_Direct (&dest, max_apdu, object_type, object_instance, object_property,
+                                                           application_data, application_data_len, priority, array_index);
     }
-
-    /* is the device bound? */
-    status = address_get_by_device(device_id, &max_apdu, &dest);
-    /* is there a tsm available? */
-    if (status) {
-        invoke_id = tsm_next_free_invokeID();
-    }
-    if (invoke_id) {
-        /* encode the NPDU portion of the packet */
-        datalink_get_my_address(&my_address);
-        npdu_encode_npdu_data(&npdu_data, true, MESSAGE_PRIORITY_NORMAL);
-        pdu_len = npdu_encode_pdu(
-            &Handler_Transmit_Buffer[0], &dest, &my_address, &npdu_data);
-        /* encode the APDU portion of the packet */
-        data.object_type = object_type;
-        data.object_instance = object_instance;
-        data.object_property = object_property;
-        data.array_index = array_index;
-        data.application_data_len = application_data_len;
-        memcpy(&data.application_data[0], &application_data[0],
-            application_data_len);
-        data.priority = priority;
-        len =
-            wp_encode_apdu(&Handler_Transmit_Buffer[pdu_len], invoke_id, &data);
-        pdu_len += len;
-        /* will it fit in the sender?
-           note: if there is a bottleneck router in between
-           us and the destination, we won't know unless
-           we have a way to check for that and update the
-           max_apdu in the address binding table. */
-        if ((unsigned)pdu_len < max_apdu) {
-            tsm_set_confirmed_unsegmented_transaction(invoke_id, &dest,
-                &npdu_data, &Handler_Transmit_Buffer[0], (uint16_t)pdu_len);
-            bytes_sent = datalink_send_pdu(
-                &dest, &npdu_data, &Handler_Transmit_Buffer[0], pdu_len);
-            if (bytes_sent <= 0) {
-#if PRINT_ENABLED
-                fprintf(stderr, "Failed to Send WriteProperty Request (%s)!\n",
-                    strerror(errno));
-#endif
-            }
-        } else {
-            tsm_free_invoke_id(invoke_id);
-            invoke_id = 0;
-#if PRINT_ENABLED
-            fprintf(stderr,
-                "Failed to Send WriteProperty Request "
-                "(exceeds destination maximum APDU)!\n");
-#endif
-        }
-    }
-
     return invoke_id;
 }
 
