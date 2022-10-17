@@ -60,6 +60,10 @@ extern "C" {
     uint8_t Send_COV_Subscribe(
         uint32_t device_id,
         BACNET_SUBSCRIBE_COV_DATA * cov_data);
+    BACNET_STACK_EXPORT
+    uint8_t Send_COV_Subscribe_Direct(
+        BACNET_ADDRESS *dest, unsigned max_apdu,
+        BACNET_SUBSCRIBE_COV_DATA *cov_data);
 
 #ifdef __cplusplus
 }
