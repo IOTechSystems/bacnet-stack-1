@@ -34,6 +34,7 @@
 ####COPYRIGHTEND####*/
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <stddef.h>
 #include "bacnet/bits.h"
 #include "bacnet/apdu.h"
@@ -51,7 +52,9 @@
 /* FIXME: modify basic service handlers to use TSM rather than this buffer! */
 uint8_t Handler_Transmit_Buffer[MAX_PDU] = { 0 };
 
-#if (MAX_TSM_TRANSACTIONS)
+static tsm_device_t * tsm_device_list_head = NULL;
+
+//#if (MAX_TSM_TRANSACTIONS) TODO
 /* Really only needed for segmented messages */
 /* and a little for sending confirmed messages */
 /* If we are only a server and only initiate broadcasts, */
@@ -61,10 +64,10 @@ uint8_t Handler_Transmit_Buffer[MAX_PDU] = { 0 };
 
 /* declare space for the TSM transactions, and set it up in the init. */
 /* table rules: an Invoke ID = 0 is an unused spot in the table */
-static BACNET_TSM_DATA TSM_List[MAX_TSM_TRANSACTIONS];
+//static BACNET_TSM_DATA TSM_List[MAX_TSM_TRANSACTIONS];
 
 /* invoke ID for incrementing between subsequent calls. */
-static uint8_t Current_Invoke_ID = 1;
+//static uint8_t Current_Invoke_ID = 1;
 
 static tsm_timeout_function Timeout_Function;
 
@@ -81,12 +84,12 @@ void tsm_set_timeout_handler(tsm_timeout_function pFunction)
  * @return Index of the id or MAX_TSM_TRANSACTIONS
  *         if not found
  */
-static uint8_t tsm_find_invokeID_index(uint8_t invokeID)
+static uint8_t tsm_find_invokeID_index(tsm_device_t *tsm_device, uint8_t invokeID)
 {
     unsigned i = 0; /* counter */
     uint8_t index = MAX_TSM_TRANSACTIONS; /* return value */
 
-    const BACNET_TSM_DATA *plist = TSM_List;
+    const BACNET_TSM_DATA *plist = tsm_device->TSM_List;
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
         if (plist->InvokeID == invokeID) {
@@ -103,12 +106,12 @@ static uint8_t tsm_find_invokeID_index(uint8_t invokeID)
  * @return Index of the id or MAX_TSM_TRANSACTIONS
  *         if no entry is free.
  */
-static uint8_t tsm_find_first_free_index(void)
+static uint8_t tsm_find_first_free_index(tsm_device_t *tsm_device)
 {
     unsigned i = 0; /* counter */
     uint8_t index = MAX_TSM_TRANSACTIONS; /* return value */
 
-    const BACNET_TSM_DATA *plist = TSM_List;
+    const BACNET_TSM_DATA *plist = tsm_device->TSM_List;
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
         if (plist->InvokeID == 0) {
@@ -120,16 +123,70 @@ static uint8_t tsm_find_first_free_index(void)
     return index;
 }
 
+static uint64_t ip_address_to_int (BACNET_ADDRESS *address)
+{
+    return ((uint64_t) address->mac[0] << 40 | (uint64_t) address->mac[1] << 32 |
+        (uint64_t) address->mac[2] << 24 | (uint64_t) address->mac[3] << 16 |
+        (uint64_t) address->mac[4] << 8  (uint64_t) address->mac[5])
+}
+
+static uint64_t mstp_address_to_int (BACNET_ADDRESS *address)
+{
+    return ((uint64_t) address->net[0] << 40 | (uint64_t) address->net[1] << 32 |
+        (uint64_t) address->net[2] << 24 | (uint64_t) address->net[3] << 16 |
+        (uint64_t) address->net[4] << 8  (uint64_t) address->net[5])
+}
+
+static tsm_device_t *get_tsm_device (BACNET_ADDRESS *address)
+{
+    uint64_t address_key = 0;
+#if defined (BACDL_IP)
+    address_key = ip_address_to_int (address);
+#elif defined (BACDL_MSTP)
+    address_key = mstp_address_to_int (address);
+#endif
+    tsm_device_t *tsm_device = tsm_device_list_head;
+    if (!tsm_device)
+    {
+        tsm_device = calloc (1, sizeof (*current_tsm_device));
+        tsm_device->address_key = address_key;
+        tsm_device->Current_Invoke_ID = 1;
+        tsm_device->next = NULL;
+        goto DONE;
+    }
+    while (tsm_device)
+    {
+        if (tsm_device->address_key == address_key)
+        {
+            goto DONE;
+        }
+        tsm_device = tsm_device->next;
+    }
+    tsm_device = tsm_device_list_head;
+    while (tsm_device->next)
+    {
+        tsm_device = tsm_device->next;
+    }
+    tsm_device->next = calloc (1, sizeof (*current_tsm_device));
+    tsm_device->next->address_key = address_key;
+    tsm_device->next->Current_Invoke_ID = 1;
+    tsm_device->next->next = NULL;
+    tsm_device = tsm_device->next;
+
+DONE:
+    return tsm_device;
+}
+
 /** Check if space for transactions is available.
  *
  * @return true/false
  */
-bool tsm_transaction_available(void)
+bool tsm_transaction_available(tsm_device_t *tsm_device)
 {
     bool status = false; /* return value */
     unsigned i = 0; /* counter */
 
-    const BACNET_TSM_DATA *plist = TSM_List;
+    const BACNET_TSM_DATA *plist = tsm_device->TSM_List;
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
         if (plist->InvokeID == 0) {
@@ -146,12 +203,13 @@ bool tsm_transaction_available(void)
  *
  * @return Count of idle transaction.
  */
-uint8_t tsm_transaction_idle_count(void)
+uint8_t tsm_transaction_idle_count(BACNET_ADDRESS *address)
 {
     uint8_t count = 0; /* return value */
     unsigned i = 0; /* counter */
 
-    const BACNET_TSM_DATA *plist = TSM_List;
+    tsm_device_t *tsm_device = get_tsm_device (address);
+    const BACNET_TSM_DATA *plist = tsm_device->TSM_List;
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
         if ((plist->InvokeID == 0) && (plist->state == TSM_STATE_IDLE)) {
@@ -182,42 +240,43 @@ void tsm_invokeID_set(uint8_t invokeID)
  *
  * @return free invoke ID
  */
-uint8_t tsm_next_free_invokeID(void)
+uint8_t tsm_next_free_invokeID(BACNET_ADDRESS *address)
 {
     uint8_t index = 0;
     uint8_t invokeID = 0;
     bool found = false;
     BACNET_TSM_DATA *plist = NULL;
 
+    tsm_device_t *tsm_device = get_tsm_device (address);
     /* Is there even space available? */
-    if (tsm_transaction_available()) {
+    if (tsm_transaction_available(tsm_device)) {
         while (!found) {
-            index = tsm_find_invokeID_index(Current_Invoke_ID);
+            index = tsm_find_invokeID_index(tsm_device, tsm_device->Current_Invoke_ID);
             if (index == MAX_TSM_TRANSACTIONS) {
                 /* Not found, so this invokeID is not used */
                 found = true;
                 /* set this id into the table */
-                index = tsm_find_first_free_index();
+                index = tsm_find_first_free_index(tsm_device);
                 if (index != MAX_TSM_TRANSACTIONS) {
-                    plist = &TSM_List[index];
-                    plist->InvokeID = invokeID = Current_Invoke_ID;
+                    plist = &tsm_device->TSM_List[index];
+                    plist->InvokeID = invokeID = tsm_device->Current_Invoke_ID;
                     plist->state = TSM_STATE_IDLE;
                     plist->RequestTimer = apdu_timeout();
                     /* update for the next call or check */
-                    Current_Invoke_ID++;
+                    tsm_device->Current_Invoke_ID++;
                     /* skip zero - we treat that internally as invalid or no
                      * free */
-                    if (Current_Invoke_ID == 0) {
-                        Current_Invoke_ID = 1;
+                    if (tsm_device->Current_Invoke_ID == 0) {
+                        tsm_device->Current_Invoke_ID = 1;
                     }
                 }
             } else {
                 /* found! This invokeID is already used */
                 /* try next one */
-                Current_Invoke_ID++;
+                tsm_device->Current_Invoke_ID++;
                 /* skip zero - we treat that internally as invalid or no free */
-                if (Current_Invoke_ID == 0) {
-                    Current_Invoke_ID = 1;
+                if (tsm_device->Current_Invoke_ID == 0) {
+                    tsm_device->Current_Invoke_ID = 1;
                 }
             }
         }
@@ -245,10 +304,12 @@ void tsm_set_confirmed_unsegmented_transaction(uint8_t invokeID,
     uint8_t index;
     BACNET_TSM_DATA *plist;
 
+    tsm_device_t *tsm_device = get_tsm_device (dest);
+
     if (invokeID && ndpu_data && apdu && (apdu_len > 0)) {
-        index = tsm_find_invokeID_index(invokeID);
+        index = tsm_find_invokeID_index(tsm_device, invokeID);
         if (index < MAX_TSM_TRANSACTIONS) {
-            plist = &TSM_List[index];
+            plist = &tsm_device->TSM_List[index];
             /* SendConfirmedUnsegmented */
             plist->state = TSM_STATE_AWAIT_CONFIRMATION;
             plist->RetryCount = 0;
@@ -290,14 +351,16 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
     bool found = false;
     BACNET_TSM_DATA *plist;
 
+    tsm_device_t *tsm_device = get_tsm_device (dest);
+
     if (invokeID && apdu && ndpu_data && apdu_len) {
-        index = tsm_find_invokeID_index(invokeID);
+        index = tsm_find_invokeID_index(tsm_device, invokeID);
         /* how much checking is needed?  state?  dest match? just invokeID? */
         if (index < MAX_TSM_TRANSACTIONS) {
             /* FIXME: we may want to free the transaction so it doesn't timeout
              */
             /* retrieve the transaction */
-            plist = &TSM_List[index];
+            plist = &tsm_device->TSM_List[index];
             *apdu_len = (uint16_t)plist->apdu_len;
             if (*apdu_len > MAX_PDU) {
                 *apdu_len = MAX_PDU;
@@ -360,14 +423,16 @@ void tsm_timer_milliseconds(uint16_t milliseconds)
  *
  * @param invokeID  Invoke-ID
  */
-void tsm_free_invoke_id(uint8_t invokeID)
+void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
 {
     uint8_t index;
     BACNET_TSM_DATA *plist;
 
-    index = tsm_find_invokeID_index(invokeID);
+    tsm_device_t *tsm_device = get_tsm_device (address);
+
+    index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
-        plist = &TSM_List[index];
+        plist = &tsm_device->TSM_List[index];
         plist->state = TSM_STATE_IDLE;
         plist->InvokeID = 0;
     }
@@ -378,12 +443,14 @@ void tsm_free_invoke_id(uint8_t invokeID)
  * sent.
  * @return True if it is free (done with), False if still pending in the TSM.
  */
-bool tsm_invoke_id_free(uint8_t invokeID)
+bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID)
 {
     bool status = true;
     uint8_t index;
 
-    index = tsm_find_invokeID_index(invokeID);
+    tsm_device_t *tsm_device = get_tsm_device (address);
+
+    index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
         status = false;
     }
@@ -398,16 +465,18 @@ bool tsm_invoke_id_free(uint8_t invokeID)
  * @return True if already failed, False if done or segmented or still waiting
  *         for a confirmation.
  */
-bool tsm_invoke_id_failed(uint8_t invokeID)
+bool tsm_invoke_id_failed(BACNET_ADDRESS *address, uint8_t invokeID)
 {
     bool status = false;
     uint8_t index;
 
-    index = tsm_find_invokeID_index(invokeID);
+    tsm_device_t *tsm_device = get_tsm_device (address);
+
+    index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
         /* a valid invoke ID and the state is IDLE is a
            message that failed to confirm */
-        if (TSM_List[index].state == TSM_STATE_IDLE) {
+        if (tsm_device->TSM_List[index].state == TSM_STATE_IDLE) {
             status = true;
         }
     }
@@ -469,4 +538,4 @@ int main(void)
 }
 #endif /* TEST_TSM */
 #endif /* BAC_TEST */
-#endif /* MAX_TSM_TRANSACTIONS */
+//#endif /* MAX_TSM_TRANSACTIONS */  // TODO

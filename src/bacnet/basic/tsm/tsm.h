@@ -96,6 +96,14 @@ typedef struct BACnet_TSM_Data {
     unsigned apdu_len;
 } BACNET_TSM_DATA;
 
+typedef struct tsm_device_t
+{
+    uint64_t address_key;
+    uint8_t Current_Invoke_ID;
+    BACNET_TSM_DATA TSM_List[MAX_TSM_TRANSACTIONS];
+    tsm_device_t *next;
+} tsm_device_t;
+
 typedef void (
     *tsm_timeout_function) (
     uint8_t invoke_id);
@@ -110,8 +118,7 @@ extern "C" {
         tsm_timeout_function pFunction);
 
     BACNET_STACK_EXPORT
-    bool tsm_transaction_available(
-        void);
+    bool tsm_transaction_available(tsm_device_t *tsm_device);
     BACNET_STACK_EXPORT
     uint8_t tsm_transaction_idle_count(
         void);
