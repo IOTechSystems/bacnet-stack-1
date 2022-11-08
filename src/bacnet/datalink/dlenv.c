@@ -514,12 +514,6 @@ int dlenv_init(void)
     if (!datalink_init(getenv("BACNET_IFACE"))) {
         return 1;
     }
-#if (MAX_TSM_TRANSACTIONS)
-    pEnv = getenv("BACNET_INVOKE_ID");
-    if (pEnv) {
-        tsm_invokeID_set((uint8_t)strtol(pEnv, NULL, 0));
-    }
-#endif
     dlenv_network_port_init();
 
     return 0;

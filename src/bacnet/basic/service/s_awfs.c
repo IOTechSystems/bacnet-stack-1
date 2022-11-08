@@ -69,7 +69,7 @@ uint8_t Send_Atomic_Write_File_Stream(uint32_t device_id,
     status = address_get_by_device(device_id, &max_apdu, &dest);
     /* is there a tsm available? */
     if (status) {
-        invoke_id = tsm_next_free_invokeID();
+        invoke_id = tsm_next_free_invokeID(&dest);
     }
     if (invoke_id) {
         /* load the data for the encoding */
@@ -108,7 +108,7 @@ uint8_t Send_Atomic_Write_File_Stream(uint32_t device_id,
                         strerror(errno));
 #endif
             } else {
-                tsm_free_invoke_id(invoke_id);
+                tsm_free_invoke_id(&dest, invoke_id);
                 invoke_id = 0;
 #if PRINT_ENABLED
                 fprintf(stderr,
@@ -118,7 +118,7 @@ uint8_t Send_Atomic_Write_File_Stream(uint32_t device_id,
 #endif
             }
         } else {
-            tsm_free_invoke_id(invoke_id);
+            tsm_free_invoke_id(&dest, invoke_id);
             invoke_id = 0;
 #if PRINT_ENABLED
             fprintf(stderr,

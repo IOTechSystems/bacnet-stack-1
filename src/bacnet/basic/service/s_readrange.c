@@ -67,7 +67,7 @@ uint8_t Send_ReadRange_Request(uint32_t device_id, /* destination device */
     status = address_get_by_device(device_id, &max_apdu, &dest);
     /* is there a tsm available? */
     if (status) {
-        invoke_id = tsm_next_free_invokeID();
+        invoke_id = tsm_next_free_invokeID(&dest);
     }
 
     if (invoke_id) {
@@ -104,7 +104,7 @@ uint8_t Send_ReadRange_Request(uint32_t device_id, /* destination device */
                     strerror(errno));
 #endif
         } else {
-            tsm_free_invoke_id(invoke_id);
+            tsm_free_invoke_id(&dest, invoke_id);
             invoke_id = 0;
 #if PRINT_ENABLED
             fprintf(stderr,

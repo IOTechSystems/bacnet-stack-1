@@ -79,7 +79,7 @@ uint8_t Send_Device_Communication_Control_Request(uint32_t device_id,
     status = address_get_by_device(device_id, &max_apdu, &dest);
     /* is there a tsm available? */
     if (status) {
-        invoke_id = tsm_next_free_invokeID();
+        invoke_id = tsm_next_free_invokeID(&dest);
     }
     if (invoke_id) {
         /* encode the NPDU portion of the packet */
@@ -112,7 +112,7 @@ uint8_t Send_Device_Communication_Control_Request(uint32_t device_id,
                     strerror(errno));
 #endif
         } else {
-            tsm_free_invoke_id(invoke_id);
+            tsm_free_invoke_id(&dest, invoke_id);
             invoke_id = 0;
 #if PRINT_ENABLED
             fprintf(stderr,

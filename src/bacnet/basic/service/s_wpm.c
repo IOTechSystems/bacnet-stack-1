@@ -105,7 +105,7 @@ uint8_t Send_Write_Property_Multiple_Request_Direct (uint8_t *pdu,
         return 0;
     }
     /* is there a tsm available? */
-    invoke_id = tsm_next_free_invokeID();
+    invoke_id = tsm_next_free_invokeID(dest);
     if (invoke_id) {
         /* encode the NPDU portion of the packet */
         datalink_get_my_address(&my_address);
@@ -136,7 +136,7 @@ uint8_t Send_Write_Property_Multiple_Request_Direct (uint8_t *pdu,
             }
 #endif
         } else {
-            tsm_free_invoke_id(invoke_id);
+            tsm_free_invoke_id(dest, invoke_id);
             invoke_id = 0;
 #if PRINT_ENABLED
             fprintf(stderr,
