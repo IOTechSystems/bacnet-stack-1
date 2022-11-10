@@ -52,7 +52,7 @@
 /* FIXME: modify basic service handlers to use TSM rather than this buffer! */
 uint8_t Handler_Transmit_Buffer[MAX_PDU] = { 0 };
 
-//static tsm_device_t * tsm_device_list_head = NULL;
+#if (MAX_TSM_TRANSACTIONS)
 
 /* Really only needed for segmented messages */
 /* and a little for sending confirmed messages */
@@ -67,6 +67,15 @@ void tsm_set_timeout_handler(tsm_timeout_function pFunction)
 {
     Timeout_Function = pFunction;
 }
+
+/** Get TSM Device using bacnet address and
+ *  return tsm device
+ *
+ * @param address  BACnet address
+ *
+ * @return TSM device
+ */
+extern tsm_device_t *get_tsm_device(BACNET_ADDRESS *address);
 
 /** Find the given Invoke-Id in the list and
  *  return the index.
@@ -114,10 +123,6 @@ static uint8_t tsm_find_first_free_index(tsm_device_t *tsm_device)
 
     return index;
 }
-
-extern tsm_device_t *get_tsm_device(BACNET_ADDRESS *address);
-
-
 
 /** Check if space for transactions is available.
  *
@@ -447,3 +452,4 @@ int main(void)
 }
 #endif /* TEST_TSM */
 #endif /* BAC_TEST */
+#endif /* MAX_TSM_TRANSACTIONS */

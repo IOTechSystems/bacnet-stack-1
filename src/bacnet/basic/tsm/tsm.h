@@ -112,16 +112,14 @@ extern "C" {
 #endif /* __cplusplus */
 
     BACNET_STACK_EXPORT
-    void tsm_set_timeout_handler(
-        tsm_timeout_function pFunction);
+    void tsm_set_timeout_handler(tsm_timeout_function pFunction);
 
     BACNET_STACK_EXPORT
     void clean_tsm_device_list();
     BACNET_STACK_EXPORT
     bool tsm_transaction_available(BACNET_ADDRESS *address);
     BACNET_STACK_EXPORT
-    void tsm_timer_milliseconds(
-        BACNET_ADDRESS *address, uint16_t milliseconds);
+    void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds);
 /* free the invoke ID when the reply comes back */
     BACNET_STACK_EXPORT
     void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID);
@@ -146,11 +144,9 @@ extern "C" {
         uint16_t * apdu_len);
 
     BACNET_STACK_EXPORT
-    bool tsm_invoke_id_free(
-        BACNET_ADDRESS *address, uint8_t invokeID);
+    bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID);
     BACNET_STACK_EXPORT
-    bool tsm_invoke_id_failed(
-        BACNET_ADDRESS *address, uint8_t invokeID);
+    bool tsm_invoke_id_failed(BACNET_ADDRESS *address, uint8_t invokeID);
 
 #ifdef __cplusplus
 }
