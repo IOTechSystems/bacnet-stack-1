@@ -68,8 +68,8 @@ void tsm_set_timeout_handler(tsm_timeout_function pFunction)
     Timeout_Function = pFunction;
 }
 
-/** Get TSM Device using bacnet address and
- *  return tsm device
+/** Get TSM Device using bacnet address and return tsm device.
+ *  Requires linking with BACnet device service to use this function
  *
  * @param address  BACnet address
  *
