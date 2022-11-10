@@ -115,8 +115,6 @@ extern "C" {
     void tsm_set_timeout_handler(tsm_timeout_function pFunction);
 
     BACNET_STACK_EXPORT
-    void clean_tsm_device_list();
-    BACNET_STACK_EXPORT
     bool tsm_transaction_available(BACNET_ADDRESS *address);
     BACNET_STACK_EXPORT
     void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds);
