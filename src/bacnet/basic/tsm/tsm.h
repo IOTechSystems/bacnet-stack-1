@@ -98,10 +98,8 @@ typedef struct BACnet_TSM_Data {
 
 typedef struct tsm_device_t
 {
-    uint64_t address_key;
     uint8_t Current_Invoke_ID;
     BACNET_TSM_DATA TSM_List[MAX_TSM_TRANSACTIONS];
-    struct tsm_device_t *next;
 } tsm_device_t;
 
 typedef void (

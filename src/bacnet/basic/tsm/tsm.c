@@ -52,7 +52,7 @@
 /* FIXME: modify basic service handlers to use TSM rather than this buffer! */
 uint8_t Handler_Transmit_Buffer[MAX_PDU] = { 0 };
 
-static tsm_device_t * tsm_device_list_head = NULL;
+//static tsm_device_t * tsm_device_list_head = NULL;
 
 /* Really only needed for segmented messages */
 /* and a little for sending confirmed messages */
@@ -115,74 +115,9 @@ static uint8_t tsm_find_first_free_index(tsm_device_t *tsm_device)
     return index;
 }
 
-static uint64_t ip_address_to_int(BACNET_ADDRESS *address)
-{
-    return ((uint64_t) address->mac[0] << 40 | (uint64_t) address->mac[1] << 32 |
-        (uint64_t) address->mac[2] << 24 | (uint64_t) address->mac[3] << 16 |
-        (uint64_t) address->mac[4] << 8 | (uint64_t) address->mac[5]);
-}
+extern tsm_device_t *get_tsm_device(BACNET_ADDRESS *address);
 
-static uint64_t mstp_address_to_int(BACNET_ADDRESS *address)
-{
-    return ((uint64_t) address->adr[0] << 40 | (uint64_t) address->adr[1] << 32 |
-        (uint64_t) address->adr[2] << 24 | (uint64_t) address->adr[3] << 16 |
-        (uint64_t) address->adr[4] << 8 | (uint64_t) address->adr[5]);
-}
 
-static tsm_device_t *get_tsm_device(BACNET_ADDRESS *address)
-{
-    uint64_t address_key = 0;
-#if defined (BACDL_IP)
-    address_key = ip_address_to_int (address);
-#elif defined (BACDL_MSTP)
-    address_key = mstp_address_to_int (address);
-#endif
-    tsm_device_t *tsm_device = NULL;
-    if (!tsm_device_list_head)
-    {
-        tsm_device_list_head = calloc (1, sizeof (*tsm_device_list_head));
-        tsm_device_list_head->address_key = address_key;
-        tsm_device_list_head->Current_Invoke_ID = 1;
-        tsm_device_list_head->next = NULL;
-        tsm_device = tsm_device_list_head;
-        goto DONE;
-    }
-    tsm_device = tsm_device_list_head;
-    while (tsm_device)
-    {
-        if (tsm_device->address_key == address_key)
-        {
-            goto DONE;
-        }
-        tsm_device = tsm_device->next;
-    }
-    tsm_device = tsm_device_list_head;
-    while (tsm_device->next)
-    {
-        tsm_device = tsm_device->next;
-    }
-    tsm_device->next = calloc (1, sizeof (*tsm_device));
-    tsm_device->next->address_key = address_key;
-    tsm_device->next->Current_Invoke_ID = 1;
-    tsm_device->next->next = NULL;
-    tsm_device = tsm_device->next;
-
-DONE:
-    return tsm_device;
-}
-
-void clean_tsm_device_list()
-{
-    tsm_device_t *tsm_device = tsm_device_list_head;
-    tsm_device_t *tsm_device_next;
-    while (tsm_device)
-    {
-        tsm_device_next = tsm_device->next;
-        free (tsm_device);
-        tsm_device = tsm_device_next;
-    }
-    tsm_device_list_head = NULL;
-}
 
 /** Check if space for transactions is available.
  *
