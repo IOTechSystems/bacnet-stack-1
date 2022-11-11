@@ -71,7 +71,7 @@ void tsm_set_timeout_handler(tsm_timeout_function pFunction)
 /** Get TSM Device using bacnet address and return tsm device.
  *  NOTE: Requires linking with BACnet device service to use this function
  *
- * @param address  BACnet address
+ * @param address  BACnet address of device
  *
  * @return TSM device
  */
@@ -80,6 +80,7 @@ extern tsm_device_t *get_tsm_device(BACNET_ADDRESS *address);
 /** Find the given Invoke-Id in the list and
  *  return the index.
  *
+ * @param tsm_device TSM device list for specific device
  * @param invokeID  Invoke Id
  *
  * @return Index of the id or MAX_TSM_TRANSACTIONS
@@ -124,7 +125,9 @@ static uint8_t tsm_find_first_free_index(tsm_device_t *tsm_device)
     return index;
 }
 
-/** Check if space for transactions is available.
+/** Check if space for transactions is available for specific device.
+ *
+ * @param address BACnet address of device
  *
  * @return true/false
  */
@@ -150,6 +153,8 @@ bool tsm_transaction_available(BACNET_ADDRESS *address)
 /** Gets the next free invokeID,
  * and reserves a spot in the table
  * returns 0 if none are available.
+ *
+ * @param address  BACnet address of device
  *
  * @return free invoke ID
  */
@@ -294,6 +299,8 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
  *  This function calls the handler for a
  *  timeout 'Timeout_Function', if neccessary.
  *
+ * @param address  BACnet address of device
+ *
  * @param milliseconds - Count of milliseconds passed, since the last call.
  */
 void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds)
@@ -335,6 +342,8 @@ void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds)
 
 /** Frees the invokeID and sets its state to IDLE
  *
+ * @param address  BACnet address of device
+ *
  * @param invokeID  Invoke-ID
  */
 void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
@@ -355,6 +364,8 @@ void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
 /** Check if the invoke ID has been made free by the Transaction State Machine.
  * @param invokeID [in] The invokeID to be checked, normally of last message
  * sent.
+ * @param address  BACnet address of device
+ *
  * @return True if it is free (done with), False if still pending in the TSM.
  */
 bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID)
@@ -376,6 +387,8 @@ bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID)
  *  with this invoke ID.
  * @param invokeID [in] The invokeID to be checked, normally of last message
  * sent.
+ * @param address  BACnet address of device
+ *
  * @return True if already failed, False if done or segmented or still waiting
  *         for a confirmation.
  */
