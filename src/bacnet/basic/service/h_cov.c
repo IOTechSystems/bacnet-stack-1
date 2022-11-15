@@ -387,7 +387,7 @@ static bool cov_list_subscribe(BACNET_ADDRESS *src,
                     COV_Subscriptions[index].flag.send_requested = true;
                 }
                 if (COV_Subscriptions[index].invokeID) {
-                    tsm_free_invoke_id(COV_Subscriptions[index].invokeID);
+                    tsm_free_invoke_id(dest, COV_Subscriptions[index].invokeID);
                     COV_Subscriptions[index].invokeID = 0;
                 }
                 break;
@@ -479,7 +479,7 @@ static bool cov_send_request(BACNET_COV_SUBSCRIPTION *cov_subscription,
     cov_data.listOfValues = value_list;
     if (cov_subscription->flag.issueConfirmedNotifications) {
         npdu_data.data_expecting_reply = true;
-        invoke_id = tsm_next_free_invokeID();
+        invoke_id = tsm_next_free_invokeID(dest);
         if (invoke_id) {
             cov_subscription->invokeID = invoke_id;
             len = ccov_notify_encode_apdu(&Handler_Transmit_Buffer[pdu_len],
@@ -544,7 +544,8 @@ static void cov_lifetime_expiration_handler(
             cov_address_remove_unused();
             if (COV_Subscriptions[index].flag.issueConfirmedNotifications) {
                 if (COV_Subscriptions[index].invokeID) {
-                    tsm_free_invoke_id(COV_Subscriptions[index].invokeID);
+                    BACNET_ADDRESS *dest = cov_address_get(COV_Subscriptions[index].dest_index);
+                    tsm_free_invoke_id(dest, COV_Subscriptions[index].invokeID);
                     COV_Subscriptions[index].invokeID = 0;
                 }
             }
@@ -601,6 +602,7 @@ bool handler_cov_fsm(void)
     bool status = false;
     bool send = false;
     BACNET_PROPERTY_VALUE value_list[MAX_COV_PROPERTIES];
+    BACNET_ADDRESS *dest = NULL;
     /* states for transmitting */
     static enum {
         COV_STATE_IDLE = 0,
@@ -657,11 +659,11 @@ bool handler_cov_fsm(void)
             if ((COV_Subscriptions[index].flag.valid) &&
                 (COV_Subscriptions[index].flag.issueConfirmedNotifications) &&
                 (COV_Subscriptions[index].invokeID)) {
-                if (tsm_invoke_id_free(COV_Subscriptions[index].invokeID)) {
+                dest = cov_address_get(COV_Subscriptions[index].dest_index);
+                if (tsm_invoke_id_free(dest, COV_Subscriptions[index].invokeID)) {
                     COV_Subscriptions[index].invokeID = 0;
-                } else if (tsm_invoke_id_failed(
-                               COV_Subscriptions[index].invokeID)) {
-                    tsm_free_invoke_id(COV_Subscriptions[index].invokeID);
+                } else if (tsm_invoke_id_failed(dest, COV_Subscriptions[index].invokeID)) {
+                    tsm_free_invoke_id(dest, COV_Subscriptions[index].invokeID);
                     COV_Subscriptions[index].invokeID = 0;
                 }
             }
@@ -681,7 +683,8 @@ bool handler_cov_fsm(void)
                         /* already sending */
                         send = false;
                     }
-                    if (!tsm_transaction_available()) {
+                    dest = cov_address_get(COV_Subscriptions[index].dest_index);
+                    if (!tsm_transaction_available(dest)) {
                         /* no transactions available - can't send now */
                         send = false;
                     }

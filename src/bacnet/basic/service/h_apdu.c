@@ -581,7 +581,7 @@ void apdu_handler(BACNET_ADDRESS *src,
                                         Confirmed_ACK_Function[service_choice])(
                                     src, invoke_id);
                             }
-                            tsm_free_invoke_id(invoke_id);
+                            tsm_free_invoke_id(src, invoke_id);
                             break;
                         default:
                             break;
@@ -628,7 +628,7 @@ void apdu_handler(BACNET_ADDRESS *src,
                                     service_request, service_request_len, src,
                                     &service_ack_data);
                             }
-                            tsm_free_invoke_id(invoke_id);
+                            tsm_free_invoke_id(src, invoke_id);
                             break;
                         default:
                             break;
@@ -638,7 +638,7 @@ void apdu_handler(BACNET_ADDRESS *src,
             case PDU_TYPE_SEGMENT_ACK:
                 /* FIXME: what about a denial of service attack here?
                    we could check src to see if that matched the tsm */
-                tsm_free_invoke_id(invoke_id);
+                tsm_free_invoke_id(src, invoke_id);
                 break;
             case PDU_TYPE_ERROR:
                 if (apdu_len >= 3) {
@@ -707,7 +707,7 @@ void apdu_handler(BACNET_ADDRESS *src,
                                 (BACNET_ERROR_CODE)error_code);
                         }
                     }
-                    tsm_free_invoke_id(invoke_id);
+                    tsm_free_invoke_id(src, invoke_id);
                 }
                 break;
             case PDU_TYPE_REJECT:
@@ -717,7 +717,7 @@ void apdu_handler(BACNET_ADDRESS *src,
                     if (Reject_Function) {
                         Reject_Function(src, invoke_id, reason);
                     }
-                    tsm_free_invoke_id(invoke_id);
+                    tsm_free_invoke_id(src, invoke_id);
                 }
                 break;
             case PDU_TYPE_ABORT:
@@ -728,7 +728,7 @@ void apdu_handler(BACNET_ADDRESS *src,
                     if (Abort_Function) {
                         Abort_Function(src, invoke_id, reason, server);
                     }
-                    tsm_free_invoke_id(invoke_id);
+                    tsm_free_invoke_id(src, invoke_id);
                 }
                 break;
             default:

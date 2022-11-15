@@ -627,7 +627,7 @@ void testNPDU1(Test *pTest)
 
 #ifdef TEST_NPDU
 /* dummy stub for testing */
-void tsm_free_invoke_id(uint8_t invokeID)
+void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
 {
     (void)invokeID;
 }

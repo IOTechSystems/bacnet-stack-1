@@ -66,7 +66,7 @@ uint8_t Send_GetEvent(BACNET_ADDRESS *target_address,
     pdu_len = npdu_encode_pdu(
         &Handler_Transmit_Buffer[0], target_address, &my_address, &npdu_data);
 
-    invoke_id = tsm_next_free_invokeID();
+    invoke_id = tsm_next_free_invokeID(target_address);
     if (invoke_id) {
         /* encode the APDU portion of the packet */
         len = getevent_encode_apdu(&Handler_Transmit_Buffer[pdu_len], invoke_id,
@@ -84,7 +84,7 @@ uint8_t Send_GetEvent(BACNET_ADDRESS *target_address,
                 strerror(errno));
 #endif
     } else {
-        tsm_free_invoke_id(invoke_id);
+        tsm_free_invoke_id(target_address, invoke_id);
         invoke_id = 0;
 #if PRINT_ENABLED
         fprintf(stderr,

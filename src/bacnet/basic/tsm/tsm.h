@@ -96,6 +96,12 @@ typedef struct BACnet_TSM_Data {
     unsigned apdu_len;
 } BACNET_TSM_DATA;
 
+typedef struct tsm_device_t
+{
+    uint8_t Current_Invoke_ID;
+    BACNET_TSM_DATA TSM_List[MAX_TSM_TRANSACTIONS];
+} tsm_device_t;
+
 typedef void (
     *tsm_timeout_function) (
     uint8_t invoke_id);
@@ -106,29 +112,18 @@ extern "C" {
 #endif /* __cplusplus */
 
     BACNET_STACK_EXPORT
-    void tsm_set_timeout_handler(
-        tsm_timeout_function pFunction);
+    void tsm_set_timeout_handler(tsm_timeout_function pFunction);
 
     BACNET_STACK_EXPORT
-    bool tsm_transaction_available(
-        void);
+    bool tsm_transaction_available(BACNET_ADDRESS *address);
     BACNET_STACK_EXPORT
-    uint8_t tsm_transaction_idle_count(
-        void);
-    BACNET_STACK_EXPORT
-    void tsm_timer_milliseconds(
-        uint16_t milliseconds);
+    void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds);
 /* free the invoke ID when the reply comes back */
     BACNET_STACK_EXPORT
-    void tsm_free_invoke_id(
-        uint8_t invokeID);
+    void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID);
 /* use these in tandem */
     BACNET_STACK_EXPORT
-    uint8_t tsm_next_free_invokeID(
-        void);
-    BACNET_STACK_EXPORT
-    void tsm_invokeID_set(
-        uint8_t invokeID);
+    uint8_t tsm_next_free_invokeID(BACNET_ADDRESS *address);
 /* returns the same invoke ID that was given */
     BACNET_STACK_EXPORT
     void tsm_set_confirmed_unsegmented_transaction(
@@ -147,11 +142,9 @@ extern "C" {
         uint16_t * apdu_len);
 
     BACNET_STACK_EXPORT
-    bool tsm_invoke_id_free(
-        uint8_t invokeID);
+    bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID);
     BACNET_STACK_EXPORT
-    bool tsm_invoke_id_failed(
-        uint8_t invokeID);
+    bool tsm_invoke_id_failed(BACNET_ADDRESS *address, uint8_t invokeID);
 
 #ifdef __cplusplus
 }
