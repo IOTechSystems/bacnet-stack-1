@@ -137,6 +137,7 @@ bool tsm_transaction_available(BACNET_ADDRESS *address)
     unsigned i = 0; /* counter */
 
     tsm_device_t *tsm_device = get_tsm_device (address);
+    if (!tsm_device) goto DONE;
     const BACNET_TSM_DATA *plist = tsm_device->TSM_List;
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
@@ -147,6 +148,7 @@ bool tsm_transaction_available(BACNET_ADDRESS *address)
         }
     }
 
+DONE:
     return status;
 }
 
@@ -166,6 +168,7 @@ uint8_t tsm_next_free_invokeID(BACNET_ADDRESS *address)
     BACNET_TSM_DATA *plist = NULL;
 
     tsm_device_t *tsm_device = get_tsm_device (address);
+    if (!tsm_device) goto DONE;
     /* Is there even space available? */
     if (tsm_transaction_available(address)) {
         while (!found) {
@@ -199,7 +202,7 @@ uint8_t tsm_next_free_invokeID(BACNET_ADDRESS *address)
             }
         }
     }
-
+DONE:
     return invokeID;
 }
 
@@ -223,6 +226,7 @@ void tsm_set_confirmed_unsegmented_transaction(uint8_t invokeID,
     BACNET_TSM_DATA *plist;
 
     tsm_device_t *tsm_device = get_tsm_device (dest);
+    if (!tsm_device) goto DONE;
 
     if (invokeID && ndpu_data && apdu && (apdu_len > 0)) {
         index = tsm_find_invokeID_index(tsm_device, invokeID);
@@ -243,6 +247,7 @@ void tsm_set_confirmed_unsegmented_transaction(uint8_t invokeID,
         }
     }
 
+DONE:
     return;
 }
 
@@ -270,6 +275,7 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
     BACNET_TSM_DATA *plist;
 
     tsm_device_t *tsm_device = get_tsm_device (dest);
+    if (!tsm_device) goto DONE;
 
     if (invokeID && apdu && ndpu_data && apdu_len) {
         index = tsm_find_invokeID_index(tsm_device, invokeID);
@@ -292,6 +298,7 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
         }
     }
 
+DONE:
     return found;
 }
 
@@ -308,6 +315,7 @@ void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds)
     unsigned i = 0; /* counter */
 
     tsm_device_t *tsm_device = get_tsm_device(address);
+    if (!tsm_device) goto DONE;
     BACNET_TSM_DATA *plist = &tsm_device->TSM_List[0];
 
     for (i = 0; i < MAX_TSM_TRANSACTIONS; i++, plist++) {
@@ -338,6 +346,7 @@ void tsm_timer_milliseconds(BACNET_ADDRESS *address, uint16_t milliseconds)
             }
         }
     }
+DONE:
 }
 
 /** Frees the invokeID and sets its state to IDLE
@@ -352,6 +361,7 @@ void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
     BACNET_TSM_DATA *plist;
 
     tsm_device_t *tsm_device = get_tsm_device (address);
+    if (!tsm_device) goto DONE;
 
     index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
@@ -359,6 +369,7 @@ void tsm_free_invoke_id(BACNET_ADDRESS *address, uint8_t invokeID)
         plist->state = TSM_STATE_IDLE;
         plist->InvokeID = 0;
     }
+DONE:
 }
 
 /** Check if the invoke ID has been made free by the Transaction State Machine.
@@ -374,12 +385,14 @@ bool tsm_invoke_id_free(BACNET_ADDRESS *address, uint8_t invokeID)
     uint8_t index;
 
     tsm_device_t *tsm_device = get_tsm_device (address);
+    if (!tsm_device) goto DONE;
 
     index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
         status = false;
     }
 
+DONE:
     return status;
 }
 
@@ -398,6 +411,7 @@ bool tsm_invoke_id_failed(BACNET_ADDRESS *address, uint8_t invokeID)
     uint8_t index;
 
     tsm_device_t *tsm_device = get_tsm_device (address);
+    if (!tsm_device) goto DONE;
 
     index = tsm_find_invokeID_index(tsm_device, invokeID);
     if (index < MAX_TSM_TRANSACTIONS) {
@@ -408,6 +422,7 @@ bool tsm_invoke_id_failed(BACNET_ADDRESS *address, uint8_t invokeID)
         }
     }
 
+DONE:
     return status;
 }
 
