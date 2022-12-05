@@ -1186,8 +1186,9 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
         timeout.tv_nsec = 0;
         pthread_mutex_lock (&mutex);
         pthread_cond_timedwait (&cond, &mutex, &timeout);
-        if (bbmd_reg != BBMD_REG_UNSET) break;
+        bool received_response = bbmd_reg != BBMD_REG_UNSET;
         pthread_mutex_unlock (&mutex);
+        if (received_response) break;
         timeout_count++;
     }
 
