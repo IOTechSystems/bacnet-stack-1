@@ -93,10 +93,17 @@ static BACNET_IP_BROADCAST_DISTRIBUTION_TABLE_ENTRY
 static BACNET_IP_FOREIGN_DEVICE_TABLE_ENTRY FD_Table[MAX_FD_ENTRIES];
 #endif
 
+typedef enum
+{
+  BBMD_REG_UNSET,
+  BBMD_REG_FAIL,
+  BBMD_REG_SUCCESS
+} bbmd_reg_t;
+
 /** Mutex and condition variable for checking if BBMD registration has been successful */
 static pthread_mutex_t mutex;
 static pthread_cond_t cond;
-static bool bbmd_reg_success;
+static bbmd_reg_t bbmd_reg;
 
 /**
  * @brief Enabled debug printing of BACnet/IPv4 BBMD
@@ -842,9 +849,9 @@ int bvlc_bbmd_enabled_handler(BACNET_IP_ADDRESS *addr,
             }
             /* Set the BBMD registration bool to successful, signal the condition variable and unlock the mutex */
             pthread_mutex_lock (&mutex);
-            if (bbmd_reg_success == false)
+            if (bbmd_reg == BBMD_REG_UNSET)
             {
-                bbmd_reg_success = true;
+                bbmd_reg = BVLC_Result_Code == BVLC_RESULT_SUCCESSFUL_COMPLETION ? BBMD_REG_SUCCESS : BBMD_REG_FAIL;
                 pthread_cond_signal (&cond);
             }
             pthread_mutex_unlock (&mutex);
@@ -1157,7 +1164,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
 
     pthread_mutex_lock (&mutex);
     /* Set the initial value of the BBMD registration bool to false */
-    bbmd_reg_success = false;
+    bbmd_reg = BBMD_REG_UNSET;
     pthread_mutex_unlock (&mutex);
 
     /* Setup a 30 second condition variable wait */
@@ -1179,7 +1186,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
         timeout.tv_nsec = 0;
         pthread_mutex_lock (&mutex);
         pthread_cond_timedwait (&cond, &mutex, &timeout);
-        if (bbmd_reg_success) timeout_count = 10;
+        if (bbmd_reg != BBMD_REG_UNSET) break;
         pthread_mutex_unlock (&mutex);
         timeout_count++;
     }
@@ -1188,7 +1195,7 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     pthread_mutex_destroy(&mutex);
 
     /* Fail if the BBMD registration was not successful */
-    if (!bbmd_reg_success)
+    if (bbmd_reg != BBMD_REG_SUCCESS)
     {
       retval = -1;
     }
