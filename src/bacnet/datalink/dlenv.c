@@ -148,7 +148,7 @@ int dlenv_register_as_foreign_device(void)
     }
     if (BBMD_Address_Valid) {
             fprintf(stderr,
-                "Trying to register with BBMD at %u.%u.%u.%u:%u for %u seconds\n",
+                "Trying to register with BBMD at %u.%u.%u.%u:%u with TTL of %u seconds\n",
                 (unsigned)BBMD_Address.address[0],
                 (unsigned)BBMD_Address.address[1],
                 (unsigned)BBMD_Address.address[2],
