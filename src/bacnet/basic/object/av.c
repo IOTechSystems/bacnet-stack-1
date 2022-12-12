@@ -95,7 +95,7 @@ void Analog_Value_Set_Properties(
     float value,
     BACNET_EVENT_STATE event_state,
     bool out_of_service,
-    uin32_t units,
+    uint32_t units,
     uint32_t time_delay, 
     uint32_t notification_class,
     float high_limit,
