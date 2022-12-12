@@ -262,9 +262,9 @@ bool Accumulator_Present_Value_Set(
  *
  * @return  units property value
  */
-uint16_t Accumulator_Units(uint32_t object_instance)
+uint32_t Accumulator_Units(uint32_t object_instance)
 {
-    uint16_t units = UNITS_NO_UNITS;
+    uint32_t units = UNITS_NO_UNITS;
 
     if (object_instance < Acc_Descr_Size) {
         units = UNITS_WATT_HOURS;

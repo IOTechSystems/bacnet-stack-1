@@ -48,7 +48,7 @@ extern "C" {
     typedef struct integer_descr {
         bool Out_Of_Service : 1;
         int32_t Present_Value;
-        uint16_t Units;
+        uint32_t Units;
         char * Name;
     } INTEGER_DESCR;
 
@@ -63,7 +63,7 @@ extern "C" {
         const char* object_name,
         int32_t value,
         bool out_of_service,
-        uint16_t units
+        uint32_t units
     );
 
     BACNET_STACK_EXPORT
@@ -131,12 +131,12 @@ extern "C" {
         char *new_name);
 
     BACNET_STACK_EXPORT
-    uint16_t Integer_Value_Units(
+    uint32_t Integer_Value_Units(
         uint32_t instance);
     BACNET_STACK_EXPORT
     bool Integer_Value_Units_Set(
         uint32_t instance,
-        uint16_t unit);
+        uint32_t unit);
 
     BACNET_STACK_EXPORT
     bool Integer_Value_Out_Of_Service(

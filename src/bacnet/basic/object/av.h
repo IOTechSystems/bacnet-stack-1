@@ -47,7 +47,7 @@ extern "C" {
     typedef struct analog_value_descr {
         unsigned Event_State:3;
         bool Out_Of_Service;
-        uint16_t Units;
+        uint32_t Units;
         float Present_Value;
         float Prior_Value;
         float COV_Increment;
@@ -85,7 +85,7 @@ extern "C" {
         float value,
         BACNET_EVENT_STATE event_state,
         bool out_of_service,
-        uint8_t units,
+        uint32_t units,
         uint32_t time_delay, 
         uint32_t notification_class,
         float high_limit,
@@ -170,12 +170,12 @@ extern "C" {
         BACNET_RELIABILITY value);
 
     BACNET_STACK_EXPORT
-    uint16_t Analog_Value_Units(
+    uint32_t Analog_Value_Units(
         uint32_t instance);
     BACNET_STACK_EXPORT
     bool Analog_Value_Units_Set(
         uint32_t instance,
-        uint16_t unit);
+        uint32_t unit);
 
     BACNET_STACK_EXPORT
     bool Analog_Value_Out_Of_Service(
