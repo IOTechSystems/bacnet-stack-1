@@ -142,9 +142,9 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Output_Units_Set(
         uint32_t instance,
-        uint16_t units);
+        uint32_t units);
     BACNET_STACK_EXPORT
-    uint16_t Analog_Output_Units(
+    uint32_t Analog_Output_Units(
         uint32_t instance);
 
     BACNET_STACK_EXPORT
