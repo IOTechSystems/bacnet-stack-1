@@ -65,3 +65,5 @@ address_cache
 /_build/*
 CMakeLists.txt.user
 /out/*
+/apps/add-list-element/bacale
+/apps/remove-list-element/bacrle

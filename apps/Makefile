@@ -187,7 +187,7 @@ BACNET_BASIC_SRC ?= \
 
 SUBDIRS = readprop writeprop readfile writefile reinit server dcc \
 	whohas whois iam ucov scov timesync epics readpropm readrange \
-	writepropm uptransfer getevent uevent abort error
+	writepropm uptransfer getevent uevent abort error add-list-element remove-list-element
 
 ifeq (${BACDL_DEFINE},-DBACDL_BIP=1)
 	SUBDIRS += whoisrouter iamrouter initrouter readbdt readfdt
@@ -218,6 +218,10 @@ gateway:
 .PHONY: server
 server:
 	$(MAKE) -s -b -C $@
+
+.PHONY: add-list-element
+add-list-element:
+	$(MAKE) -B -C $@ clean all
 
 .PHONY: mstpcap
 mstpcap:
@@ -266,6 +270,10 @@ readbdt:
 .PHONY: readfdt
 readfdt:
 	$(MAKE) -b -C $@
+
+.PHONY: remove-list-element
+remove-list-element:
+	$(MAKE) -B -C $@ clean all
 
 .PHONY: uevent
 uevent:

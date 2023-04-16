@@ -198,6 +198,8 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/service/h_ihave.h
     src/bacnet/basic/service/h_lso.c
     src/bacnet/basic/service/h_lso.h
+    src/bacnet/basic/service/h_list_element.c
+    src/bacnet/basic/service/h_list_element.h
     src/bacnet/basic/service/h_noserv.c
     src/bacnet/basic/service/h_noserv.h
     src/bacnet/basic/service/h_rd.c
@@ -254,6 +256,8 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/service/s_iam.h
     src/bacnet/basic/service/s_ihave.c
     src/bacnet/basic/service/s_ihave.h
+    src/bacnet/basic/service/s_list_element.c
+    src/bacnet/basic/service/s_list_element.h
     src/bacnet/basic/service/s_lso.c
     src/bacnet/basic/service/s_lso.h
     src/bacnet/basic/service/s_rd.c
@@ -346,6 +350,8 @@ add_library(${PROJECT_NAME}
     src/bacnet/indtext.h
     src/bacnet/lighting.c
     src/bacnet/lighting.h
+    src/bacnet/list_element.c
+    src/bacnet/list_element.h
     src/bacnet/lso.c
     src/bacnet/lso.h
     src/bacnet/memcopy.c
@@ -492,6 +498,9 @@ if(BACNET_STACK_BUILD_APPS)
   add_executable(abort apps/abort/main.c)
   target_link_libraries(abort PRIVATE ${PROJECT_NAME})
 
+  add_executable(add-list-element apps/add-list-element/main.c)
+  target_link_libraries(add-list-element PRIVATE ${PROJECT_NAME})
+
   add_executable(dcc apps/dcc/main.c)
   target_link_libraries(dcc PRIVATE ${PROJECT_NAME})
 
@@ -559,6 +568,9 @@ if(BACNET_STACK_BUILD_APPS)
 
   add_executable(readrange apps/readrange/main.c)
   target_link_libraries(readrange PRIVATE ${PROJECT_NAME})
+
+  add_executable(remove-list-element apps/remove-list-element/main.c)
+  target_link_libraries(remove-list-element PRIVATE ${PROJECT_NAME})
 
   add_executable(reinit apps/reinit/main.c)
   target_link_libraries(reinit PRIVATE ${PROJECT_NAME})
