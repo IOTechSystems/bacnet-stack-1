@@ -15,7 +15,11 @@ extern "C" {
 
     typedef struct accumulator_descr {
         BACNET_UNSIGNED_INTEGER Present_Value;
-        int32_t Scale;
+        bool isFloat;
+        union {
+            int32_t ScaleI;
+            float ScaleF;
+        } Scale;
         char *Name;
     }ACCUMULATOR_DESCR;
 
@@ -32,6 +36,14 @@ extern "C" {
         const char *object_name, 
         BACNET_UNSIGNED_INTEGER value,
         int32_t scale
+    );
+
+    BACNET_STACK_EXPORT
+    void Accumulator_Set_PropertiesF(
+        uint32_t object_instance,
+        const char *object_name,
+        BACNET_UNSIGNED_INTEGER value,
+        float scale
     );
 
     BACNET_STACK_EXPORT
@@ -100,6 +112,14 @@ extern "C" {
     int32_t Accumulator_Scale_Integer(uint32_t object_instance);
     BACNET_STACK_EXPORT
     bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t);
+
+    BACNET_STACK_EXPORT
+    float Accumulator_Scale_Float(uint32_t object_instance);
+    BACNET_STACK_EXPORT
+    bool Accumulator_Scale_Float_Set(uint32_t object_instance, float);
+
+    BACNET_STACK_EXPORT
+    bool Accumulator_Scale_Is_Float(uint32_t object_instance);
 
     BACNET_STACK_EXPORT
     void Accumulator_Add(size_t count);
