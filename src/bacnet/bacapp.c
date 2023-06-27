@@ -713,6 +713,19 @@ BACNET_APPLICATION_TAG bacapp_context_tag_type(
                     break;
             }
             break;
+        case PROP_SCALE:
+            /* BACnetScale */
+            switch (tag_number) {
+                case 0: /* float-scale */
+                    tag = BACNET_APPLICATION_TAG_REAL;
+                    break;
+                case 1: /* integer-scale */
+                    tag = BACNET_APPLICATION_TAG_SIGNED_INT;
+                    break;
+                default:
+                    break;
+            }
+            break;
         default:
             break;
     }

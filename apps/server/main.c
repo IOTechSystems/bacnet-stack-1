@@ -646,7 +646,7 @@ static void populate_sim (long instances)
 {
   printf("Populating server with %ld of each object...\n", instances);
 
-  Accumulator_Add (instances); 
+  Accumulator_Add (instances * 2); // for integer-scale and float-scale
   Analog_Input_Add (instances);
   Analog_Output_Add (instances);                   
   Analog_Value_Add (instances);
