@@ -94,6 +94,23 @@ void Accumulator_Set_Properties(uint32_t object_instance,
     Accumulator_Scale_Integer_Set(object_instance, scale);
 }
 
+void Accumulator_Set_PropertiesF(uint32_t object_instance, 
+                                const char *object_name, 
+                                BACNET_UNSIGNED_INTEGER value,
+                                float scale
+                              )
+{
+    unsigned int index = Accumulator_Instance_To_Index(object_instance);
+    if (index >= Acc_Descr_Size)
+    {
+        return;
+    }
+
+    Accumulator_Name_Set(object_instance, object_name);
+    Accumulator_Present_Value_Set(object_instance, value);
+    Accumulator_Scale_Float_Set(object_instance, scale);
+}
+
 /**
  * Determines if a given Accumulator instance is valid
  *
@@ -290,11 +307,41 @@ int32_t Accumulator_Scale_Integer(uint32_t object_instance)
 
     if (object_instance < Acc_Descr_Size) {
         pthread_mutex_lock(&Acc_Descr_Mutex);
-        scale = Acc_Descr[object_instance].Scale;
+        if (!Acc_Descr[object_instance].isFloat) {
+            scale = Acc_Descr[object_instance].Scale.ScaleI;
+        }
         pthread_mutex_unlock(&Acc_Descr_Mutex);
     }
 
     return scale;
+}
+
+float Accumulator_Scale_Float(uint32_t object_instance)
+{
+    float scale = 0;
+
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        if (Acc_Descr[object_instance].isFloat) {
+            scale = Acc_Descr[object_instance].Scale.ScaleF;
+        }
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+    }
+
+    return scale;
+}
+
+bool Accumulator_Scale_Is_Float(uint32_t object_instance)
+{
+    bool isfloat = false;
+
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        isfloat = Acc_Descr[object_instance].isFloat;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+    }
+
+    return isfloat;
 }
 
 /**
@@ -315,7 +362,23 @@ bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t scale)
 
     if (object_instance < Acc_Descr_Size) {
         pthread_mutex_lock(&Acc_Descr_Mutex);
-        Acc_Descr[object_instance].Scale = scale;
+        Acc_Descr[object_instance].isFloat = false;
+        Acc_Descr[object_instance].Scale.ScaleI = scale;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+        status = true;
+    }
+
+    return status;
+}
+
+bool Accumulator_Scale_Float_Set(uint32_t object_instance, float scale)
+{
+    bool status = false;
+
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        Acc_Descr[object_instance].isFloat = true;
+        Acc_Descr[object_instance].Scale.ScaleF = scale;
         pthread_mutex_unlock(&Acc_Descr_Mutex);
         status = true;
     }
@@ -388,8 +451,13 @@ int Accumulator_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             break;
         case PROP_SCALE:
             /* context tagged choice: [0]=REAL, [1]=INTEGER */
-            apdu_len = encode_context_signed(&apdu[apdu_len], 1,
-                Accumulator_Scale_Integer(rpdata->object_instance));
+            if (Accumulator_Scale_Is_Float(rpdata->object_instance)) {
+                apdu_len = encode_context_real(&apdu[apdu_len], 0,
+                    Accumulator_Scale_Float(rpdata->object_instance));
+            } else {
+                apdu_len = encode_context_signed(&apdu[apdu_len], 1,
+                    Accumulator_Scale_Integer(rpdata->object_instance));
+            }
             break;
         case PROP_MAX_PRES_VALUE:
             apdu_len = encode_application_unsigned(
@@ -508,7 +576,11 @@ void Accumulator_Add(size_t count)
         pthread_mutex_unlock(&Acc_Descr_Mutex);
 
         snprintf(name_buffer, 64, "accumulator_%zu", i);
-        Accumulator_Set_Properties(i, name_buffer, i, 10);
+        if (i % 2) {
+            Accumulator_Set_PropertiesF (i, name_buffer, i, 2.0);
+        } else {
+            Accumulator_Set_Properties(i, name_buffer, i, 10);
+        }
     }
 }
 
@@ -536,7 +608,11 @@ void Accumulator_Objects_Init(void)
     unsigned i = 0;
 
     for (i = 0; i < Acc_Descr_Size; i++) {
-        Accumulator_Scale_Integer_Set(i, i + 1);
+        if (i % 2) {
+            Accumulator_Scale_Float_Set (i, i * 3.0);
+        } else {
+            Accumulator_Scale_Integer_Set(i, i + 1);
+        }
         Accumulator_Present_Value_Set(i, unsigned_value);
         unsigned_value |= (unsigned_value << 1);
         Acc_Descr[i].Name = NULL;
