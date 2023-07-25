@@ -175,6 +175,17 @@ static int register_recipient (lua_State *L)
     return 0;
 }
 
+// RESTART
+static int restart_device (lua_State *L)
+{
+    BACNET_TIME tm;
+    uint32_t reason = lua_tonumber (L, 1);
+    printf ("Restarting (forgetting COVs)\n");
+    Device_getCurrentTime (&tm);
+    handler_restart_send(tm, reason);
+    return 0;
+}
+
 //ANALOG INPUT
 static int set_analog_input_present_value (lua_State *L)
 {
@@ -530,6 +541,7 @@ static void lua_setup_callbacks(lua_State *L)
 
       {"generateEvent", generate_event},
       {"registerRecipient", register_recipient},
+      {"restartDevice", restart_device},
 
       {NULL, NULL} //required
   };
@@ -829,6 +841,9 @@ int main(int argc, char *argv[])
     int uciId = 0;
     struct uci_context *ctx;
 #endif
+#if defined(BACDL_BIP)
+    BACNET_IP_ADDRESS my_addr;
+#endif
     int argi = 0;
     const char *filename = NULL;
     const char *devicename = NULL;
@@ -940,6 +955,12 @@ int main(int argc, char *argv[])
 
     dlenv_init();
     atexit(datalink_cleanup);
+
+#if defined(BACDL_BIP)
+    bip_get_addr (&my_addr);
+    printf ("My IP address: %u.%u.%u.%u\n", my_addr.address[0], my_addr.address[1], my_addr.address[2], my_addr.address[3]);
+    fflush (stdout);
+#endif
 
     /* configure the timeout values */
     last_seconds = time(NULL);
