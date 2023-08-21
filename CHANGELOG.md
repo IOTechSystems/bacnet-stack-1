@@ -60,3 +60,7 @@
 # Whats Changed in v1.1.0
 
 - Changed from global TSM invoke ID cache to a per device cache
+
+# Whats Changed in v1.1.1
+
+- Fixed BBMD registration failure check
