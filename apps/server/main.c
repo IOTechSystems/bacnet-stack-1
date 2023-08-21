@@ -45,10 +45,14 @@
 #include "bacnet/basic/tsm/tsm.h"
 #include "bacnet/datalink/datalink.h"
 #include "bacnet/basic/binding/address.h"
+
+#include "bacnet/basic/service/h_cov.h"
+
 /* include the device object */
 #include "bacnet/basic/object/device.h"
 #include "bacnet/basic/object/lc.h"
 #include "bacnet/basic/object/trendlog.h"
+
 #if defined(INTRINSIC_REPORTING)
 #include "bacnet/basic/object/nc.h"
 #endif /* defined(INTRINSIC_REPORTING) */
@@ -303,6 +307,8 @@ static void Init_Service_Handlers(void)
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_IS, handler_who_is);
     apdu_set_unconfirmed_handler(SERVICE_UNCONFIRMED_WHO_HAS, handler_who_has);
 
+    apdu_set_confirmed_handler( SERVICE_CONFIRMED_SUBSCRIBE_COV, handler_cov_subscribe);
+
 #if 0
 	/* 	BACnet Testing Observed Incident oi00107
 		Server only devices should not indicate that they EXECUTE I-Am
@@ -344,8 +350,7 @@ static void Init_Service_Handlers(void)
         SERVICE_UNCONFIRMED_UTC_TIME_SYNCHRONIZATION, handler_timesync_utc);
     apdu_set_unconfirmed_handler(
         SERVICE_UNCONFIRMED_TIME_SYNCHRONIZATION, handler_timesync);
-    apdu_set_confirmed_handler(
-        SERVICE_CONFIRMED_SUBSCRIBE_COV, handler_cov_subscribe);
+
     apdu_set_unconfirmed_handler(
         SERVICE_UNCONFIRMED_COV_NOTIFICATION, handler_ucov_notification);
     /* handle communication so we can shutup when asked */
@@ -394,6 +399,7 @@ static void print_help(const char *filename)
            "%s --script example.lua --instance 123 --name Fred\n",
         filename);
 }
+
 
 /** Main function of server demo.
  *
@@ -528,12 +534,14 @@ int main(int argc, char *argv[])
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
-    /* loop forever */
+  
     if (scriptpath != NULL)
     {
       simulated_init(scriptpath);
     }
 
+
+    /* loop forever */
     for (;;) {
         /* input */
         current_seconds = time(NULL);
@@ -581,8 +589,6 @@ int main(int argc, char *argv[])
         }
 #endif
         /* output */
-
-        /* blink LEDs, Turn on or off outputs, etc */
         if (using_script)
         {
           simulated_update();
