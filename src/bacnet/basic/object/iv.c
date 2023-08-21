@@ -91,6 +91,26 @@ void Integer_Value_Property_Lists(
     return;
 }
 
+void Integer_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char* object_name,
+    int32_t value,
+    bool out_of_service,
+    uint16_t units
+)
+{
+    unsigned int index = Integer_Value_Instance_To_Index(object_instance);
+    if (index >= I_Descr_Size)
+    {
+        return;
+    }   
+
+    Integer_Value_Name_Set(object_instance, object_name);
+    Integer_Value_Present_Value_Set(object_instance, value, false);
+    Integer_Value_Out_Of_Service_Set(object_instance, out_of_service);
+    Integer_Value_Units_Set(object_instance, units);
+}
+
 /**
  * Determines if a given Analog Value instance is valid
  *
@@ -130,11 +150,7 @@ unsigned Integer_Value_Count(void)
  */
 uint32_t Integer_Value_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**
@@ -242,7 +258,7 @@ bool Integer_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRIN
     return status;
 }
 
-bool Integer_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool Integer_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == I_Descr) return false;
 
@@ -502,32 +518,39 @@ bool Integer_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return status;
 }
 
-void Integer_Value_Resize(size_t new_size)
-{
-
-    //could maybe copy state of old array to new one with memcpy?
-    Integer_Value_Free();
-    Integer_Value_Alloc(new_size);
-    Integer_Value_Objects_Init();
-}
-
 void Integer_Value_Add(size_t count)
 {
-    Integer_Value_Resize(I_Descr_Size + count);
-}
-
-void Integer_Value_Alloc(size_t size)
-{
+    size_t prev_size = I_Descr_Size;
+    size_t new_size = I_Descr_Size + count;
+   
     pthread_mutex_lock(&I_Descr_Mutex);
-    
-    I_Descr = calloc(size, sizeof (*I_Descr));
-    if(NULL != I_Descr)
+    INTEGER_DESCR *tmp = realloc(I_Descr, sizeof(*I_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        I_Descr_Size = size;
+        pthread_mutex_unlock(&I_Descr_Mutex);
+        return;
     }
-    
-  
+    I_Descr_Size = new_size;
+    I_Descr = tmp;
     pthread_mutex_unlock(&I_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&I_Descr_Mutex);
+        I_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&I_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "integer_value_%zu", i);
+        Integer_Value_Set_Properties(
+            i,
+            name_buffer,
+            i,
+            false,
+            UNITS_POUNDS_MASS_PER_MINUTE
+        );
+    }
 }
 
 void Integer_Value_Free(void)

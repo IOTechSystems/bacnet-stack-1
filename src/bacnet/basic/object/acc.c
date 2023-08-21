@@ -77,6 +77,23 @@ void Accumulator_Property_Lists(
     return;
 }
 
+void Accumulator_Set_Properties(uint32_t object_instance, 
+                                const char *object_name, 
+                                BACNET_UNSIGNED_INTEGER value,
+                                int32_t scale
+                              )
+{
+    unsigned int index = Accumulator_Instance_To_Index(object_instance);
+    if (index >= Acc_Descr_Size)
+    {
+        return;
+    }
+
+    Accumulator_Name_Set(object_instance, object_name);
+    Accumulator_Present_Value_Set(object_instance, value);
+    Accumulator_Scale_Integer_Set(object_instance, scale);
+}
+
 /**
  * Determines if a given Accumulator instance is valid
  *
@@ -128,11 +145,9 @@ uint32_t Accumulator_Index_To_Instance(unsigned index)
 unsigned Accumulator_Instance_To_Index(uint32_t object_instance)
 {
     unsigned index = Acc_Descr_Size;
-
     if (object_instance < Acc_Descr_Size) {
         index = object_instance;
-}
-
+    }
     return index;
 }
 
@@ -174,7 +189,7 @@ bool Accumulator_Name(
     return status;
 }
 
-bool Accumulator_Name_Set(uint32_t object_instance, char *new_name)
+bool Accumulator_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == Acc_Descr) return false;
 
@@ -468,29 +483,33 @@ bool Accumulator_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return false;
 }
 
-void Accumulator_Resize(size_t new_size)
-{
-    Accumulator_Free();
-    Accumulator_Alloc(new_size);
-    Accumulator_Objects_Init();
-}
-
 void Accumulator_Add(size_t count)
 {
-    Accumulator_Resize(Acc_Descr_Size + count);
-}
-
-void Accumulator_Alloc(size_t size)
-{
+    size_t prev_size = Acc_Descr_Size;
+    size_t new_size = Acc_Descr_Size + count;
+   
     pthread_mutex_lock(&Acc_Descr_Mutex);
-    
-    Acc_Descr = calloc(size, sizeof (*Acc_Descr));
-    if (NULL != Acc_Descr)
+    ACCUMULATOR_DESCR *tmp = realloc(Acc_Descr, sizeof(*Acc_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
     {
-        Acc_Descr_Size = size;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+        return;
     }
-  
+    Acc_Descr_Size = new_size;
+    Acc_Descr = tmp;
     pthread_mutex_unlock(&Acc_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        Acc_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "accumulator_%zu", i);
+        Accumulator_Set_Properties(i, name_buffer, i, 10);
+    }
 }
 
 void Accumulator_Free(void)

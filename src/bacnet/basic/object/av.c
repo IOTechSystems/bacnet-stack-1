@@ -86,28 +86,93 @@ void Analog_Value_Property_Lists(
     return;
 }
 
-void Analog_Value_Resize(size_t new_size)
+void Analog_Value_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    float value,
+    BACNET_EVENT_STATE event_state,
+    bool out_of_service,
+    uint8_t units,
+    uint32_t time_delay, 
+    uint32_t notification_class,
+    float high_limit,
+    float low_limit,
+    float deadband,
+    unsigned limit_enable,
+    unsigned event_enable,
+    unsigned notify_type   
+)
 {
-    //could maybe copy state of old array to new one with memcpy?
-    Analog_Value_Free();
-    Analog_Value_Alloc(new_size);
-    Analog_Value_Objects_Init();
+    unsigned int index = Analog_Value_Instance_To_Index(object_instance);
+    if (index >= AV_Descr_Size)
+    {
+        return;
+    }
+
+    Analog_Value_Name_Set(object_instance, object_name);
+    Analog_Value_Present_Value_Set (object_instance, value, 1);
+    Analog_Value_Out_Of_Service_Set (object_instance, out_of_service);
+
+    pthread_mutex_lock(&AV_Descr_Mutex);
+    AV_Descr[index].Units = units;
+#if defined(INTRINSIC_REPORTING)
+    AV_Descr[index].Event_State = event_state;
+    AV_Descr[index].Time_Delay = time_delay;
+    AV_Descr[index].Notification_Class = notification_class;
+    AV_Descr[index].High_Limit = high_limit;
+    AV_Descr[index].Low_Limit = low_limit;
+    AV_Descr[index].Deadband = deadband;
+    AV_Descr[index].Limit_Enable = limit_enable;
+    AV_Descr[index].Event_Enable = event_enable;
+    AV_Descr[index].Notify_Type = notify_type;
+#endif
+
+    pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
 void Analog_Value_Add(size_t count)
 {
-    Analog_Value_Resize(AV_Descr_Size + count);
-}
-
-void Analog_Value_Alloc(size_t size)
-{
+    size_t prev_size = AV_Descr_Size;
+    size_t new_size = AV_Descr_Size + count;
+    
     pthread_mutex_lock(&AV_Descr_Mutex);
-    AV_Descr = calloc(size, sizeof (*AV_Descr));
-    if (NULL != AV_Descr)
+    ANALOG_VALUE_DESCR *tmp = realloc(AV_Descr, sizeof(*AV_Descr) * new_size);
+
+    if (NULL == tmp) //unsuccessful resize
     {
-        AV_Descr_Size = size;
+        pthread_mutex_unlock(&AV_Descr_Mutex);
+        return;
     }
+    AV_Descr_Size = new_size;
+    AV_Descr = tmp;
     pthread_mutex_unlock(&AV_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&AV_Descr_Mutex);
+        AV_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&AV_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "analog_value_%zu", i);
+        Analog_Value_Set_Properties(
+            i, 
+            name_buffer, 
+            (float) i,
+            EVENT_STATE_NORMAL, 
+            false, 
+            UNITS_NO_UNITS, 
+            2, 
+            2,
+            2.0f,
+            2.0f,
+            2.0f,
+            EVENT_HIGH_LIMIT_ENABLE,
+            EVENT_ENABLE_TO_NORMAL,
+            NOTIFY_EVENT
+        );
+    }
 }
 
 void Analog_Value_Free(void)
@@ -363,7 +428,7 @@ bool Analog_Value_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRING
     return status;
 }
 
-bool Analog_Value_Name_Set(uint32_t object_instance, char *new_name)
+bool Analog_Value_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == AV_Descr) return false;
 

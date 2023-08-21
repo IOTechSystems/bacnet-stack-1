@@ -78,30 +78,62 @@ void Binary_Output_Property_Lists(
     return;
 }
 
-void Binary_Output_Resize(size_t new_size)
+void Binary_Output_Set_Properties(
+    uint32_t object_instance, 
+    const char *object_name, 
+    BACNET_BINARY_PV value,
+    bool out_of_service   
+)
 {
-    //could maybe copy state of old array to new one with memcpy?
-    Binary_Output_Free();
-    Binary_Output_Alloc(new_size);
-    Binary_Output_Objects_Init();
+    unsigned int index = Binary_Output_Instance_To_Index(object_instance);
+    if (index >= BO_Descr_Size)
+    {
+        return;
+    }   
+
+    Binary_Output_Name_Set(object_instance, object_name);
+    Binary_Output_Present_Value_Set(object_instance, value,1);
+    
+    pthread_mutex_lock(&BO_Descr_Mutex);
+    BO_Descr[index].Out_Of_Service = out_of_service;
+    pthread_mutex_unlock(&BO_Descr_Mutex);
 }
+
 
 void Binary_Output_Add(size_t count)
 {
-    Binary_Output_Resize(BO_Descr_Size + count);
+    size_t prev_size = BO_Descr_Size;
+    size_t new_size = BO_Descr_Size + count;
+   
+    pthread_mutex_lock(&BO_Descr_Mutex);
+    BINARY_OUTPUT_DESCR *tmp = realloc(BO_Descr, sizeof(*BO_Descr) * new_size);
+    if (NULL == tmp) //unsuccessful resize
+    {
+        pthread_mutex_unlock(&BO_Descr_Mutex);
+        return;
+    }
+    BO_Descr_Size = new_size;
+    BO_Descr = tmp;
+    pthread_mutex_unlock(&BO_Descr_Mutex);
+
+    //initialize object properties
+    char name_buffer[64];
+    for(size_t i = prev_size; i < new_size; i++ )
+    {
+        pthread_mutex_lock(&BO_Descr_Mutex);
+        BO_Descr[i].Name = NULL;
+        pthread_mutex_unlock(&BO_Descr_Mutex);
+
+        snprintf(name_buffer, 64, "binary_output_%zu", i);
+        Binary_Output_Set_Properties(
+            i,
+            name_buffer,
+            BINARY_ACTIVE,
+            false    
+        );
+    }
 }
 
-void Binary_Output_Alloc(size_t size)
-{
-    pthread_mutex_lock(&BO_Descr_Mutex);
-    
-    BO_Descr = calloc(size, sizeof (*BO_Descr));
-    if(NULL != BO_Descr)
-    {
-        BO_Descr_Size = size;
-    }
-    pthread_mutex_unlock(&BO_Descr_Mutex);
-}
 
 void Binary_Output_Free(void)
 {
@@ -281,7 +313,7 @@ bool Binary_Output_Object_Name(
 }
 
 
-bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
+bool Binary_Output_Name_Set(uint32_t object_instance, const char *new_name)
 {
     if (NULL == BO_Descr) return false;
 
@@ -299,7 +331,6 @@ bool Binary_Output_Name_Set(uint32_t object_instance, char *new_name)
     {
         strcpy(BO_Descr[index].Name, new_name);
     }
-    
     pthread_mutex_unlock(&BO_Descr_Mutex);
 
     return true;
@@ -365,7 +396,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 Binary_Output_Instance_To_Index(rpdata->object_instance);
             pthread_mutex_lock(&BO_Descr_Mutex);
             state = BO_Descr[object_index].Out_Of_Service;
-            pthread_mutex_lock(&BO_Descr_Mutex);
+            pthread_mutex_unlock(&BO_Descr_Mutex);
 
             apdu_len = encode_application_boolean(&apdu[0], state);
             break;
@@ -425,7 +456,6 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                     apdu_len = BACNET_STATUS_ERROR;
                 }
             }
-
             break;
         case PROP_RELINQUISH_DEFAULT:
             present_value = RELINQUISH_DEFAULT;
@@ -438,8 +468,7 @@ int Binary_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             break;
         case PROP_INACTIVE_TEXT:
             characterstring_init_ansi(&char_string, "off");
-            apdu_len =
-                encode_application_character_string(&apdu[0], &char_string);
+            apdu_len = encode_application_character_string(&apdu[0], &char_string);
             break;
         default:
             rpdata->error_class = ERROR_CLASS_PROPERTY;
