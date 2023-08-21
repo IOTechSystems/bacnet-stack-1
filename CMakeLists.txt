@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-project(
-  bacnet-stack
-  VERSION 1.0.0
-  LANGUAGES C)
+if(BACDL_BIP)
+  project(bacnet-ip VERSION 1.0.0 LANGUAGES C)
+elseif(BACDL_MSTP)
+  project(bacnet-mstp VERSION 1.0.0 LANGUAGES C)
+endif()
 
 if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   cmake_minimum_required (VERSION 3.10)
@@ -17,7 +18,6 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   option (BAC_ROUTING "enable bac routing" OFF)
   option (BACNET_PROPERTY_LISTS "enable property lists" OFF)
 else ()
-  option (BACNET_STACK_BUILD_APPS "build apps" ON)
   option (BAC_ROUTING "enable bac routing" ON)
   option (BACNET_PROPERTY_LISTS "enable property lists" ON)
 endif ()
@@ -25,34 +25,21 @@ endif ()
 #
 # options
 #
-
+option (BACNET_STACK_BUILD_APPS "build apps" OFF)
+  
 option (BACDL_NONE "compile without datalink" OFF)
-option (BACDL_BIP "compile without ip support" ON)
 
-option(
-  BACNET_BUILD_PIFACE_APP
-  "compile the piface app"
-  OFF)
+option (BACDL_BIP "compile without ip support" OFF)
 
-option(
-  BACDL_ETHERNET
-  "compile with ethernet support"
-  OFF)
+option (BACNET_BUILD_PIFACE_APP "compile the piface app" OFF)
 
-option(
-  BACDL_MSTP
-  "compile with mstp support"
-  OFF)
+option (BACDL_ETHERNET "compile with ethernet support" OFF)
 
-option(
-  BACDL_ARCNET
-  "compile with arcnet support"
-  OFF)
+option (BACDL_MSTP "compile with mstp support" OFF)
 
-option(
-  BACDL_BIP6
-  "compile with ipv6 support"
-  OFF)
+option (BACDL_ARCNET "compile with arcnet support" OFF)
+
+option (BACDL_BIP6 "compile with ipv6 support" OFF)
 
 set(BACNET_PROTOCOL_REVISION 19)
 
@@ -416,7 +403,7 @@ if(BUILD_SHARED_LIBS)
   set_target_properties(
     ${PROJECT_NAME}
     PROPERTIES
-      C_VISIBILITY_PRESET hidden)
+      C_VISIBILITY_PRESET default)
 endif()
 target_compile_definitions(
   ${PROJECT_NAME}
@@ -461,7 +448,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR "${LINUX_SYS}" STREQUAL "AzureSp
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.h>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp.c>
-    $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.c>
+    #$<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.h>
     # ports/linux/rx_fsm.c
     $<$<BOOL:${BACDL_ETHERNET}>:ports/linux/ethernet.c>
