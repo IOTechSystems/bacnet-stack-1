@@ -37,6 +37,15 @@
 extern "C" {
 #endif /* __cplusplus */
 
+
+    typedef struct binary_input_descr {
+        bool Out_Of_Service;
+        BACNET_BINARY_PV Present_Value;
+        bool Change_Of_Value;
+        BACNET_POLARITY Polarity;
+        char * Name;
+    } BINARY_INPUT_DESCR;
+
     BACNET_STACK_EXPORT
     void Binary_Input_Property_Lists(
         const int **pRequired,
@@ -141,6 +150,17 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Binary_Input_Write_Property(
         BACNET_WRITE_PROPERTY_DATA * wp_data);
+
+    BACNET_STACK_EXPORT
+    void Binary_Input_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Free(void);
+    BACNET_STACK_EXPORT
+    void Binary_Input_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     bool Binary_Input_Create(

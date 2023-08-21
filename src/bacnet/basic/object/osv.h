@@ -102,7 +102,20 @@ extern "C" {
     void OctetString_Value_Intrinsic_Reporting(uint32_t object_instance);
 
     BACNET_STACK_EXPORT
+    void OctetString_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void OctetString_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void OctetString_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void OctetString_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void OctetString_Value_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
     void OctetString_Value_Init(void);
+    BACNET_STACK_EXPORT
+    void OctetString_Value_Cleanup(void);
 
 #ifdef BAC_TEST
 #include "ctest.h"

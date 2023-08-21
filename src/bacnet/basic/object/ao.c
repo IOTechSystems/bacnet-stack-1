@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -39,9 +41,6 @@
 #include "bacnet/basic/object/ao.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_ANALOG_OUTPUTS
-#define MAX_ANALOG_OUTPUTS 4
-#endif
 
 /* we choose to have a NULL level in our system represented by */
 /* a particular value.  When the priorities are not in use, they */
@@ -53,11 +52,9 @@
 /* Here is our Priority Array.  They are supposed to be Real, but */
 /* we don't have that kind of memory, so we will use a single byte */
 /* and load a Real for returning the value when asked. */
-static uint8_t Analog_Output_Level[MAX_ANALOG_OUTPUTS][BACNET_MAX_PRIORITY];
-static pthread_mutex_t AO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
-/* Writable out-of-service allows others to play with our Present Value */
-/* without changing the physical output */
-static bool Out_Of_Service[MAX_ANALOG_OUTPUTS];
+static ANALOG_OUTPUT_DESCR *AO_Descr = NULL;
+static size_t AO_Descr_Size = 0;
+static pthread_mutex_t AO_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* we need to have our arrays initialized before answering any calls */
 static bool Analog_Output_Initialized = false;
@@ -88,7 +85,50 @@ void Analog_Output_Property_Lists(
     return;
 }
 
-void Analog_Output_Init(void)
+void Analog_Output_Resize(size_t new_size)
+{
+    //could maybe copy state of old array to new one with memcpy?
+    Analog_Output_Free();
+    Analog_Output_Alloc(new_size);
+    Analog_Output_Objects_Init();
+}
+
+void Analog_Output_Add(size_t count)
+{
+    Analog_Output_Resize(AO_Descr_Size + count);
+}
+
+void Analog_Output_Alloc(size_t size)
+{
+    pthread_mutex_lock(&AO_Descr_Mutex);
+
+    AO_Descr = calloc(size, sizeof (*AO_Descr));
+    if (NULL != AO_Descr)
+    {
+        AO_Descr_Size = size;
+    }
+    
+    pthread_mutex_unlock(&AO_Descr_Mutex);
+}
+
+void Analog_Output_Free(void)
+{
+    if (NULL == AO_Descr) return;  
+    pthread_mutex_lock(&AO_Descr_Mutex);
+
+    for(unsigned int i=0; i < AO_Descr_Size; i++)
+    {
+        free(AO_Descr[i].Name);
+    }
+
+    free(AO_Descr);
+    AO_Descr = NULL;
+    AO_Descr_Size = 0;
+    
+    pthread_mutex_unlock(&AO_Descr_Mutex);
+}
+
+void Analog_Output_Objects_Init(void)
 {
     unsigned i, j;
 
@@ -96,16 +136,27 @@ void Analog_Output_Init(void)
         Analog_Output_Initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        for (i = 0; i < MAX_ANALOG_OUTPUTS; i++) {
+        pthread_mutex_lock(&AO_Descr_Mutex);
+        for (i = 0; i < AO_Descr_Size; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
-                pthread_mutex_lock(&AO_Level_Mutex);
-                Analog_Output_Level[i][j] = AO_LEVEL_NULL;
-                pthread_mutex_unlock(&AO_Level_Mutex);
+                AO_Descr[i].Level[j] = AO_LEVEL_NULL;
             }
+            AO_Descr[i].Out_Of_Service = false;
+            AO_Descr[i].Name = NULL;
         }
+        pthread_mutex_unlock(&AO_Descr_Mutex);
     }
-
     return;
+}
+
+void Analog_Output_Init(void)
+{
+
+}
+
+void Analog_Output_Cleanup(void)
+{
+    Analog_Output_Free();
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -113,7 +164,7 @@ void Analog_Output_Init(void)
 /* given instance exists */
 bool Analog_Output_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
+    if (object_instance < AO_Descr_Size) {
         return true;
     }
 
@@ -124,7 +175,7 @@ bool Analog_Output_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Analog_Output_Count(void)
 {
-    return MAX_ANALOG_OUTPUTS;
+    return AO_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -140,9 +191,9 @@ uint32_t Analog_Output_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Analog_Output_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_ANALOG_OUTPUTS;
+    unsigned index = AO_Descr_Size;
 
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
+    if (object_instance < AO_Descr_Size) {
         index = object_instance;
     }
 
@@ -156,15 +207,15 @@ float Analog_Output_Present_Value(uint32_t object_instance)
     unsigned i = 0;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
-        pthread_mutex_lock(&AO_Level_Mutex);
+    if (index < AO_Descr_Size) {
+        pthread_mutex_lock(&AO_Descr_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
-            if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
-                value = Analog_Output_Level[index][i];
+            if (AO_Descr[index].Level[i] != AO_LEVEL_NULL) {
+                value = AO_Descr[index].Level[i];
                 break;
             }
         }
-        pthread_mutex_unlock(&AO_Level_Mutex);
+        pthread_mutex_unlock(&AO_Descr_Mutex);
     }
 
     return value;
@@ -177,15 +228,15 @@ unsigned Analog_Output_Present_Value_Priority(uint32_t object_instance)
     unsigned priority = 0; /* return value */
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
-        pthread_mutex_lock(&AO_Level_Mutex);
+    if (index < AO_Descr_Size) {
+        pthread_mutex_lock(&AO_Descr_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
-            if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
+            if (AO_Descr[index].Level[i] != AO_LEVEL_NULL) {
                 priority = i + 1;
                 break;
             }
         }
-        pthread_mutex_unlock(&AO_Level_Mutex);
+        pthread_mutex_unlock(&AO_Descr_Mutex);
     }
 
     return priority;
@@ -198,13 +249,13 @@ bool Analog_Output_Present_Value_Set(
     bool status = false;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Descr_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */) && (value >= 0.0) &&
             (value <= 100.0)) {
-            pthread_mutex_lock(&AO_Level_Mutex);
-            Analog_Output_Level[index][priority - 1] = (uint8_t)value;
-            pthread_mutex_unlock(&AO_Level_Mutex);
+            pthread_mutex_lock(&AO_Descr_Mutex);
+            AO_Descr[index].Level[priority - 1] = (uint8_t)value;
+            pthread_mutex_unlock(&AO_Descr_Mutex);
             /* Note: you could set the physical output here to the next
                highest priority, or to the relinquish default if no
                priorities are set.
@@ -225,12 +276,12 @@ bool Analog_Output_Present_Value_Relinquish(
     bool status = false;
 
     index = Analog_Output_Instance_To_Index(object_instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
+    if (index < AO_Descr_Size) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
-            pthread_mutex_lock(&AO_Level_Mutex);
-            Analog_Output_Level[index][priority - 1] = AO_LEVEL_NULL;
-            pthread_mutex_unlock(&AO_Level_Mutex);
+            pthread_mutex_lock(&AO_Descr_Mutex);
+            AO_Descr[index].Level[priority - 1] = AO_LEVEL_NULL;
+            pthread_mutex_unlock(&AO_Descr_Mutex);
             /* Note: you could set the physical output here to the next
                highest priority, or to the relinquish default if no
                priorities are set.
@@ -245,19 +296,53 @@ bool Analog_Output_Present_Value_Relinquish(
 }
 
 /* note: the object name must be unique within this device */
-bool Analog_Output_Object_Name(
-    uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
+bool Analog_Output_Object_Name( uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_ANALOG_OUTPUTS) {
-        sprintf(
-            text_string, "ANALOG OUTPUT %lu", (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    if (object_instance >= AO_Descr_Size)
+    {
+        return status;
     }
 
+    pthread_mutex_lock(&AO_Descr_Mutex);
+    if (NULL != AO_Descr[object_instance].Name) 
+    {
+        snprintf(text_string, 32, "%s", AO_Descr[object_instance].Name); 
+    }
+    else
+    {
+        sprintf( text_string, "ANALOG OUTPUT %lu", (unsigned long)object_instance);
+    }
+    pthread_mutex_unlock(&AO_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Analog_Output_Name_Set( uint32_t object_instance, char *new_name)
+{
+    if (NULL == AO_Descr) return false;
+
+    unsigned int index;
+    index = Analog_Output_Instance_To_Index(object_instance);
+    if (index >= AO_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&AO_Descr_Mutex);
+    free(AO_Descr[index].Name);
+    AO_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != AO_Descr[index].Name)
+    {
+        strcpy(AO_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&AO_Descr_Mutex);
+
+    return true;
 }
 
 bool Analog_Output_Out_Of_Service(uint32_t instance)
@@ -266,8 +351,10 @@ bool Analog_Output_Out_Of_Service(uint32_t instance)
     bool oos_flag = false;
 
     index = Analog_Output_Instance_To_Index(instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
-        oos_flag = Out_Of_Service[index];
+    if (index < AO_Descr_Size) {
+        pthread_mutex_lock(&AO_Descr_Mutex);
+        oos_flag = AO_Descr[index].Out_Of_Service;
+        pthread_mutex_unlock(&AO_Descr_Mutex);
     }
 
     return oos_flag;
@@ -278,8 +365,10 @@ void Analog_Output_Out_Of_Service_Set(uint32_t instance, bool oos_flag)
     unsigned index = 0;
 
     index = Analog_Output_Instance_To_Index(instance);
-    if (index < MAX_ANALOG_OUTPUTS) {
-        Out_Of_Service[index] = oos_flag;
+    if (index < AO_Descr_Size) {
+        pthread_mutex_lock(&AO_Descr_Mutex);
+        AO_Descr[index].Out_Of_Service = oos_flag;
+        pthread_mutex_unlock(&AO_Descr_Mutex);
     }
 }
 
@@ -352,15 +441,15 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                     Analog_Output_Instance_To_Index(rpdata->object_instance);
                 for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
                     /* FIXME: check if we have room before adding it to APDU */
-                    pthread_mutex_lock(&AO_Level_Mutex);
-                    if (Analog_Output_Level[object_index][i] == AO_LEVEL_NULL) {
+                    pthread_mutex_lock(&AO_Descr_Mutex);
+                    if (AO_Descr[object_index].Level[i] == AO_LEVEL_NULL) {
                         len = encode_application_null(&apdu[apdu_len]);
                     } else {
-                        real_value = Analog_Output_Level[object_index][i];
+                        real_value = AO_Descr[object_index].Level[i];
                         len = encode_application_real(
                             &apdu[apdu_len], real_value);
                     }
-                    pthread_mutex_unlock(&AO_Level_Mutex);
+                    pthread_mutex_unlock(&AO_Descr_Mutex);
                     /* add it if we have room */
                     if ((apdu_len + len) < MAX_APDU) {
                         apdu_len += len;
@@ -375,18 +464,14 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 object_index =
                     Analog_Output_Instance_To_Index(rpdata->object_instance);
                 if (rpdata->array_index <= BACNET_MAX_PRIORITY) {
-                    pthread_mutex_lock(&AO_Level_Mutex);
-                    if (Analog_Output_Level[object_index][rpdata->array_index -
-                            1] == AO_LEVEL_NULL) {
+                    pthread_mutex_lock(&AO_Descr_Mutex);
+                    if ( AO_Descr[object_index].Level[rpdata->array_index - 1] == AO_LEVEL_NULL) {
                         apdu_len = encode_application_null(&apdu[0]);
                     } else {
-                        real_value =
-                            Analog_Output_Level[object_index]
-                                               [rpdata->array_index - 1];
-                        apdu_len =
-                            encode_application_real(&apdu[0], real_value);
+                        real_value = AO_Descr[object_index].Level[rpdata->array_index - 1];
+                        apdu_len = encode_application_real(&apdu[0], real_value);
                     }
-                    pthread_mutex_unlock(&AO_Level_Mutex);
+                    pthread_mutex_unlock(&AO_Descr_Mutex);
                 } else {
                     rpdata->error_class = ERROR_CLASS_PROPERTY;
                     rpdata->error_code = ERROR_CODE_INVALID_ARRAY_INDEX;

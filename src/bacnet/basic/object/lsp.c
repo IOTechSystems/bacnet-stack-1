@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -39,20 +40,9 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/proplist.h"
 
-#ifndef MAX_LIFE_SAFETY_POINTS
-#define MAX_LIFE_SAFETY_POINTS 7
-#endif
-
 /* Here are our stored levels.*/
-static BACNET_LIFE_SAFETY_MODE Life_Safety_Point_Mode[MAX_LIFE_SAFETY_POINTS];
-static BACNET_LIFE_SAFETY_STATE Life_Safety_Point_State[MAX_LIFE_SAFETY_POINTS];
-static BACNET_SILENCED_STATE
-    Life_Safety_Point_Silenced_State[MAX_LIFE_SAFETY_POINTS];
-static BACNET_LIFE_SAFETY_OPERATION
-    Life_Safety_Point_Operation[MAX_LIFE_SAFETY_POINTS];
-/* Writable out-of-service allows others to play with our Present Value */
-/* without changing the physical output */
-static bool Life_Safety_Point_Out_Of_Service[MAX_LIFE_SAFETY_POINTS];
+static LIFE_SAFETY_POINT_DESCR *LSP_Descr = NULL;
+static size_t LSP_Descr_Size = 0;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Life_Safety_Point_Properties_Required[] = {
@@ -94,7 +84,36 @@ void Life_Safety_Point_Property_Lists(
     return;
 }
 
-void Life_Safety_Point_Init(void)
+
+void Life_Safety_Point_Resize(size_t new_size)
+{
+    Life_Safety_Point_Free();
+    Life_Safety_Point_Alloc(new_size);
+    Life_Safety_Point_Objects_Init();
+}
+
+void Life_Safety_Point_Add(size_t count)
+{
+    Life_Safety_Point_Resize(LSP_Descr_Size + count);
+}
+
+void Life_Safety_Point_Free(void)
+{
+    free(LSP_Descr);
+    LSP_Descr = NULL;
+    LSP_Descr_Size = 0;
+}
+
+void Life_Safety_Point_Alloc(size_t size)
+{
+    LSP_Descr = calloc(size, sizeof (*LSP_Descr));
+    if (NULL != LSP_Descr)
+    {
+        LSP_Descr_Size = size;
+    }
+}
+
+void Life_Safety_Point_Objects_Init()
 {
     static bool initialized = false;
     unsigned i;
@@ -103,15 +122,28 @@ void Life_Safety_Point_Init(void)
         initialized = true;
 
         /* initialize all the analog output priority arrays to NULL */
-        for (i = 0; i < MAX_LIFE_SAFETY_POINTS; i++) {
-            Life_Safety_Point_Mode[i] = LIFE_SAFETY_MODE_DEFAULT;
-            Life_Safety_Point_State[i] = LIFE_SAFETY_STATE_QUIET;
-            Life_Safety_Point_Silenced_State[i] = SILENCED_STATE_UNSILENCED;
-            Life_Safety_Point_Operation[i] = LIFE_SAFETY_OP_NONE;
+        for (i = 0; i < LSP_Descr_Size; i++) {
+            LSP_Descr[i].Mode = LIFE_SAFETY_MODE_DEFAULT;
+            LSP_Descr[i].State = LIFE_SAFETY_STATE_QUIET;
+            LSP_Descr[i].Silenced_State = SILENCED_STATE_UNSILENCED;
+            LSP_Descr[i].Operation = LIFE_SAFETY_OP_NONE;
         }
     }
 
     return;
+}
+
+void Life_Safety_Point_Cleanup()
+{
+    Life_Safety_Point_Free();
+}
+
+/**
+ * Initializes the Life_Safety_Point object data
+ */
+void Life_Safety_Point_Init(void)
+{
+
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -119,7 +151,7 @@ void Life_Safety_Point_Init(void)
 /* given instance exists */
 bool Life_Safety_Point_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_LIFE_SAFETY_POINTS) {
+    if (object_instance < LSP_Descr_Size) {
         return true;
     }
 
@@ -130,7 +162,7 @@ bool Life_Safety_Point_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Life_Safety_Point_Count(void)
 {
-    return MAX_LIFE_SAFETY_POINTS;
+    return LSP_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -146,9 +178,9 @@ uint32_t Life_Safety_Point_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned Life_Safety_Point_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_LIFE_SAFETY_POINTS;
+    unsigned index = LSP_Descr_Size;
 
-    if (object_instance < MAX_LIFE_SAFETY_POINTS) {
+    if (object_instance < LSP_Descr_Size) {
         index = object_instance;
     }
 
@@ -162,8 +194,8 @@ static BACNET_LIFE_SAFETY_STATE Life_Safety_Point_Present_Value(
     unsigned index = 0;
 
     index = Life_Safety_Point_Instance_To_Index(object_instance);
-    if (index < MAX_LIFE_SAFETY_POINTS) {
-        present_value = Life_Safety_Point_State[index];
+    if (index < LSP_Descr_Size) {
+        present_value = LSP_Descr[index].State;
     }
 
     return present_value;
@@ -176,7 +208,7 @@ bool Life_Safety_Point_Object_Name(
     static char text_string[32] = ""; /* okay for single thread */
     bool status = false;
 
-    if (object_instance < MAX_LIFE_SAFETY_POINTS) {
+    if (object_instance < LSP_Descr_Size) {
         sprintf(text_string, "LS POINT %u", object_instance);
         status = characterstring_init_ansi(object_name, text_string);
     }
@@ -247,7 +279,7 @@ int Life_Safety_Point_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
         case PROP_OUT_OF_SERVICE:
             object_index =
                 Life_Safety_Point_Instance_To_Index(rpdata->object_instance);
-            state = Life_Safety_Point_Out_Of_Service[object_index];
+            state = LSP_Descr[object_index].Out_Of_Service;
             apdu_len = encode_application_boolean(&apdu[0], state);
             break;
         case PROP_RELIABILITY:
@@ -258,7 +290,7 @@ int Life_Safety_Point_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
         case PROP_MODE:
             object_index =
                 Life_Safety_Point_Instance_To_Index(rpdata->object_instance);
-            mode = Life_Safety_Point_Mode[object_index];
+            mode = LSP_Descr[object_index].Mode;
             apdu_len = encode_application_enumerated(&apdu[0], mode);
             break;
         case PROP_ACCEPTED_MODES:
@@ -271,13 +303,13 @@ int Life_Safety_Point_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
         case PROP_SILENCED:
             object_index =
                 Life_Safety_Point_Instance_To_Index(rpdata->object_instance);
-            silenced_state = Life_Safety_Point_Silenced_State[object_index];
+            silenced_state = LSP_Descr[object_index].Silenced_State;
             apdu_len = encode_application_enumerated(&apdu[0], silenced_state);
             break;
         case PROP_OPERATION_EXPECTED:
             object_index =
                 Life_Safety_Point_Instance_To_Index(rpdata->object_instance);
-            operation = Life_Safety_Point_Operation[object_index];
+            operation = LSP_Descr[object_index].Operation;
             apdu_len = encode_application_enumerated(&apdu[0], operation);
             break;
         default:
@@ -329,7 +361,7 @@ bool Life_Safety_Point_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
                 if (value.type.Enumerated <= MAX_LIFE_SAFETY_MODE) {
                     object_index = Life_Safety_Point_Instance_To_Index(
                         wp_data->object_instance);
-                    Life_Safety_Point_Mode[object_index] =
+                    LSP_Descr[object_index].Mode =
                         (BACNET_LIFE_SAFETY_MODE)value.type.Enumerated;
                 } else {
                     status = false;
@@ -344,7 +376,7 @@ bool Life_Safety_Point_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
             if (status) {
                 object_index = Life_Safety_Point_Instance_To_Index(
                     wp_data->object_instance);
-                Life_Safety_Point_Out_Of_Service[object_index] =
+                LSP_Descr[object_index].Out_Of_Service =
                     value.type.Boolean;
             }
             break;

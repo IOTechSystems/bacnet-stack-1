@@ -27,6 +27,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -34,17 +36,9 @@
 #include "bacnet/config.h"
 #include "bacnet/basic/object/acc.h"
 
-#ifndef MAX_ACCUMULATORS
-#define MAX_ACCUMULATORS 64
-#endif
-
-struct object_data {
-    BACNET_UNSIGNED_INTEGER Present_Value;
-    int32_t Scale;
-};
-
-static struct object_data Object_List[MAX_ACCUMULATORS];
-static pthread_mutex_t Acc_Object_List_Mutex = PTHREAD_MUTEX_INITIALIZER;
+static ACCUMULATOR_DESCR *Acc_Descr = NULL;
+static size_t Acc_Descr_Size = 0;
+static pthread_mutex_t Acc_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -92,7 +86,7 @@ void Accumulator_Property_Lists(
  */
 bool Accumulator_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_ACCUMULATORS) {
+    if (object_instance < Acc_Descr_Size) {
         return true;
 }
 
@@ -106,7 +100,7 @@ bool Accumulator_Valid_Instance(uint32_t object_instance)
  */
 unsigned Accumulator_Count(void)
 {
-    return MAX_ACCUMULATORS;
+    return Acc_Descr_Size;
 }
 
 /**
@@ -133,9 +127,9 @@ uint32_t Accumulator_Index_To_Instance(unsigned index)
  */
 unsigned Accumulator_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_ACCUMULATORS;
+    unsigned index = Acc_Descr_Size;
 
-    if (object_instance < MAX_ACCUMULATORS) {
+    if (object_instance < Acc_Descr_Size) {
         index = object_instance;
 }
 
@@ -152,19 +146,55 @@ unsigned Accumulator_Instance_To_Index(uint32_t object_instance)
  *
  * @return  true if object-name was retrieved
  */
-bool Accumulator_Object_Name(
+bool Accumulator_Name(
     uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
-    static char text_string[32]; /* okay for single thread */
+    static char text_string[32] = ""; /* okay for single thread */
+    unsigned int index;
     bool status = false;
 
-    if (object_instance < MAX_ACCUMULATORS) {
-        sprintf(
-            text_string, "ACCUMULATOR-%lu", (long unsigned int)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    index = Accumulator_Instance_To_Index(object_instance);
+    if (index >= Acc_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&Acc_Descr_Mutex);
+    if (NULL != Acc_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", Acc_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "ACCUMULATOR %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&Acc_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Accumulator_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == Acc_Descr) return false;
+
+    unsigned int index;
+    index = Accumulator_Instance_To_Index(object_instance);
+    if (index >= Acc_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&Acc_Descr_Mutex);
+    free(Acc_Descr[index].Name);
+    Acc_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != Acc_Descr[index].Name)
+    {
+        strcpy(Acc_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&Acc_Descr_Mutex);
+
+    return true;
 }
 
 /**
@@ -178,10 +208,10 @@ BACNET_UNSIGNED_INTEGER Accumulator_Present_Value(uint32_t object_instance)
 {
     BACNET_UNSIGNED_INTEGER value = 0;
 
-    if (object_instance < MAX_ACCUMULATORS) {
-        pthread_mutex_lock(&Acc_Object_List_Mutex);
-        value = Object_List[object_instance].Present_Value;
-        pthread_mutex_unlock(&Acc_Object_List_Mutex);
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        value = Acc_Descr[object_instance].Present_Value;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
     }
 
     return value;
@@ -200,10 +230,10 @@ bool Accumulator_Present_Value_Set(
 {
     bool status = false;
 
-    if (object_instance < MAX_ACCUMULATORS) {
-        pthread_mutex_lock(&Acc_Object_List_Mutex);
-        Object_List[object_instance].Present_Value = value;
-        pthread_mutex_unlock(&Acc_Object_List_Mutex);
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        Acc_Descr[object_instance].Present_Value = value;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
         status = true;
     }
 
@@ -221,7 +251,7 @@ uint16_t Accumulator_Units(uint32_t object_instance)
 {
     uint16_t units = UNITS_NO_UNITS;
 
-    if (object_instance < MAX_ACCUMULATORS) {
+    if (object_instance < Acc_Descr_Size) {
         units = UNITS_WATT_HOURS;
     }
 
@@ -243,10 +273,10 @@ int32_t Accumulator_Scale_Integer(uint32_t object_instance)
 {
     int32_t scale = 0;
 
-    if (object_instance < MAX_ACCUMULATORS) {
-        pthread_mutex_lock(&Acc_Object_List_Mutex);
-        scale = Object_List[object_instance].Scale;
-        pthread_mutex_unlock(&Acc_Object_List_Mutex);
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        scale = Acc_Descr[object_instance].Scale;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
     }
 
     return scale;
@@ -268,10 +298,10 @@ bool Accumulator_Scale_Integer_Set(uint32_t object_instance, int32_t scale)
 {
     bool status = false;
 
-    if (object_instance < MAX_ACCUMULATORS) {
-        pthread_mutex_lock(&Acc_Object_List_Mutex);
-        Object_List[object_instance].Scale = scale;
-        pthread_mutex_unlock(&Acc_Object_List_Mutex);
+    if (object_instance < Acc_Descr_Size) {
+        pthread_mutex_lock(&Acc_Descr_Mutex);
+        Acc_Descr[object_instance].Scale = scale;
+        pthread_mutex_unlock(&Acc_Descr_Mutex);
         status = true;
     }
 
@@ -293,7 +323,7 @@ BACNET_UNSIGNED_INTEGER Accumulator_Max_Pres_Value(uint32_t object_instance)
 {
     BACNET_UNSIGNED_INTEGER max_value = 0;
 
-    if (object_instance < MAX_ACCUMULATORS) {
+    if (object_instance < Acc_Descr_Size) {
         max_value = BACNET_UNSIGNED_INTEGER_MAX;
     }
 
@@ -329,7 +359,7 @@ int Accumulator_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
             break;
         case PROP_OBJECT_NAME:
         case PROP_DESCRIPTION:
-            Accumulator_Object_Name(rpdata->object_instance, &char_string);
+            Accumulator_Name(rpdata->object_instance, &char_string);
             apdu_len =
                 encode_application_character_string(&apdu[0], &char_string);
             break;
@@ -438,19 +468,73 @@ bool Accumulator_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     return false;
 }
 
+void Accumulator_Resize(size_t new_size)
+{
+    Accumulator_Free();
+    Accumulator_Alloc(new_size);
+    Accumulator_Objects_Init();
+}
+
+void Accumulator_Add(size_t count)
+{
+    Accumulator_Resize(Acc_Descr_Size + count);
+}
+
+void Accumulator_Alloc(size_t size)
+{
+    pthread_mutex_lock(&Acc_Descr_Mutex);
+    
+    Acc_Descr = calloc(size, sizeof (*Acc_Descr));
+    if (NULL != Acc_Descr)
+    {
+        Acc_Descr_Size = size;
+    }
+  
+    pthread_mutex_unlock(&Acc_Descr_Mutex);
+}
+
+void Accumulator_Free(void)
+{
+    if (NULL == Acc_Descr) return;    
+
+    pthread_mutex_lock(&Acc_Descr_Mutex);
+
+    for(unsigned int i=0; i < Acc_Descr_Size; i++)
+    {
+        free(Acc_Descr[i].Name);
+    }
+
+    free(Acc_Descr);
+    Acc_Descr = NULL;
+    Acc_Descr_Size = 0;
+
+    pthread_mutex_unlock(&Acc_Descr_Mutex);
+}
+
+void Accumulator_Objects_Init(void)
+{
+    BACNET_UNSIGNED_INTEGER unsigned_value = 1;
+    unsigned i = 0;
+
+    for (i = 0; i < Acc_Descr_Size; i++) {
+        Accumulator_Scale_Integer_Set(i, i + 1);
+        Accumulator_Present_Value_Set(i, unsigned_value);
+        unsigned_value |= (unsigned_value << 1);
+        Acc_Descr[i].Name = NULL;
+    }
+}
+
 /**
  * Initializes the Accumulator object data
  */
 void Accumulator_Init(void)
 {
-    BACNET_UNSIGNED_INTEGER unsigned_value = 1;
-    unsigned i = 0;
 
-    for (i = 0; i < MAX_ACCUMULATORS; i++) {
-        Accumulator_Scale_Integer_Set(i, i + 1);
-        Accumulator_Present_Value_Set(i, unsigned_value);
-        unsigned_value |= (unsigned_value << 1);
-    }
+}
+
+void Accumulator_Cleanup(void)
+{
+    Accumulator_Free();
 }
 
 #ifdef TEST_ACCUMULATOR

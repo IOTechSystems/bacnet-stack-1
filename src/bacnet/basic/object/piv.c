@@ -28,6 +28,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
 
@@ -41,11 +42,8 @@
 #include "bacnet/basic/services.h"
 #include "bacnet/basic/object/piv.h"
 
-#ifndef MAX_POSITIVEINTEGER_VALUES
-#define MAX_POSITIVEINTEGER_VALUES 4
-#endif
-
-static POSITIVEINTEGER_VALUE_DESCR PIV_Descr[MAX_POSITIVEINTEGER_VALUES];
+static POSITIVEINTEGER_VALUE_DESCR *PIV_Descr = NULL;
+static size_t PIV_Descr_Size = 0;
 static pthread_mutex_t PIV_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
@@ -76,15 +74,71 @@ void PositiveInteger_Value_Property_Lists(
     return;
 }
 
-void PositiveInteger_Value_Init(void)
+void PositiveInteger_Value_Resize(size_t new_size)
+{
+    //could maybe copy state of old array to new one with memcpy?
+    PositiveInteger_Value_Free();
+    PositiveInteger_Value_Alloc(new_size);
+    PositiveInteger_Value_Objects_Init();
+}
+
+
+void PositiveInteger_Value_Add(size_t count)
+{
+    PositiveInteger_Value_Resize(PIV_Descr_Size + count);
+}
+
+void PositiveInteger_Value_Alloc(size_t size)
+{
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    PIV_Descr = calloc(size, sizeof(*PIV_Descr));
+    if(NULL != PIV_Descr)
+    {
+        PIV_Descr_Size = size;
+    }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+}
+
+void PositiveInteger_Value_Free(void)
+{
+    if (NULL == PIV_Descr) return;
+
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+
+    for(unsigned int i=0; i < PIV_Descr_Size; i++)
+    {
+        free(PIV_Descr[i].Name);
+    }
+
+    free(PIV_Descr);
+    PIV_Descr = NULL;
+    PIV_Descr_Size = 0;
+    
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+}
+
+void PositiveInteger_Value_Objects_Init(void)
 {
     unsigned i;
 
     pthread_mutex_lock(&PIV_Descr_Mutex);
-    for (i = 0; i < MAX_POSITIVEINTEGER_VALUES; i++) {
-        memset(&PIV_Descr[i], 0x00, sizeof(POSITIVEINTEGER_VALUE_DESCR));
+    for (i = 0; i < PIV_Descr_Size; i++) {
+        PIV_Descr[i].Units = 0;
+        PIV_Descr[i].Out_Of_Service = false;
+        PIV_Descr[i].Present_Value = 0;
+        PIV_Descr[i].Name = NULL;
     }
     pthread_mutex_unlock(&PIV_Descr_Mutex);
+}
+
+void PositiveInteger_Value_Init(void)
+{
+
+}
+
+void PositiveInteger_Value_Cleanup(void)
+{
+    PositiveInteger_Value_Free();
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -92,7 +146,7 @@ void PositiveInteger_Value_Init(void)
 /* given instance exists */
 bool PositiveInteger_Value_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_POSITIVEINTEGER_VALUES) {
+    if (object_instance < PIV_Descr_Size) {
         return true;
     }
 
@@ -103,7 +157,7 @@ bool PositiveInteger_Value_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned PositiveInteger_Value_Count(void)
 {
-    return MAX_POSITIVEINTEGER_VALUES;
+    return PIV_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -119,9 +173,9 @@ uint32_t PositiveInteger_Value_Index_To_Instance(unsigned index)
 /* that correlates to the correct instance number */
 unsigned PositiveInteger_Value_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_POSITIVEINTEGER_VALUES;
+    unsigned index = PIV_Descr_Size;
 
-    if (object_instance < MAX_POSITIVEINTEGER_VALUES) {
+    if (object_instance < PIV_Descr_Size) {
         index = object_instance;
     }
 
@@ -145,7 +199,7 @@ bool PositiveInteger_Value_Present_Value_Set(
     bool status = false;
 
     index = PositiveInteger_Value_Instance_To_Index(object_instance);
-    if (index < MAX_POSITIVEINTEGER_VALUES) {
+    if (index < PIV_Descr_Size) {
         pthread_mutex_lock(&PIV_Descr_Mutex);
         PIV_Descr[index].Present_Value = value;
         pthread_mutex_unlock(&PIV_Descr_Mutex);
@@ -160,7 +214,7 @@ uint32_t PositiveInteger_Value_Present_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = PositiveInteger_Value_Instance_To_Index(object_instance);
-    if (index < MAX_POSITIVEINTEGER_VALUES) {
+    if (index < PIV_Descr_Size) {
         pthread_mutex_lock(&PIV_Descr_Mutex);
         value = PIV_Descr[index].Present_Value;
         pthread_mutex_unlock(&PIV_Descr_Mutex);
@@ -174,15 +228,51 @@ bool PositiveInteger_Value_Object_Name(
     uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
     static char text_string[32] = ""; /* okay for single thread */
+    unsigned int index;
     bool status = false;
 
-    if (object_instance < MAX_POSITIVEINTEGER_VALUES) {
-        sprintf(text_string, "POSITIVEINTEGER VALUE %lu",
-            (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    if (NULL != PIV_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", PIV_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "POSITIVEINTEGER %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == PIV_Descr) return false;
+
+    unsigned int index;
+    index = PositiveInteger_Value_Instance_To_Index(object_instance);
+    if (index >= PIV_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&PIV_Descr_Mutex);
+    free(PIV_Descr[index].Name);
+    PIV_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != PIV_Descr[index].Name)
+    {
+        strcpy(PIV_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&PIV_Descr_Mutex);
+
+    return true;
 }
 
 /* return apdu len, or BACNET_STATUS_ERROR on error */
@@ -205,7 +295,7 @@ int PositiveInteger_Value_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
 
     object_index =
         PositiveInteger_Value_Instance_To_Index(rpdata->object_instance);
-    if (object_index < MAX_POSITIVEINTEGER_VALUES) {
+    if (object_index < PIV_Descr_Size) {
         pthread_mutex_lock(&PIV_Descr_Mutex);
         CurrentAV = &PIV_Descr[object_index];
         pthread_mutex_unlock(&PIV_Descr_Mutex);
@@ -311,7 +401,7 @@ bool PositiveInteger_Value_Write_Property(BACNET_WRITE_PROPERTY_DATA *wp_data)
     }
     object_index =
         PositiveInteger_Value_Instance_To_Index(wp_data->object_instance);
-    if (object_index < MAX_POSITIVEINTEGER_VALUES) {
+    if (object_index < PIV_Descr_Size) {
         pthread_mutex_lock(&PIV_Descr_Mutex);
         CurrentAV = &PIV_Descr[object_index];
         pthread_mutex_unlock(&PIV_Descr_Mutex);

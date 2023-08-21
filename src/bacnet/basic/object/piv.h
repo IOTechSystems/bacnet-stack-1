@@ -41,6 +41,7 @@ extern "C" {
         bool Out_Of_Service:1;
         uint32_t Present_Value;
         uint16_t Units;
+        char *Name;
     } POSITIVEINTEGER_VALUE_DESCR;
 
 
@@ -59,6 +60,8 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool PositiveInteger_Value_Object_Name(uint32_t object_instance,
         BACNET_CHARACTER_STRING * object_name);
+    BACNET_STACK_EXPORT
+    bool PositiveInteger_Value_Name_Set(uint32_t object_instance, char *new_name);
 
     BACNET_STACK_EXPORT
     int PositiveInteger_Value_Read_Property(BACNET_READ_PROPERTY_DATA *
@@ -101,7 +104,21 @@ extern "C" {
     void PositiveInteger_Value_Intrinsic_Reporting(uint32_t object_instance);
 
     BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Objects_Init(void);
+
+    BACNET_STACK_EXPORT
     void PositiveInteger_Value_Init(void);
+    BACNET_STACK_EXPORT
+    void PositiveInteger_Value_Cleanup(void);
+
 
 #ifdef BAC_TEST
 #include "ctest.h"

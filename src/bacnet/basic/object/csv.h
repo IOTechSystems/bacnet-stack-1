@@ -37,6 +37,15 @@
 extern "C" {
 #endif /* __cplusplus */
 
+
+    typedef struct character_string_value_descr
+    {
+        BACNET_CHARACTER_STRING Present_Value;
+        bool Out_Of_Service;
+        char Object_Name[64];
+        char Object_Description[64];
+    } CHARACTER_STRING_VALUE_DESCR;
+
     BACNET_STACK_EXPORT
     void CharacterString_Value_Property_Lists(
         const int **pRequired,
@@ -93,6 +102,23 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool CharacterString_Value_Out_Of_Service(
         uint32_t object_instance);
+
+
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Init(void);
+    BACNET_STACK_EXPORT
+    void CharacterString_Value_Cleanup(void);
 
     BACNET_STACK_EXPORT
     void CharacterString_Value_Init(

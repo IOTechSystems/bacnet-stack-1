@@ -38,6 +38,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    #define TL_MAX_ENTRIES 1000     /* Entries per datalog */
+
 /* Error code for Trend Log storage */
     typedef struct tl_error {
         uint16_t usClass;
@@ -81,7 +83,7 @@ extern "C" {
 #define TL_T_START_WILD 1       /* Start time is wild carded */
 #define TL_T_STOP_WILD  2       /* Stop Time is wild carded */
 
-#define TL_MAX_ENTRIES 1000     /* Entries per datalog */
+
 
 /* Structure containing config and status info for a Trend Log */
 
@@ -110,6 +112,13 @@ extern "C" {
  * log buffer but they are also the tag numbers to use when encoding/decoding
  * the log datum field.
  */
+
+    typedef struct trend_log_descr
+    {
+        TL_DATA_REC Logs[TL_MAX_ENTRIES];
+        TL_LOG_INFO Log_Info;
+    } TREND_LOG_DESCR;
+
 
 #define TL_TYPE_STATUS  0
 #define TL_TYPE_BOOL    1
@@ -158,9 +167,22 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Trend_Log_Write_Property(
         BACNET_WRITE_PROPERTY_DATA * wp_data);
+
     BACNET_STACK_EXPORT
-    void Trend_Log_Init(
-        void);
+    void Trend_Log_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Trend_Log_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Trend_Log_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Trend_Log_Free(void);
+    BACNET_STACK_EXPORT
+    void Trend_Log_Objects_Init(void);    
+
+    BACNET_STACK_EXPORT
+    void Trend_Log_Init(void);
+    BACNET_STACK_EXPORT
+    void Trend_Log_Cleanup(void);
 
     BACNET_STACK_EXPORT
     void TL_Insert_Status_Rec(

@@ -37,6 +37,12 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct analog_output_descr {
+        uint8_t Level[BACNET_MAX_PRIORITY];
+        bool Out_Of_Service;
+        char *Name;
+    } ANALOG_OUTPUT_DESCR;
+
     BACNET_STACK_EXPORT
     void Analog_Output_Property_Lists(
         const int **pRequired,
@@ -147,6 +153,17 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Output_Write_Property(
         BACNET_WRITE_PROPERTY_DATA * wp_data);
+
+    BACNET_STACK_EXPORT
+    void Analog_Output_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Free(void);
+    BACNET_STACK_EXPORT
+    void Analog_Output_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     bool Analog_Output_Create(

@@ -37,6 +37,13 @@
 extern "C" {
 #endif /* __cplusplus */
 
+    typedef struct binary_value_descr
+    {
+        BACNET_BINARY_PV Level[BACNET_MAX_PRIORITY];
+        bool Out_Of_Service;
+        char * Name;
+    } BINARY_VALUE_DESCR;
+
     BACNET_STACK_EXPORT
     void Binary_Value_Init(
         void);
@@ -169,6 +176,18 @@ extern "C" {
     bool Binary_Value_Polarity_Set(
         uint32_t object_instance,
         BACNET_POLARITY polarity);
+
+    BACNET_STACK_EXPORT
+    void Binary_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void Binary_Value_Objects_Init(void);
+
     BACNET_STACK_EXPORT
     bool Binary_Value_Create(
         uint32_t object_instance);

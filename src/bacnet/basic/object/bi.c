@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 
 #include "bacnet/bacdef.h"
@@ -41,19 +43,10 @@
 #include "bacnet/basic/object/bi.h"
 #include "bacnet/basic/services.h"
 
-#ifndef MAX_BINARY_INPUTS
-#define MAX_BINARY_INPUTS 5
-#endif
-
 /* stores the current value */
-static BACNET_BINARY_PV Present_Value[MAX_BINARY_INPUTS];
-static pthread_mutex_t BI_Present_Value_Mutex = PTHREAD_MUTEX_INITIALIZER;
-/* out of service decouples physical input from Present_Value */
-static bool Out_Of_Service[MAX_BINARY_INPUTS];
-/* Change of Value flag */
-static bool Change_Of_Value[MAX_BINARY_INPUTS];
-/* Polarity of Input */
-static BACNET_POLARITY Polarity[MAX_BINARY_INPUTS];
+static BINARY_INPUT_DESCR *BI_Descr = NULL;
+static size_t BI_Descr_Size = 0;
+static pthread_mutex_t BI_Descr_Mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* These three arrays are used by the ReadPropertyMultiple handler */
 static const int Binary_Input_Properties_Required[] = { PROP_OBJECT_IDENTIFIER,
@@ -85,7 +78,7 @@ void Binary_Input_Property_Lists(
 /* given instance exists */
 bool Binary_Input_Valid_Instance(uint32_t object_instance)
 {
-    if (object_instance < MAX_BINARY_INPUTS) {
+    if (object_instance < BI_Descr_Size) {
         return true;
     }
 
@@ -96,7 +89,7 @@ bool Binary_Input_Valid_Instance(uint32_t object_instance)
 /* more complex, and then count how many you have */
 unsigned Binary_Input_Count(void)
 {
-    return MAX_BINARY_INPUTS;
+    return BI_Descr_Size;
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -107,7 +100,48 @@ uint32_t Binary_Input_Index_To_Instance(unsigned index)
     return index;
 }
 
-void Binary_Input_Init(void)
+
+void Binary_Input_Resize(size_t new_size)
+{
+    //could maybe copy state of old array to new one with memcpy?
+    Binary_Input_Free();
+    Binary_Input_Alloc(new_size);
+    Binary_Input_Objects_Init();
+}
+
+void Binary_Input_Add(size_t count)
+{
+    Binary_Input_Resize(BI_Descr_Size + count);
+}
+
+void Binary_Input_Alloc(size_t size)
+{
+    pthread_mutex_lock(&BI_Descr_Mutex);
+    BI_Descr = calloc(size, sizeof (*BI_Descr));
+    if(NULL != BI_Descr)
+    {
+        BI_Descr_Size = size;
+    }
+    pthread_mutex_unlock(&BI_Descr_Mutex);
+}
+
+void Binary_Input_Free(void)
+{
+    if (NULL == BI_Descr) return;    
+
+    pthread_mutex_lock(&BI_Descr_Mutex);
+    for(unsigned int i=0; i < BI_Descr_Size; i++)
+    {
+        free(BI_Descr[i].Name);
+    }
+
+    free(BI_Descr);
+    BI_Descr = NULL;
+    BI_Descr_Size = 0;
+    pthread_mutex_unlock(&BI_Descr_Mutex);
+}
+
+void Binary_Input_Objects_Init(void)
 {
     static bool initialized = false;
     unsigned i;
@@ -116,14 +150,24 @@ void Binary_Input_Init(void)
         initialized = true;
 
         /* initialize all the values */
-        pthread_mutex_lock(&BI_Present_Value_Mutex);
-        for (i = 0; i < MAX_BINARY_INPUTS; i++) {
-            Present_Value[i] = BINARY_INACTIVE;
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        for (i = 0; i < BI_Descr_Size; i++) {
+            BI_Descr[i].Present_Value = BINARY_INACTIVE;
+            BI_Descr[i].Name = NULL;
         }
-        pthread_mutex_unlock(&BI_Present_Value_Mutex);
+        
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
+}
 
-    return;
+void Binary_Input_Init(void)
+{
+
+}
+
+void Binary_Input_Cleanup(void)
+{
+    Binary_Input_Free();
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -131,9 +175,9 @@ void Binary_Input_Init(void)
 /* that correlates to the correct instance number */
 unsigned Binary_Input_Instance_To_Index(uint32_t object_instance)
 {
-    unsigned index = MAX_BINARY_INPUTS;
+    unsigned index = BI_Descr_Size;
 
-    if (object_instance < MAX_BINARY_INPUTS) {
+    if (object_instance < BI_Descr_Size) {
         index = object_instance;
     }
 
@@ -146,17 +190,18 @@ BACNET_BINARY_PV Binary_Input_Present_Value(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        pthread_mutex_lock(&BI_Present_Value_Mutex);
-        value = Present_Value[index];
-        pthread_mutex_unlock(&BI_Present_Value_Mutex);
-        if (Polarity[index] != POLARITY_NORMAL) {
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        value = BI_Descr[index].Present_Value;
+        
+        if (BI_Descr[index].Polarity != POLARITY_NORMAL) {
             if (value == BINARY_INACTIVE) {
                 value = BINARY_ACTIVE;
             } else {
                 value = BINARY_INACTIVE;
             }
         }
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return value;
@@ -168,8 +213,10 @@ bool Binary_Input_Out_Of_Service(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        value = Out_Of_Service[index];
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        value = BI_Descr[index].Out_Of_Service;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return value;
@@ -181,8 +228,10 @@ bool Binary_Input_Change_Of_Value(uint32_t object_instance)
     unsigned index;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        status = Change_Of_Value[index];
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        status = BI_Descr[index].Change_Of_Value;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return status;
@@ -193,8 +242,10 @@ void Binary_Input_Change_Of_Value_Clear(uint32_t object_instance)
     unsigned index;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        Change_Of_Value[index] = false;
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        BI_Descr[index].Change_Of_Value = false;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return;
@@ -220,10 +271,10 @@ bool Binary_Input_Encode_Value_List(
         value_list->value.tag = BACNET_APPLICATION_TAG_ENUMERATED;
         value_list->value.next = NULL;
 
-        pthread_mutex_lock(&BI_Present_Value_Mutex);
+        pthread_mutex_lock(&BI_Descr_Mutex);
         value_list->value.type.Enumerated =
             Binary_Input_Present_Value(object_instance);
-        pthread_mutex_unlock(&BI_Present_Value_Mutex);
+        pthread_mutex_unlock(&BI_Descr_Mutex);
 
         value_list->priority = BACNET_NO_PRIORITY;
         value_list = value_list->next;
@@ -263,20 +314,20 @@ bool Binary_Input_Present_Value_Set(
     bool status = false;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        if (Polarity[index] != POLARITY_NORMAL) {
+    if (index < BI_Descr_Size) {
+        if (BI_Descr[index].Polarity != POLARITY_NORMAL) {
             if (value == BINARY_INACTIVE) {
                 value = BINARY_ACTIVE;
             } else {
                 value = BINARY_INACTIVE;
             }
         }
-        pthread_mutex_lock(&BI_Present_Value_Mutex);
-        if (Present_Value[index] != value) {
-            Change_Of_Value[index] = true;
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        if (BI_Descr[index].Present_Value != value) {
+            BI_Descr[index].Change_Of_Value = true;
         }
-        Present_Value[index] = value;
-        pthread_mutex_unlock(&BI_Present_Value_Mutex);
+        BI_Descr[index].Present_Value = value;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
         status = true;
     }
 
@@ -288,11 +339,13 @@ void Binary_Input_Out_Of_Service_Set(uint32_t object_instance, bool value)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        if (Out_Of_Service[index] != value) {
-            Change_Of_Value[index] = true;
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        if (BI_Descr[index].Out_Of_Service != value) {
+            BI_Descr[index].Change_Of_Value = true;
         }
-        Out_Of_Service[index] = value;
+        BI_Descr[index].Out_Of_Service = value;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return;
@@ -302,17 +355,51 @@ bool Binary_Input_Object_Name(
     uint32_t object_instance, BACNET_CHARACTER_STRING *object_name)
 {
     static char text_string[32] = ""; /* okay for single thread */
+    unsigned int index;
     bool status = false;
-    unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        sprintf(
-            text_string, "BINARY INPUT %lu", (unsigned long)object_instance);
-        status = characterstring_init_ansi(object_name, text_string);
+    if (index >= BI_Descr_Size) {
+        return status;
     }
 
+    pthread_mutex_lock(&BI_Descr_Mutex);
+    if (NULL != BI_Descr[index].Name)
+    {
+        snprintf(text_string, 32, "%s", BI_Descr[index].Name);   
+    }
+    else
+    {
+        sprintf(text_string, "BINARY INPUT %lu", (unsigned long)index);
+    }
+    pthread_mutex_unlock(&BI_Descr_Mutex);
+
+    status = characterstring_init_ansi(object_name, text_string);
+
     return status;
+}
+
+bool Binary_Input_Name_Set(uint32_t object_instance, char *new_name)
+{
+    if (NULL == BI_Descr) return false;
+
+    unsigned int index;
+    index = Binary_Input_Instance_To_Index(object_instance);
+    if (index >= BI_Descr_Size)
+    {
+        return false;
+    }
+
+    pthread_mutex_lock(&BI_Descr_Mutex);
+    free(BI_Descr[index].Name);
+    BI_Descr[index].Name = calloc(strlen(new_name) + 1, sizeof(char));
+    if (NULL != BI_Descr[index].Name)
+    {
+        strcpy(BI_Descr[index].Name, new_name);
+    }
+    pthread_mutex_unlock(&BI_Descr_Mutex);
+
+    return true;
 }
 
 BACNET_POLARITY Binary_Input_Polarity(uint32_t object_instance)
@@ -321,8 +408,10 @@ BACNET_POLARITY Binary_Input_Polarity(uint32_t object_instance)
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        polarity = Polarity[index];
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        polarity = BI_Descr[index].Polarity;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return polarity;
@@ -335,8 +424,10 @@ bool Binary_Input_Polarity_Set(
     unsigned index = 0;
 
     index = Binary_Input_Instance_To_Index(object_instance);
-    if (index < MAX_BINARY_INPUTS) {
-        Polarity[index] = polarity;
+    if (index < BI_Descr_Size) {
+        pthread_mutex_lock(&BI_Descr_Mutex);
+        BI_Descr[index].Polarity = polarity;
+        pthread_mutex_unlock(&BI_Descr_Mutex);
     }
 
     return status;

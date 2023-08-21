@@ -105,7 +105,21 @@ extern "C" {
         BACNET_ATOMIC_WRITE_FILE_DATA * data);
 
     BACNET_STACK_EXPORT
+    void bacfile_resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void bacfile_add(size_t count);
+    BACNET_STACK_EXPORT
+    void bacfile_alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void bacfile_free(void);
+    BACNET_STACK_EXPORT
+    void bacfile_objects_init(void);        
+
+    BACNET_STACK_EXPORT
     void bacfile_init(
+        void);
+    BACNET_STACK_EXPORT
+    void bacfile_cleanup(
         void);
     BACNET_STACK_EXPORT
     uint32_t bacfile_file_size(

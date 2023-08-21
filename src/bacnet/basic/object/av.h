@@ -52,6 +52,7 @@ extern "C" {
         float Prior_Value;
         float COV_Increment;
         bool Changed;
+        char *Name;
 #if defined(INTRINSIC_REPORTING)
         uint32_t Time_Delay;
         uint32_t Notification_Class;
@@ -187,6 +188,17 @@ extern "C" {
         unsigned index,
         BACNET_GET_ALARM_SUMMARY_DATA * getalarm_data);
 #endif
+
+    BACNET_STACK_EXPORT
+    void Analog_Value_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Value_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Analog_Value_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Analog_Value_Free(void);
+    BACNET_STACK_EXPORT
+    void Analog_Value_Objects_Init(void);
 
     BACNET_STACK_EXPORT
     bool Analog_Value_Create(

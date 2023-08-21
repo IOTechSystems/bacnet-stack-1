@@ -364,6 +364,18 @@ extern "C" {
         BACNET_READ_RANGE_DATA * pRequest,
         RR_PROP_INFO * pInfo);
 
+
+    BACNET_STACK_EXPORT
+    void Network_Port_Resize(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Network_Port_Add(size_t count);
+    BACNET_STACK_EXPORT
+    void Network_Port_Alloc(size_t new_size);
+    BACNET_STACK_EXPORT
+    void Network_Port_Free(void);
+    BACNET_STACK_EXPORT
+    void Network_Port_Objects_Init(void);    
+
     BACNET_STACK_EXPORT
     bool Network_Port_Create(
         uint32_t object_instance);
