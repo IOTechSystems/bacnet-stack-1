@@ -173,13 +173,6 @@ extern "C" {
     void Binary_Output_Free(void);
     BACNET_STACK_EXPORT
     void Binary_Output_Objects_Init(void);
-
-    BACNET_STACK_EXPORT
-    bool Binary_Output_Create(
-        uint32_t object_instance);
-    BACNET_STACK_EXPORT
-    bool Binary_Output_Delete(
-        uint32_t object_instance);
     BACNET_STACK_EXPORT
     void Binary_Output_Cleanup(
         void);
