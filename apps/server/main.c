@@ -59,6 +59,227 @@
 #include "bacnet/basic/ucix/ucix.h"
 #endif /* defined(BAC_UCI) */
 
+/**---------SIMULATED Device scripting ----------**/
+
+#include "bacnet/basic/object/ai.h"
+#include "bacnet/basic/object/ao.h"
+#include "bacnet/basic/object/av.h"
+
+#include "bacnet/basic/object/bi.h"
+#include "bacnet/basic/object/bo.h"
+#include "bacnet/basic/object/bv.h"
+
+#include "bacnet/basic/object/iv.h"
+#include "bacnet/basic/object/piv.h"
+#include "bacnet/basic/object/acc.h"
+
+#include "lua5.3/lua.h"
+#include "lua5.3/lauxlib.h"
+#include "lua5.3/lualib.h"
+
+#include <pthread.h>
+
+lua_State *lua_update_state = NULL; //lua state for the update loop
+lua_State *lua_thread_state = NULL; //lua state for the thread
+
+pthread_t script_runner_pthread;
+bool script_running = false;
+
+static int set_analog_input (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  Analog_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int set_analog_output (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Analog_Output_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_analog_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  float value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Analog_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_input (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  Binary_Input_Present_Value_Set(object_instance, value);
+  return 0;
+}
+
+static int set_binary_output (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Binary_Output_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_binary_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber(L, 1);
+  uint8_t value = lua_tonumber(L, 2);
+  unsigned int priority = lua_tonumber(L,3);
+  Binary_Value_Present_Value_Set(object_instance, value, priority);
+  return 0;
+}
+
+static int set_integer_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  int32_t value = lua_tonumber (L, 2);
+  uint8_t priority = lua_tonumber (L, 3);
+  Integer_Value_Present_Value_Set (object_instance, value, priority);
+  return 0;
+}
+
+static int set_positive_integer_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  uint32_t value = lua_tonumber (L, 2);
+  uint8_t priority = lua_tonumber (L, 3);
+  PositiveInteger_Value_Present_Value_Set (object_instance, value, priority);
+  return 0;
+}
+
+static int set_accumulator_value (lua_State *L)
+{
+  uint32_t object_instance = lua_tonumber (L, 1);
+  uint32_t value = lua_tonumber (L, 2);
+  Accumulator_Present_Value_Set (object_instance, value);
+  return 0;
+}
+
+static void setup_lua_callbacks(lua_State *L)
+{
+  static const struct luaL_Reg callbacks [] = {
+      {"setAnalogInput", set_analog_input},
+      {"setAnalogOutput", set_analog_output},
+      {"setAnalogValue", set_analog_value},
+      {"setBinaryInput", set_binary_input},
+      {"setBinaryOutput", set_binary_output},
+      {"setBinaryValue", set_binary_value},
+      {"setIntegerValue", set_integer_value},
+      {"setPositiveIntegerValue", set_positive_integer_value},
+      {"setAccumulatorValue", set_accumulator_value}
+  };
+
+  lua_newtable(L);
+  luaL_setfuncs(L, callbacks, 0);
+  lua_setglobal(L, "bacnet");
+} 
+
+static void lua_fail (lua_State *L)
+{
+  printf ("LUA ERROR: %s\n", lua_tostring(L, -1));  
+}
+
+static bool lua_call_function(lua_State *L, const char* function_name)
+{
+  lua_getglobal(L, function_name);
+  if (lua_pcall (L, 0, 0, 0))
+  {
+    printf ("No '%s' function found.\n", function_name);
+    lua_fail(L);
+    return false;
+  }     
+  return true;        
+}
+
+static bool lua_init_state(lua_State **L, const char* file_path)
+{
+  *L = luaL_newstate();
+  luaL_openlibs (*L);
+  
+  setup_lua_callbacks (*L);
+
+  if (luaL_loadfile (*L, file_path) || lua_pcall (*L, 0, 0, 0)) 
+  {
+    lua_fail(*L);
+    return false;
+  }
+  return true;
+}
+
+//cleanup and exit
+static void simulated_exit(void) 
+{
+  if (script_running)
+  {
+    pthread_join (script_runner_pthread, NULL);   
+  }
+
+  if (NULL != lua_update_state)
+  {
+    lua_close (lua_update_state);
+  }
+
+  printf("Exiting...\n");
+  exit(1);
+}
+
+//calls update function in lua script
+static void simulated_update(void)
+{
+  if(!lua_call_function (lua_update_state, "Update"))
+  {
+    simulated_exit();
+  }
+}
+
+static void *lua_script_runner (void * ptr)
+{
+  lua_call_function (lua_thread_state, "Run");
+  lua_close (lua_thread_state);
+  return NULL;
+}
+
+static void init_update(const char* file_path)
+{
+  if (!lua_init_state (&lua_update_state, file_path))
+  {
+    simulated_exit();
+  }
+}
+
+static void init_thread_runner(const char* file_path)
+{
+  if (!lua_init_state (&lua_thread_state, file_path))
+  {
+    simulated_exit();
+  }
+
+  script_running = true;
+  pthread_create (&script_runner_pthread, NULL, lua_script_runner, NULL);
+}
+
+static void simulated_init (const char * file_path)
+{
+  printf("Loading lua script...\n");
+  fflush(stdout);
+
+  init_thread_runner (file_path); 
+  init_update (file_path);
+
+  printf("Loaded lua script sucessfully.\n");
+  fflush(stdout);
+}
+
+/**---------SIMULATED Device scripting end ----------**/
+
 /** @file server/main.c  Example server application using the BACnet Stack. */
 
 /* (Doxygen note: The next two lines pull all the following Javadoc
@@ -148,24 +369,29 @@ static void Init_Service_Handlers(void)
 
 static void print_usage(const char *filename)
 {
-    printf("Usage: %s [device-instance [device-name]]\n", filename);
+    printf("Usage: %s [--script script_path] [--instance instance_number] [--name device-name]\n", filename);
     printf("       [--version][--help]\n");
 }
 
 static void print_help(const char *filename)
 {
     printf("Simulate a BACnet server device\n"
-           "device-instance:\n"
+           "--script:\n"
+           "Path to device simulation Lua script\n"
+           "--instance:\n"
            "BACnet Device Object Instance number that you are\n"
            "trying simulate.\n"
-           "device-name:\n"
+           "--name:\n"
            "The Device object-name is the text name for the device.\n"
            "\nExample:\n");
     printf("To simulate Device 123, use the following command:\n"
-           "%s 123\n",
+           "%s --instance 123\n",
         filename);
     printf("To simulate Device 123 named Fred, use following command:\n"
-           "%s 123 Fred\n",
+           "%s --instance 123 --name Fred\n", 
+        filename);
+    printf("To simulate Device 123 named Fred using the script example.lua , use following command:\n"
+           "%s --script example.lua --instance 123 --name Fred\n",
         filename);
 }
 
@@ -183,6 +409,7 @@ static void print_help(const char *filename)
  */
 int main(int argc, char *argv[])
 {
+    
     BACNET_ADDRESS src = { 0 }; /* address where message came from */
     uint16_t pdu_len = 0;
     unsigned timeout = 1; /* milliseconds */
@@ -203,6 +430,11 @@ int main(int argc, char *argv[])
 #endif
     int argi = 0;
     const char *filename = NULL;
+    const char *devicename = NULL;
+    const char *scriptpath = NULL;
+    long instance_num = 0;
+    bool instance_set = false;
+    bool using_script = false;
 
     filename = filename_remove_path(argv[0]);
     for (argi = 1; argi < argc; argi++) {
@@ -220,6 +452,36 @@ int main(int argc, char *argv[])
                    "FITNESS FOR A PARTICULAR PURPOSE.\n");
             return 0;
         }
+
+        if (strcmp(argv[argi], "--script") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          scriptpath = argv[argi];
+          using_script = true;
+        }
+
+        if (strcmp(argv[argi], "--instance") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          instance_num = strtol(argv[argi], NULL, 0);
+          instance_set = true;
+        }
+
+        if (strcmp(argv[argi], "--name") == 0) {
+          if (argi == argc)
+          {
+            continue;
+          }
+          argi++;
+          devicename = argv[argi]; 
+        }
+
     }
 #if defined(BAC_UCI)
     ctx = ucix_init("bacnet_dev");
@@ -232,34 +494,46 @@ int main(int argc, char *argv[])
     } else {
 #endif /* defined(BAC_UCI) */
         /* allow the device ID to be set */
-        if (argc > 1) {
-            Device_Set_Object_Instance_Number(strtol(argv[1], NULL, 0));
-        }
 
 #if defined(BAC_UCI)
     }
     ucix_cleanup(ctx);
 #endif /* defined(BAC_UCI) */
+    
+    if (instance_set)
+    {
+      Device_Set_Object_Instance_Number(instance_num);
+    }
+
 
     printf("BACnet Server Demo\n"
            "BACnet Stack Version %s\n"
            "BACnet Device ID: %u\n"
            "Max APDU: %d\n",
         BACnet_Version, Device_Object_Instance_Number(), MAX_APDU);
+    fflush(stdout);
     /* load any static address bindings to show up
        in our device bindings list */
     address_init();
     Init_Service_Handlers();
-    if (argc > 2) {
-        Device_Object_Name_ANSI_Init(argv[2]);
+
+    if (devicename) {
+        Device_Object_Name_ANSI_Init(devicename);
     }
+
     dlenv_init();
     atexit(datalink_cleanup);
+
     /* configure the timeout values */
     last_seconds = time(NULL);
     /* broadcast an I-Am on startup */
     Send_I_Am(&Handler_Transmit_Buffer[0]);
     /* loop forever */
+    if (scriptpath != NULL)
+    {
+      simulated_init(scriptpath);
+    }
+
     for (;;) {
         /* input */
         current_seconds = time(NULL);
@@ -309,8 +583,12 @@ int main(int argc, char *argv[])
         /* output */
 
         /* blink LEDs, Turn on or off outputs, etc */
+        if (using_script)
+        {
+          simulated_update();
+        }
+        
     }
-
     return 0;
 }
 

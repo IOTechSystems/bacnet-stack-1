@@ -128,7 +128,8 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Binary_Value_Present_Value_Set(
         uint32_t instance,
-        BACNET_BINARY_PV value);
+        BACNET_BINARY_PV value,
+        unsigned priority);
 
     BACNET_STACK_EXPORT
     bool Binary_Value_Out_Of_Service(

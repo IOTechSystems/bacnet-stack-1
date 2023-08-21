@@ -28,6 +28,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
+
 #include "bacnet/bacdef.h"
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacenum.h"
@@ -52,6 +54,7 @@
 /* we don't have that kind of memory, so we will use a single byte */
 /* and load a Real for returning the value when asked. */
 static uint8_t Analog_Output_Level[MAX_ANALOG_OUTPUTS][BACNET_MAX_PRIORITY];
+static pthread_mutex_t AO_Level_Mutex = PTHREAD_MUTEX_INITIALIZER;
 /* Writable out-of-service allows others to play with our Present Value */
 /* without changing the physical output */
 static bool Out_Of_Service[MAX_ANALOG_OUTPUTS];
@@ -95,7 +98,9 @@ void Analog_Output_Init(void)
         /* initialize all the analog output priority arrays to NULL */
         for (i = 0; i < MAX_ANALOG_OUTPUTS; i++) {
             for (j = 0; j < BACNET_MAX_PRIORITY; j++) {
+                pthread_mutex_lock(&AO_Level_Mutex);
                 Analog_Output_Level[i][j] = AO_LEVEL_NULL;
+                pthread_mutex_unlock(&AO_Level_Mutex);
             }
         }
     }
@@ -152,12 +157,14 @@ float Analog_Output_Present_Value(uint32_t object_instance)
 
     index = Analog_Output_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_OUTPUTS) {
+        pthread_mutex_lock(&AO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
                 value = Analog_Output_Level[index][i];
                 break;
             }
         }
+        pthread_mutex_unlock(&AO_Level_Mutex);
     }
 
     return value;
@@ -171,12 +178,14 @@ unsigned Analog_Output_Present_Value_Priority(uint32_t object_instance)
 
     index = Analog_Output_Instance_To_Index(object_instance);
     if (index < MAX_ANALOG_OUTPUTS) {
+        pthread_mutex_lock(&AO_Level_Mutex);
         for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
             if (Analog_Output_Level[index][i] != AO_LEVEL_NULL) {
                 priority = i + 1;
                 break;
             }
         }
+        pthread_mutex_unlock(&AO_Level_Mutex);
     }
 
     return priority;
@@ -193,7 +202,9 @@ bool Analog_Output_Present_Value_Set(
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */) && (value >= 0.0) &&
             (value <= 100.0)) {
+            pthread_mutex_lock(&AO_Level_Mutex);
             Analog_Output_Level[index][priority - 1] = (uint8_t)value;
+            pthread_mutex_unlock(&AO_Level_Mutex);
             /* Note: you could set the physical output here to the next
                highest priority, or to the relinquish default if no
                priorities are set.
@@ -217,7 +228,9 @@ bool Analog_Output_Present_Value_Relinquish(
     if (index < MAX_ANALOG_OUTPUTS) {
         if (priority && (priority <= BACNET_MAX_PRIORITY) &&
             (priority != 6 /* reserved */)) {
+            pthread_mutex_lock(&AO_Level_Mutex);
             Analog_Output_Level[index][priority - 1] = AO_LEVEL_NULL;
+            pthread_mutex_unlock(&AO_Level_Mutex);
             /* Note: you could set the physical output here to the next
                highest priority, or to the relinquish default if no
                priorities are set.
@@ -339,6 +352,7 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                     Analog_Output_Instance_To_Index(rpdata->object_instance);
                 for (i = 0; i < BACNET_MAX_PRIORITY; i++) {
                     /* FIXME: check if we have room before adding it to APDU */
+                    pthread_mutex_lock(&AO_Level_Mutex);
                     if (Analog_Output_Level[object_index][i] == AO_LEVEL_NULL) {
                         len = encode_application_null(&apdu[apdu_len]);
                     } else {
@@ -346,6 +360,7 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                         len = encode_application_real(
                             &apdu[apdu_len], real_value);
                     }
+                    pthread_mutex_unlock(&AO_Level_Mutex);
                     /* add it if we have room */
                     if ((apdu_len + len) < MAX_APDU) {
                         apdu_len += len;
@@ -360,6 +375,7 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                 object_index =
                     Analog_Output_Instance_To_Index(rpdata->object_instance);
                 if (rpdata->array_index <= BACNET_MAX_PRIORITY) {
+                    pthread_mutex_lock(&AO_Level_Mutex);
                     if (Analog_Output_Level[object_index][rpdata->array_index -
                             1] == AO_LEVEL_NULL) {
                         apdu_len = encode_application_null(&apdu[0]);
@@ -370,6 +386,7 @@ int Analog_Output_Read_Property(BACNET_READ_PROPERTY_DATA *rpdata)
                         apdu_len =
                             encode_application_real(&apdu[0], real_value);
                     }
+                    pthread_mutex_unlock(&AO_Level_Mutex);
                 } else {
                     rpdata->error_class = ERROR_CLASS_PROPERTY;
                     rpdata->error_code = ERROR_CODE_INVALID_ARRAY_INDEX;
