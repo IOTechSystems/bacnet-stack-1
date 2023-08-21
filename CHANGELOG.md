@@ -44,3 +44,7 @@
 # Whats Changed in v1.0.6
 
 - Added fix for uninitialised cov increment value for simulator
+
+# Whats Changed in v1.0.7
+
+- Updated present value property of Positive Integer Value to be uint64 instead of uint32

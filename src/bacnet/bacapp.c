@@ -54,11 +54,6 @@
 #define snprintf _snprintf
 #endif
 
-static BACNET_APPLICATION_DATA_VALUE *bacapp_allocate_new_value(
-    bool * needed,
-    BACNET_APPLICATION_DATA_VALUE * current,
-    BACNET_APPLICATION_DATA_VALUE * temp_value);
-
 static int bacapp_decode_context_data_complex(
     uint8_t * apdu,
     int max_apdu_len,
