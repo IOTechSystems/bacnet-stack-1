@@ -2,27 +2,32 @@ cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
 project(
   bacnet-stack
-  VERSION 0.8.6
+  VERSION 1.0.0
   LANGUAGES C)
+
+if ("${LINUX_SYS}" STREQUAL "AzureSphere")
+  cmake_minimum_required (VERSION 3.10)
+  azsphere_configure_tools (TOOLS_REVISION "20.11")
+  azsphere_configure_api (TARGET_API_SET "${AZURE_SPHERE_TARGET_API_SET}")
+  set (AZURESPHERE_API "${AZURE_SPHERE_TARGET_API_SET}")
+  set (AZURESPHERE_SDK_DIR /opt/azurespheresdk/Sysroots/${AZURESPHERE_API})
+  set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_AZURESPHERE_ -D_GNU_SOURCE -UBACFILE")
+  option (BUILD_TESTING "build tests" OFF)
+  option (BACNET_STACK_BUILD_APPS "build apps" OFF)
+  option (BAC_ROUTING "enable bac routing" OFF)
+  option (BACNET_PROPERTY_LISTS "enable property lists" OFF)
+else ()
+  option (BACNET_STACK_BUILD_APPS "build apps" ON)
+  option (BAC_ROUTING "enable bac routing" ON)
+  option (BACNET_PROPERTY_LISTS "enable property lists" ON)
+endif ()
 
 #
 # options
 #
 
-option(
-  BACNET_STACK_BUILD_APPS
-  "build apps"
-  ON)
-
-option(
-  BAC_ROUTING
-  "enable bac routing"
-  ON)
-
-option(
-  BACNET_PROPERTY_LISTS
-  "enable property lists"
-  ON)
+option (BACDL_NONE "compile without datalink" OFF)
+option (BACDL_BIP "compile without ip support" ON)
 
 option(
   BACNET_BUILD_PIFACE_APP
@@ -45,18 +50,8 @@ option(
   OFF)
 
 option(
-  BACDL_BIP
-  "compile with ip support"
-  ON)
-
-option(
   BACDL_BIP6
   "compile with ipv6 support"
-  OFF)
-
-option(
-  BACDL_NONE
-  "compile without datalink"
   OFF)
 
 set(BACNET_PROTOCOL_REVISION 19)
@@ -67,7 +62,12 @@ set(BACNET_PROTOCOL_REVISION 19)
 
 find_package(Threads)
 
+if (NOT "${LINUX_SYS}" STREQUAL "AzureSphere")
+  set (OPT_LIB_FILES src/bacnet/basic/object/bacfile.c src/bacnet/basic/object/bacfile.h)
+endif ()
+
 add_library(${PROJECT_NAME}
+    ${OPT_LIB_FILES}
     src/bacnet/abort.c
     src/bacnet/abort.h
     src/bacnet/access_rule.c
@@ -144,8 +144,6 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/object/ao.h
     src/bacnet/basic/object/av.c
     src/bacnet/basic/object/av.h
-    src/bacnet/basic/object/bacfile.c
-    src/bacnet/basic/object/bacfile.h
     src/bacnet/basic/object/bi.c
     src/bacnet/basic/object/bi.h
     src/bacnet/basic/object/bo.c
@@ -348,7 +346,7 @@ add_library(${PROJECT_NAME}
     src/bacnet/datalink/dlenv.h
     src/bacnet/datalink/dlmstp.h
     src/bacnet/datalink/ethernet.h
-    $<$<BOOL:${BACDL_MSTP}>:src/bacnet/datalink/mstp.h>
+    $<$<BOOL:${BACDL_MSTP}>:src/bacnet/datalink/mstp.c>
     src/bacnet/datalink/mstpdef.h
     src/bacnet/datalink/mstp.h
     src/bacnet/datalink/mstptext.c
@@ -434,7 +432,7 @@ target_compile_definitions(
   $<$<BOOL:${BAC_ROUTING}>:BAC_ROUTING>
   $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BACNET_STACK_STATIC_DEFINE>
   PRIVATE
-  PRINT_ENABLED=1)
+  PRINT_ENABLED=0)
 target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
 
 add_library(
@@ -448,7 +446,9 @@ add_library(
 
 set(BACNET_PORT_DIRECTORY_PATH "")
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(ZEPHYR_BASE)
+  message(FATAL_ERROR "ZEPHYR_BASE env variable defined. Use zephyr/CMakeLists.txt for Zephyr build")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR "${LINUX_SYS}" STREQUAL "AzureSphere")
   message(STATUS "BACNET: building for linux")
   set(BACNET_PORT_DIRECTORY_PATH ${CMAKE_CURRENT_LIST_DIR}/ports/linux)
 
@@ -461,8 +461,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/rs485.h>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp.c>
-    $<$<BOOL:${BACDL_MSTP}>:src/bacnet/datalink/mstp.c>
-    #$<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.c>
+    $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.c>
     $<$<BOOL:${BACDL_MSTP}>:ports/linux/dlmstp_linux.h>
     # ports/linux/rx_fsm.c
     $<$<BOOL:${BACDL_ETHERNET}>:ports/linux/ethernet.c>
@@ -564,11 +563,13 @@ if(BACNET_STACK_BUILD_APPS)
   #   apps/ptransfer/s_ptransfer.c)
   # target_link_libraries(ptransfer PRIVATE ${PROJECT_NAME})
 
-  add_executable(readbdt apps/readbdt/main.c)
-  target_link_libraries(readbdt PRIVATE ${PROJECT_NAME})
+  if(NOT BACDL_ETHERNET)
+    add_executable(readbdt apps/readbdt/main.c)
+    target_link_libraries(readbdt PRIVATE ${PROJECT_NAME})
 
-  add_executable(readfdt apps/readfdt/main.c)
-  target_link_libraries(readfdt PRIVATE ${PROJECT_NAME})
+    add_executable(readfdt apps/readfdt/main.c)
+    target_link_libraries(readfdt PRIVATE ${PROJECT_NAME})
+  endif()
 
   add_executable(readfile apps/readfile/main.c)
   target_link_libraries(readfile PRIVATE ${PROJECT_NAME})

@@ -177,7 +177,7 @@ static void debug_print_string(const char *str)
 #ifndef BBMD_BACKUP_FILE
 #define BBMD_BACKUP_FILE BACnet_BDT_table
 #endif
-#if defined(BBMD_BACKUP_FILE)
+#if defined(BBMD_BACKUP_FILE) && ! defined(_AZURESPHERE_)
 #define tostr(a) str(a)
 #define str(a) #a
 

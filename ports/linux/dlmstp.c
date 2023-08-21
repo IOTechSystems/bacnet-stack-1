@@ -696,7 +696,7 @@ void dlmstp_get_broadcast_address(BACNET_ADDRESS *dest)
 
 bool dlmstp_init(char *ifname)
 {
-    unsigned long hThread = 0;
+    pthread_t hThread;
     pthread_condattr_t attr;
     int rv = 0;
 
