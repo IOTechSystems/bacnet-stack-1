@@ -101,6 +101,7 @@ void Analog_Value_Set_Properties(
     float high_limit,
     float low_limit,
     float deadband,
+    float cov_increment,
     unsigned limit_enable,
     unsigned event_enable,
     unsigned notify_type   
@@ -111,13 +112,14 @@ void Analog_Value_Set_Properties(
     {
         return;
     }
-
     Analog_Value_Name_Set(object_instance, object_name);
     Analog_Value_Present_Value_Set (object_instance, value, 1);
+    Analog_Value_COV_Increment_Set(object_instance, cov_increment);
     Analog_Value_Out_Of_Service_Set (object_instance, out_of_service);
 
     pthread_mutex_lock(&AV_Descr_Mutex);
     AV_Descr[index].Units = units;
+    AV_Descr[index].Prior_Value = value;
 #if defined(INTRINSIC_REPORTING)
     AV_Descr[index].Event_State = event_state;
     AV_Descr[index].Time_Delay = time_delay;
@@ -129,7 +131,6 @@ void Analog_Value_Set_Properties(
     AV_Descr[index].Event_Enable = event_enable;
     AV_Descr[index].Notify_Type = notify_type;
 #endif
-
     pthread_mutex_unlock(&AV_Descr_Mutex);
 }
 
@@ -171,6 +172,7 @@ void Analog_Value_Add(size_t count)
             1000.0f,
             -1000.0f,
             0.0f,
+            0.0f,
             LIMIT_ENABLE_ALL,
             EVENT_ENABLE_ALL,
             NOTIFY_EVENT
@@ -209,7 +211,7 @@ void Analog_Value_Objects_Init(void)
         AV_Descr[i].Present_Value = 0.0;
         AV_Descr[i].Units = UNITS_NO_UNITS;
         AV_Descr[i].Prior_Value = 0.0f;
-        AV_Descr[i].COV_Increment = 1.0f;
+        AV_Descr[i].COV_Increment = 0.0f;
         AV_Descr[i].Changed = false;
         AV_Descr[i].Name = NULL;
 #if defined(INTRINSIC_REPORTING)
