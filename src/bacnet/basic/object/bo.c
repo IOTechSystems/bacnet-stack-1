@@ -92,7 +92,11 @@ void Binary_Output_Set_Properties(
     }   
 
     Binary_Output_Name_Set(object_instance, object_name);
-    Binary_Output_Present_Value_Set(object_instance, value,1);
+    Binary_Output_Present_Value_Set(object_instance, value,16);
+    for (uint8_t i = 1; i < BACNET_MAX_PRIORITY; i++)
+    {
+        Binary_Output_Present_Value_Set(object_instance, BINARY_NULL, i);
+    }
     
     pthread_mutex_lock(&BO_Descr_Mutex);
     BO_Descr[index].Out_Of_Service = out_of_service;
@@ -257,8 +261,7 @@ bool Binary_Output_Present_Value_Set(
 
     index = Binary_Output_Instance_To_Index(object_instance);
     if (index < BO_Descr_Size) {
-        if (priority && (priority <= BACNET_MAX_PRIORITY) &&
-            (priority != 6 /* reserved */)) {
+        if (priority && (priority <= BACNET_MAX_PRIORITY)) {
             pthread_mutex_lock(&BO_Descr_Mutex);
             BO_Descr[index].Level[priority - 1] = binary_value;
             pthread_mutex_unlock(&BO_Descr_Mutex);

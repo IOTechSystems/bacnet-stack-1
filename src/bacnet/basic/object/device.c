@@ -97,6 +97,7 @@ static object_functions_t My_Object_Table[] = {
         Device_Property_Lists, DeviceGetRRInfo, NULL /* Iterator */,
         NULL /* Value_Lists */, NULL /* COV */, NULL /* COV Clear */,
         NULL /* Intrinsic Reporting */ },
+
 #if (BACNET_PROTOCOL_REVISION >= 17)
     { OBJECT_NETWORK_PORT, Network_Port_Init, Network_Port_Cleanup, Network_Port_Count,
         Network_Port_Index_To_Instance, Network_Port_Valid_Instance,
@@ -105,6 +106,7 @@ static object_functions_t My_Object_Table[] = {
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
 #endif
+#ifdef BACNET_SIMULATOR
     { OBJECT_ANALOG_INPUT, Analog_Input_Init, Analog_Input_Cleanup, Analog_Input_Count,
         Analog_Input_Index_To_Instance, Analog_Input_Valid_Instance,
         Analog_Input_Object_Name, Analog_Input_Read_Property,
@@ -184,7 +186,6 @@ static object_functions_t My_Object_Table[] = {
         Load_Control_Write_Property, Load_Control_Property_Lists,
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
-#ifndef _AZURESPHERE_
     { OBJECT_MULTI_STATE_INPUT, Multistate_Input_Init, Multistate_Input_Cleanup, Multistate_Input_Count,
         Multistate_Input_Index_To_Instance, Multistate_Input_Valid_Instance,
         Multistate_Input_Object_Name, Multistate_Input_Read_Property,
@@ -212,7 +213,6 @@ static object_functions_t My_Object_Table[] = {
         Trend_Log_Write_Property, Trend_Log_Property_Lists, TrendLogGetRRInfo,
         NULL /* Iterator */, NULL /* Value_Lists */, NULL /* COV */,
         NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
-#endif
 #if (BACNET_PROTOCOL_REVISION >= 14) && defined(BACAPP_LIGHTING_COMMAND)
     { OBJECT_LIGHTING_OUTPUT, Lighting_Output_Init, Lighting_Output_Cleanup, Lighting_Output_Count,
         Lighting_Output_Index_To_Instance, Lighting_Output_Valid_Instance,
@@ -247,20 +247,19 @@ static object_functions_t My_Object_Table[] = {
         PositiveInteger_Value_Property_Lists, NULL /* ReadRangeInfo */,
         NULL /* Iterator */, NULL /* Value_Lists */, NULL /* COV */,
         NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
-#ifndef _AZURESPHERE_
     { OBJECT_SCHEDULE, Schedule_Init, Schedule_Cleanup, Schedule_Count,
         Schedule_Index_To_Instance, Schedule_Valid_Instance,
         Schedule_Object_Name, Schedule_Read_Property, Schedule_Write_Property,
         Schedule_Property_Lists, NULL /* ReadRangeInfo */, NULL /* Iterator */,
         NULL /* Value_Lists */, NULL /* COV */, NULL /* COV Clear */,
         NULL /* Intrinsic Reporting */ },
-#endif
     { OBJECT_ACCUMULATOR, Accumulator_Init, Accumulator_Cleanup, Accumulator_Count,
         Accumulator_Index_To_Instance, Accumulator_Valid_Instance,
         Accumulator_Name, Accumulator_Read_Property,
         Accumulator_Write_Property, Accumulator_Property_Lists,
         NULL /* ReadRangeInfo */, NULL /* Iterator */, NULL /* Value_Lists */,
         NULL /* COV */, NULL /* COV Clear */, NULL /* Intrinsic Reporting */ },
+#endif
     { MAX_BACNET_OBJECT_TYPE, NULL /* Init */, NULL /* Count */,
         NULL /* Index_To_Instance */, NULL /* Valid_Instance */,
         NULL /* Object_Name */, NULL /* Read_Property */,
@@ -410,16 +409,29 @@ void Device_Property_Lists(
    The properties that are constant can be hard coded
    into the read-property encoding. */
 
-static uint32_t Object_Instance_Number = 260001;
+#ifdef BACNET_SIMULATOR
+static uint32_t Object_Instance_Number = 1234;
 static BACNET_CHARACTER_STRING My_Object_Name;
 static BACNET_DEVICE_STATUS System_Status = STATUS_OPERATIONAL;
 static char *Vendor_Name = BACNET_VENDOR_NAME;
 static uint16_t Vendor_Identifier = BACNET_VENDOR_ID;
-static char Model_Name[MAX_DEV_MOD_LEN + 1] = "GNU";
-static char Application_Software_Version[MAX_DEV_VER_LEN + 1] = "1.0";
+static char Model_Name[MAX_DEV_MOD_LEN + 1] = "IOTech BACnet Simulator";
+static char Application_Software_Version[MAX_DEV_VER_LEN + 1] = "2.0";
 static const char *BACnet_Version = BACNET_VERSION_TEXT;
-static char Location[MAX_DEV_LOC_LEN + 1] = "USA";
-static char Description[MAX_DEV_DESC_LEN + 1] = "server";
+static char Location[MAX_DEV_LOC_LEN + 1] = "UK";
+static char Description[MAX_DEV_DESC_LEN + 1] = "IOTech BACnet Simulator";
+#else
+static uint32_t Object_Instance_Number = 0;
+static BACNET_CHARACTER_STRING My_Object_Name;
+static BACNET_DEVICE_STATUS System_Status = STATUS_OPERATIONAL;
+static char *Vendor_Name = BACNET_VENDOR_NAME;
+static uint16_t Vendor_Identifier = BACNET_VENDOR_ID;
+static char Model_Name[MAX_DEV_MOD_LEN + 1] = "IOTech Edge XRT BACnet";
+static char Application_Software_Version[MAX_DEV_VER_LEN + 1] = "1.2";
+static const char *BACnet_Version = BACNET_VERSION_TEXT;
+static char Location[MAX_DEV_LOC_LEN + 1] = "UK";
+static char Description[MAX_DEV_DESC_LEN + 1] = "IOTech Edge XRT BACnet Device Service Component";
+#endif
 /* static uint8_t Protocol_Version = 1; - constant, not settable */
 /* static uint8_t Protocol_Revision = 4; - constant, not settable */
 /* Protocol_Services_Supported - dynamically generated */
@@ -1830,7 +1842,11 @@ void Device_Init(object_functions_t *object_table)
         characterstring_init_ansi(&My_Object_Name, uciname);
     } else {
 #endif /* defined(BAC_UCI) */
-        characterstring_init_ansi(&My_Object_Name, "SimpleServer");
+#ifdef BACNET_SIMULATOR
+        characterstring_init_ansi(&My_Object_Name, "IOTech BACnet Simulator");
+#else
+        characterstring_init_ansi(&My_Object_Name, "IOTech Edge XRT BACnet Device Service Component");
+#endif
 #if defined(BAC_UCI)
     }
     ucix_cleanup(ctx);

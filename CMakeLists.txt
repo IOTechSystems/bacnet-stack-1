@@ -13,34 +13,22 @@ if ("${LINUX_SYS}" STREQUAL "AzureSphere")
   set (AZURESPHERE_API "${AZURE_SPHERE_TARGET_API_SET}")
   set (AZURESPHERE_SDK_DIR /opt/azurespheresdk/Sysroots/${AZURESPHERE_API})
   set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_AZURESPHERE_ -D_GNU_SOURCE -UBACFILE")
-  option (BUILD_TESTING "build tests" OFF)
-  option (BACNET_STACK_BUILD_APPS "build apps" OFF)
-  option (BAC_ROUTING "enable bac routing" OFF)
-  option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (BIG_OBJECTS "include support for bigger objects" OFF)
-else ()
-  option (BAC_ROUTING "enable bac routing" ON)
-  option (BACNET_PROPERTY_LISTS "enable property lists" ON)
-  option (BIG_OBJECTS "include support for bigger objects" ON)
 endif ()
 
 #
 # options
 #
+option (BACNET_SIMULATOR "include server bacnet object files" OFF)
+option (BACNET_PROPERTY_LISTS "enable property lists" ON)
+option (BAC_ROUTING "enable bac routing" OFF)
+option (BUILD_TESTING "build tests" OFF)
 option (BACNET_STACK_BUILD_APPS "build apps" OFF)
-  
 option (BACDL_NONE "compile without datalink" OFF)
-
 option (BACDL_BIP "compile without ip support" OFF)
-
 option (BACNET_BUILD_PIFACE_APP "compile the piface app" OFF)
-
 option (BACDL_ETHERNET "compile with ethernet support" OFF)
-
 option (BACDL_MSTP "compile with mstp support" OFF)
-
 option (BACDL_ARCNET "compile with arcnet support" OFF)
-
 option (BACDL_BIP6 "compile with ipv6 support" OFF)
 
 set(BACNET_PROTOCOL_REVISION 19)
@@ -114,72 +102,72 @@ add_library(${PROJECT_NAME}
     src/bacnet/basic/npdu/h_routed_npdu.h
     src/bacnet/basic/npdu/s_router.c
     src/bacnet/basic/npdu/s_router.h
-    src/bacnet/basic/object/access_credential.c
-    src/bacnet/basic/object/access_credential.h
-    src/bacnet/basic/object/access_door.c
-    src/bacnet/basic/object/access_door.h
-    src/bacnet/basic/object/access_point.c
-    src/bacnet/basic/object/access_point.h
-    src/bacnet/basic/object/access_rights.c
-    src/bacnet/basic/object/access_rights.h
-    src/bacnet/basic/object/access_user.c
-    src/bacnet/basic/object/access_user.h
-    src/bacnet/basic/object/access_zone.c
-    src/bacnet/basic/object/access_zone.h
-    src/bacnet/basic/object/acc.c
-    src/bacnet/basic/object/ai.c
-    src/bacnet/basic/object/ai.h
-    src/bacnet/basic/object/ao.c
-    src/bacnet/basic/object/ao.h
-    src/bacnet/basic/object/av.c
-    src/bacnet/basic/object/av.h
-    src/bacnet/basic/object/bi.c
-    src/bacnet/basic/object/bi.h
-    src/bacnet/basic/object/bo.c
-    src/bacnet/basic/object/bo.h
-    src/bacnet/basic/object/bv.c
-    src/bacnet/basic/object/bv.h
-    src/bacnet/basic/object/channel.c
-    src/bacnet/basic/object/channel.h
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_credential.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_credential.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_door.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_door.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_point.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_point.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_rights.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_rights.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_user.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_user.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_zone.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/access_zone.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/acc.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ai.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ai.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ao.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ao.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/av.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/av.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bi.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bi.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bo.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bo.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/bv.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/channel.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/channel.h>
     # src/bacnet/basic/object/client/device-client.c
-    src/bacnet/basic/object/command.c
-    src/bacnet/basic/object/command.h
-    src/bacnet/basic/object/credential_data_input.c
-    src/bacnet/basic/object/credential_data_input.h
-    src/bacnet/basic/object/csv.c
-    src/bacnet/basic/object/csv.h
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/command.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/command.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/credential_data_input.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/credential_data_input.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/csv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/csv.h>
     src/bacnet/basic/object/device.c
     src/bacnet/basic/object/device.h
     $<$<BOOL:${BAC_ROUTING}>:src/bacnet/basic/object/gateway/gw_device.c>
-    src/bacnet/basic/object/iv.c
-    src/bacnet/basic/object/iv.h
-    src/bacnet/basic/object/lc.c
-    src/bacnet/basic/object/lc.h
-    src/bacnet/basic/object/lo.c
-    src/bacnet/basic/object/lo.h
-    src/bacnet/basic/object/lsp.c
-    src/bacnet/basic/object/lsp.h
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/iv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/iv.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lc.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lc.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lo.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lo.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lsp.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/lsp.h>
     src/bacnet/basic/object/Makefile
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/ms-input.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/mso.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/msv.h>
-    src/bacnet/basic/object/nc.c
-    src/bacnet/basic/object/nc.h
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ms-input.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/ms-input.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/mso.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/mso.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/msv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/msv.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/nc.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/nc.h>
     src/bacnet/basic/object/netport.c
     src/bacnet/basic/object/netport.h
     src/bacnet/basic/object/objects.c
     src/bacnet/basic/object/objects.h
-    src/bacnet/basic/object/osv.c
-    src/bacnet/basic/object/osv.h
-    src/bacnet/basic/object/piv.c
-    src/bacnet/basic/object/piv.h
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/schedule.h>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.c>
-    $<$<BOOL:${BIG_OBJECTS}>:src/bacnet/basic/object/trendlog.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/osv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/osv.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/piv.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/piv.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/schedule.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/schedule.h>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/trendlog.c>
+    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/trendlog.h>
     src/bacnet/basic/service/h_alarm_ack.c
     src/bacnet/basic/service/h_alarm_ack.h
     src/bacnet/basic/service/h_apdu.c
@@ -601,7 +589,7 @@ if(BACNET_STACK_BUILD_APPS)
     add_executable(router-ipv6 apps/router-ipv6/main.c)
     target_link_libraries(router-ipv6 PRIVATE ${PROJECT_NAME})
   endif()
-  
+
   add_executable(scov apps/scov/main.c)
   target_link_libraries(scov PRIVATE ${PROJECT_NAME})
 
@@ -698,3 +686,9 @@ message(STATUS "BACNET: BACDL_ARCNET:...................\"${BACDL_ARCNET}\"")
 message(STATUS "BACNET: BACDL_MSTP:.....................\"${BACDL_MSTP}\"")
 message(STATUS "BACNET: BACDL_ETHERNET:.................\"${BACDL_ETHERNET}\"")
 message(STATUS "BACNET: BACDL_NONE:.....................\"${BACDL_NONE}\"")
+message(STATUS "BACNET: BACNET_SIMULATOR:.................\"${BACNET_SIMULATOR}\"")
+message(STATUS "BACNET: BACNET_PROPERTY_LISTS:..........\"${BACNET_PROPERTY_LISTS}\"")
+message(STATUS "BACNET: BAC_ROUTING:....................\"${BAC_ROUTING}\"")
+message(STATUS "BACNET: BUILD_TESTING:..................\"${BUILD_TESTING}\"")
+message(STATUS "BACNET: BACNET_STACK_BUILD_APPS:........\"${BACNET_STACK_BUILD_APPS}\"")
+message(STATUS "BACNET: BACNET_BUILD_PIFACE_APP:........\"${BACNET_BUILD_PIFACE_APP}\"")
