@@ -56,3 +56,7 @@
 # Whats Changed in v1.0.9
 
 - Added new direct addressing functions for writing properties and registering COVs
+
+# Whats Changed in v1.1.0
+
+- Changed from global TSM invoke ID cache to a per device cache
