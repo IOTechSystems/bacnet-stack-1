@@ -147,18 +147,23 @@ int dlenv_register_as_foreign_device(void)
         BBMD_Address_Valid = bip_get_addr_by_name(pEnv, &BBMD_Address);
     }
     if (BBMD_Address_Valid) {
-        if (BIP_DL_Debug) {
             fprintf(stderr,
-                "Registering with BBMD at %u.%u.%u.%u:%u for %u seconds\n",
+                "Trying to register with BBMD at %u.%u.%u.%u:%u for %u seconds\n",
                 (unsigned)BBMD_Address.address[0],
                 (unsigned)BBMD_Address.address[1],
                 (unsigned)BBMD_Address.address[2],
                 (unsigned)BBMD_Address.address[3], (unsigned)BBMD_Address.port,
                 (unsigned)BBMD_TTL_Seconds);
-        }
         retval = bvlc_register_with_bbmd(&BBMD_Address, BBMD_TTL_Seconds);
         if (retval < 0) {
             fprintf(stderr, "FAILED to Register with BBMD at %u.%u.%u.%u:%u\n",
+                (unsigned)BBMD_Address.address[0],
+                (unsigned)BBMD_Address.address[1],
+                (unsigned)BBMD_Address.address[2],
+                (unsigned)BBMD_Address.address[3], (unsigned)BBMD_Address.port);
+        }
+        else {
+            fprintf (stderr, "SUCCEEDED to Register with BBMD at %u.%u.%u.%u:%u\n",
                 (unsigned)BBMD_Address.address[0],
                 (unsigned)BBMD_Address.address[1],
                 (unsigned)BBMD_Address.address[2],
@@ -408,7 +413,7 @@ void dlenv_maintenance_timer(uint16_t elapsed_seconds)
  *     communications.  Default is 47808 (0xBAC0).
  *   - BACNET_BIP6_BROADCAST - FF05::BAC0 or FF02::BAC0 or ...
  */
-void dlenv_init(void)
+int dlenv_init(void)
 {
     char *pEnv = NULL;
 
@@ -507,7 +512,7 @@ void dlenv_init(void)
     }
     /* === Initialize the Datalink Here === */
     if (!datalink_init(getenv("BACNET_IFACE"))) {
-        exit(1);
+        return 1;
     }
 #if (MAX_TSM_TRANSACTIONS)
     pEnv = getenv("BACNET_INVOKE_ID");
@@ -516,5 +521,9 @@ void dlenv_init(void)
     }
 #endif
     dlenv_network_port_init();
-    dlenv_register_as_foreign_device();
+    if (dlenv_register_as_foreign_device() < 0)
+    {
+        return 1;
+    }
+    return 0;
 }
