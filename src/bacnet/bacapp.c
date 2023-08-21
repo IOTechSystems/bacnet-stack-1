@@ -54,6 +54,18 @@
 #define snprintf _snprintf
 #endif
 
+static BACNET_APPLICATION_DATA_VALUE *bacapp_allocate_new_value(
+    bool * needed,
+    BACNET_APPLICATION_DATA_VALUE * current,
+    BACNET_APPLICATION_DATA_VALUE * temp_value);
+
+static int bacapp_decode_context_data_complex(
+    uint8_t * apdu,
+    int max_apdu_len,
+    uint8_t tag_number,
+    BACNET_APPLICATION_DATA_VALUE * value,
+    BACNET_PROPERTY_ID prop);
+
 /** @brief Encode application data given by a pointer into the APDU.
  *  Return the number encoded bytes.
  *
@@ -766,7 +778,21 @@ int bacapp_decode_context_data(uint8_t *apdu,
                 /* SHOULD NOT HAPPEN, EXCEPTED WHEN READING UNKNOWN CONTEXTUAL
                  * PROPERTY */
             } else {
-                apdu_len = BACNET_STATUS_ERROR;
+                /* Unknown value : (constructed type) */
+                /* SHOULD NOT HAPPEN, EXCEPTED WHEN READING UNKNOWN CONTEXTUAL PROPERTY */
+
+                /* Addition to stack to allow it to step through the
+                * whole packet even with complex types */
+
+                /* Decode more complex data */
+                len = bacapp_decode_context_data_complex(&apdu[apdu_len],
+                    max_apdu_len - apdu_len, tag_number, value, property);
+                /* IOTech: putting the tag as MAX so that the application will
+                * not process this value */
+                value->tag = MAX_BACNET_APPLICATION_TAG;
+                if (len < 0)
+                    return BACNET_STATUS_ERROR;
+                apdu_len += len;
             }
         } else if (tag_len == 1) { /* and is a Closing tag */
             apdu_len = 0; /* Don't advance over that closing tag. */
@@ -1638,6 +1664,91 @@ void bacapp_property_value_list_init(BACNET_PROPERTY_VALUE *value, size_t count)
             value++;
         }
     }
+}
+
+/* auto alloc-and-copy data */
+static
+BACNET_APPLICATION_DATA_VALUE *bacapp_allocate_new_value(
+    bool * needed,
+    BACNET_APPLICATION_DATA_VALUE * current,
+    BACNET_APPLICATION_DATA_VALUE * temp_value)
+{
+    BACNET_APPLICATION_DATA_VALUE *nvalue;
+    if (!*needed) {
+        *needed = true;
+        *current = *temp_value;
+        nvalue = current;
+    } else {
+        /* Alloc new data block, link it to current block */
+        nvalue = calloc(1, sizeof(BACNET_APPLICATION_DATA_VALUE));
+        current->next = nvalue;
+        *nvalue = *temp_value;
+    }
+    /* clear temporary data */
+    memset(temp_value, 0, sizeof(BACNET_APPLICATION_DATA_VALUE));
+    /* return * last * block */
+    while (nvalue->next)
+        nvalue = nvalue->next;
+    return nvalue;
+}
+
+static int bacapp_decode_context_data_complex(
+    uint8_t * apdu,
+    int max_apdu_len,
+    uint8_t tag_number,
+    BACNET_APPLICATION_DATA_VALUE * value,
+    BACNET_PROPERTY_ID prop)
+{
+    BACNET_APPLICATION_DATA_VALUE tmpvalue = { 0 };
+    int len = 0;
+    bool allocate_data = false;
+    int apdu_len = 0;
+    uint8_t inner_tag_number = 0;
+
+    /* If it's closed : leave */
+    while (!decode_is_closing_tag_number(&apdu[apdu_len], tag_number) &&
+           (apdu_len < max_apdu_len)) {
+        allocate_data = false;          // IOTech: added this to ensure complex data is not allocated
+        /* Context ou pas ! */
+        if (IS_CONTEXT_SPECIFIC(apdu[apdu_len])) {
+            /* open a new tag area */
+            if (decode_is_opening_tag(&apdu[apdu_len])) {
+                /* decode new tag  */
+                decode_tag_number(&apdu[apdu_len], &inner_tag_number);
+                apdu_len++;
+                /* Recurse into special structure */
+                len = bacapp_decode_context_data_complex(&apdu[apdu_len],
+                    max_apdu_len - apdu_len, inner_tag_number, &tmpvalue, prop);
+                if (len >= 0) {
+                    apdu_len += len;
+                    value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
+                } else
+                    return -1;
+                continue;
+            } else {
+                /* Decode : length/value/type */
+                len = bacapp_decode_context_data(&apdu[apdu_len],
+                    max_apdu_len - apdu_len, &tmpvalue, prop);
+                if (len > 0) {
+                    apdu_len += len;
+                    value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
+                } else
+                    return -1;
+            }
+        } else {
+            /* Normal stuff */
+            len = bacapp_decode_application_data(&apdu[apdu_len],
+                max_apdu_len - apdu_len, &tmpvalue);
+            if (len > 0) {
+                apdu_len += len;
+                value = bacapp_allocate_new_value(&allocate_data, value, &tmpvalue);
+            } else
+                return -1;
+        }
+    }
+    apdu_len++; /* jump closing tag */
+
+    return apdu_len;
 }
 
 #ifdef BAC_TEST
