@@ -254,7 +254,7 @@ bool Analog_Output_Present_Value_Set(
             (priority != 6 /* reserved */) && (value >= 0.0) &&
             (value <= 100.0)) {
             pthread_mutex_lock(&AO_Descr_Mutex);
-            AO_Descr[index].Level[priority - 1] = (uint8_t)value;
+            AO_Descr[index].Level[priority - 1] = value;
             pthread_mutex_unlock(&AO_Descr_Mutex);
             /* Note: you could set the physical output here to the next
                highest priority, or to the relinquish default if no
