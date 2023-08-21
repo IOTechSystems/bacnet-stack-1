@@ -154,8 +154,8 @@ add_library(${PROJECT_NAME}
     $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/mso.h>
     $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/msv.c>
     $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/msv.h>
-    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/nc.c>
-    $<$<BOOL:${BACNET_SIMULATOR}>:src/bacnet/basic/object/nc.h>
+    src/bacnet/basic/object/nc.c
+    src/bacnet/basic/object/nc.h
     src/bacnet/basic/object/netport.c
     src/bacnet/basic/object/netport.h
     src/bacnet/basic/object/objects.c

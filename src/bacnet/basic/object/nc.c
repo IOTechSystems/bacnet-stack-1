@@ -73,8 +73,6 @@ void Notification_Class_Property_Lists(
     return;
 }
 
-
-
 void Notification_Class_Resize(size_t new_size)
 {
     Notification_Class_Free();
@@ -96,7 +94,7 @@ void Notification_Class_Free(void)
 
 void Notification_Class_Alloc(size_t size)
 {
-    NC_Info = calloc(size, sizeof (*NC_Info));
+    NC_Info = calloc(size, sizeof(*NC_Info));
     if (NULL != NC_Info)
     {
         NC_Info_Size = size;
@@ -122,18 +120,14 @@ void Notification_Class_Objects_Init()
 
     return;
 }
-   
 
 void Notification_Class_Cleanup()
 {
     Notification_Class_Free();
 }
 
-
-
 void Notification_Class_Init(void)
 {
-
 }
 
 /* we simply have 0-n object instances.  Yours might be */
@@ -946,7 +940,7 @@ void Notification_Class_common_reporting_function(
 
 /* This function tries to find the addresses of the defined devices. */
 /* It should be called periodically (example once per minute). */
-void Notification_Class_find_recipient(void)
+void Notification_Class_Find_Recipient(void)
 {
     NOTIFICATION_CLASS_INFO *CurrentNotify;
     BACNET_DESTINATION *pBacDest;
@@ -956,8 +950,7 @@ void Notification_Class_find_recipient(void)
     uint32_t DeviceID;
     uint8_t idx;
 
-    for (notify_index = 0; notify_index < NC_Info_Size;
-         notify_index++) {
+    for (notify_index = 0; notify_index < NC_Info_Size; notify_index++) {
         /* pointer to current notification */
         CurrentNotify =
             &NC_Info[Notification_Class_Instance_To_Index(notify_index)];
@@ -979,4 +972,72 @@ void Notification_Class_find_recipient(void)
         }
     }
 }
+
+void Notification_Class_Register_Destination (uint32_t device_id, uint16_t nc_instance, bool confirmed)
+{
+    bool empty_space = false;
+    bool already_registered = false;
+    BACNET_DESTINATION *RecipientEntry;
+    if (nc_instance >= NC_Info_Size)
+    {
+        fprintf(stdout, "NC instance is larger than maximum in the Simulator\n");
+        return;
+    }
+    NOTIFICATION_CLASS_INFO *NC_Instance = &NC_Info[nc_instance];
+
+    for (uint8_t idx = 0; idx < NC_MAX_RECIPIENTS; idx++)
+    {
+        RecipientEntry = &NC_Instance->Recipient_List[idx];
+        if (RecipientEntry->Recipient.RecipientType == RECIPIENT_TYPE_DEVICE &&
+            RecipientEntry->Recipient._.DeviceIdentifier == device_id)
+        {
+            already_registered = true;
+            break;
+        }
+        if (RecipientEntry->Recipient.RecipientType == RECIPIENT_TYPE_NOTINITIALIZED)
+        {
+            empty_space = true;
+        }
+    }
+
+    if (already_registered)
+    {
+        fprintf(stdout, "Already Registered as a Recipient\n");
+        return;
+    }
+    else if (!empty_space)
+    {
+        fprintf(stdout, "No empty spaces left in the recipient list\n");
+        return;
+    }
+
+    for (uint8_t idx = 0; idx < NC_MAX_RECIPIENTS; idx++)
+    {
+        RecipientEntry = &NC_Instance->Recipient_List[idx];
+        if (RecipientEntry->Recipient.RecipientType == RECIPIENT_TYPE_NOTINITIALIZED)
+        {
+            RecipientEntry->Recipient.RecipientType = RECIPIENT_TYPE_DEVICE;
+            RecipientEntry->Recipient._.DeviceIdentifier = device_id;
+            RecipientEntry->ValidDays = 255;
+            RecipientEntry->FromTime.hour = 0;
+            RecipientEntry->FromTime.min = 0;
+            RecipientEntry->FromTime.sec = 0;
+            RecipientEntry->FromTime.hundredths = 0;
+            RecipientEntry->ToTime.hour = 23;
+            RecipientEntry->ToTime.min = 59;
+            RecipientEntry->ToTime.sec = 59;
+            RecipientEntry->ToTime.hundredths = 0;
+            RecipientEntry->Transitions = 255;
+            RecipientEntry->ConfirmedNotify = confirmed;
+
+            BACNET_ADDRESS src = {0};
+            unsigned max_apdu = 0;
+            address_bind_request(device_id, &max_apdu, &src);
+            Send_WhoIs (device_id, device_id);
+            fprintf(stdout, "Successfully registered device_id %u to the Recipient List of NC instance %u\n", device_id, nc_instance);
+            break;
+        }
+    }
+}
+
 #endif /* defined(INTRINSIC_REPORTING) */
