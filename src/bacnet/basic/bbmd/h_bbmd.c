@@ -841,12 +841,13 @@ int bvlc_bbmd_enabled_handler(BACNET_IP_ADDRESS *addr,
                     "Received Result Code =", BVLC_Result_Code);
             }
             /* Set the BBMD registration bool to successful, signal the condition variable and unlock the mutex */
+            pthread_mutex_lock (&mutex);
             if (bbmd_reg_success == false)
             {
                 bbmd_reg_success = true;
                 pthread_cond_signal (&cond);
-                pthread_mutex_unlock (&mutex);
             }
+            pthread_mutex_unlock (&mutex);
             break;
         case BVLC_WRITE_BROADCAST_DISTRIBUTION_TABLE:
             debug_print_bip("Received Write-BDT", addr);
@@ -1152,26 +1153,37 @@ int bvlc_register_with_bbmd(BACNET_IP_ADDRESS *bbmd_addr, uint16_t ttl_seconds)
     BVLC_Buffer_Len = bvlc_encode_register_foreign_device(
         &BVLC_Buffer[0], sizeof(BVLC_Buffer), ttl_seconds);
 
+    pthread_mutex_init (&mutex, NULL);
+
+    pthread_mutex_lock (&mutex);
     /* Set the initial value of the BBMD registration bool to false */
     bbmd_reg_success = false;
+    pthread_mutex_unlock (&mutex);
+
+    /* Setup a 30 second condition variable wait */
+    pthread_cond_init (&cond, NULL);
+    time_t timeout_seconds = 3;
+    struct timeval now;
+    struct timespec timeout;
+    int timeout_count = 0;
 
     int retval = bip_send_mpdu(bbmd_addr, &BVLC_Buffer[0], BVLC_Buffer_Len);
     if (retval == -1)
     {
-      return retval;
+        return retval;
     }
-    /* Setup a 30 second condition variable wait */
-    pthread_mutex_init (&mutex, NULL);
-    pthread_cond_init (&cond, NULL);
-    time_t timeout_seconds = 30;
-    struct timeval now;
-    struct timespec timeout;
-    gettimeofday (&now, NULL);
-    timeout.tv_sec = now.tv_sec + timeout_seconds;
-    timeout.tv_nsec = 0;
-    pthread_mutex_lock (&mutex);
-    pthread_cond_timedwait (&cond, &mutex, &timeout);
-    pthread_mutex_unlock (&mutex);
+    while (timeout_count < 10)
+    {
+        gettimeofday (&now, NULL);
+        timeout.tv_sec = now.tv_sec + timeout_seconds;
+        timeout.tv_nsec = 0;
+        pthread_mutex_lock (&mutex);
+        pthread_cond_timedwait (&cond, &mutex, &timeout);
+        if (bbmd_reg_success) timeout_count = 10;
+        pthread_mutex_unlock (&mutex);
+        timeout_count++;
+    }
+
     pthread_cond_destroy(&cond);
     pthread_mutex_destroy(&mutex);
 
