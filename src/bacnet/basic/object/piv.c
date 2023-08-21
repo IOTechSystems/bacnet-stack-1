@@ -79,7 +79,7 @@ void PositiveInteger_Value_Set_Properties(
     const char* object_name,
     BACNET_UNSIGNED_INTEGER value,
     bool out_of_service,
-    uint16_t units
+    uint32_t units
 )
 {
     unsigned int index = PositiveInteger_Value_Instance_To_Index(object_instance);

@@ -40,7 +40,7 @@ extern "C" {
     typedef struct positiveinteger_value_descr {
         bool Out_Of_Service:1;
         BACNET_UNSIGNED_INTEGER Present_Value;
-        uint16_t Units;
+        uint32_t Units;
         char *Name;
     } POSITIVEINTEGER_VALUE_DESCR;
 
@@ -55,7 +55,7 @@ extern "C" {
         const char* object_name,
         BACNET_UNSIGNED_INTEGER value,
         bool out_of_service,
-        uint16_t units
+        uint32_t units
     );
 
     BACNET_STACK_EXPORT

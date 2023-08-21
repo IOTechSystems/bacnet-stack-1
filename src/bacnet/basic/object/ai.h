@@ -48,7 +48,7 @@ extern "C" {
         float Present_Value;
         BACNET_RELIABILITY Reliability;
         bool Out_Of_Service;
-        uint8_t Units;
+        uint32_t Units;
         float Prior_Value;
         float COV_Increment;
         bool Changed;
@@ -84,7 +84,7 @@ extern "C" {
         float value,
         BACNET_EVENT_STATE event_state,
         bool out_of_service,
-        uint8_t units,
+        uint32_t units,
         float cov_incrememnt,
         BACNET_RELIABILITY reliability,
         uint32_t time_delay, 
@@ -133,9 +133,9 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool Analog_Input_Units_Set(
         uint32_t instance,
-        uint16_t units);
+        uint32_t units);
     BACNET_STACK_EXPORT
-    uint16_t Analog_Input_Units(
+    uint32_t Analog_Input_Units(
         uint32_t instance);
 
     BACNET_STACK_EXPORT

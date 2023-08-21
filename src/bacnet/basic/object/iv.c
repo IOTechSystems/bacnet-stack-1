@@ -96,7 +96,7 @@ void Integer_Value_Set_Properties(
     const char* object_name,
     int32_t value,
     bool out_of_service,
-    uint16_t units
+    uint32_t units
 )
 {
     unsigned int index = Integer_Value_Instance_To_Index(object_instance);
@@ -288,10 +288,10 @@ bool Integer_Value_Name_Set(uint32_t object_instance, const char *new_name)
  *
  * @return  units property value
  */
-uint16_t Integer_Value_Units(uint32_t instance)
+uint32_t Integer_Value_Units(uint32_t instance)
 {
     unsigned int index;
-    uint16_t units = UNITS_NO_UNITS;
+    uint32_t units = UNITS_NO_UNITS;
 
     index = Integer_Value_Instance_To_Index(instance);
     if (index < I_Descr_Size) {
@@ -311,7 +311,7 @@ uint16_t Integer_Value_Units(uint32_t instance)
  *
  * @return true if the units property value was set
  */
-bool Integer_Value_Units_Set(uint32_t instance, uint16_t units)
+bool Integer_Value_Units_Set(uint32_t instance, uint32_t units)
 {
     unsigned int index = 0;
     bool status = false;

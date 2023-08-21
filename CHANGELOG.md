@@ -56,3 +56,7 @@
 # Whats Changed in v1.0.9
 
 - Added new direct addressing functions for writing properties and registering COVs
+
+# Whats Changed in v1.0.10
+
+- Updated unit properties to use full uint32 values

@@ -87,7 +87,7 @@ void Analog_Input_Set_Properties(
     float value,
     BACNET_EVENT_STATE event_state,
     bool out_of_service,
-    uint8_t units,
+    uint32_t units,
     float cov_incrememnt,
     BACNET_RELIABILITY reliability,
     uint32_t time_delay, 
