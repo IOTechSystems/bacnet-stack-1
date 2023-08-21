@@ -114,6 +114,17 @@ int rpm_ack_decode_service_request(
                    more than one element to decode */
                 value = calloc(1, sizeof(BACNET_APPLICATION_DATA_VALUE));
                 rpm_property->value = value;
+                if (decode_is_closing_tag_number(apdu, 4))
+                {
+                  value->tag = MAX_BACNET_APPLICATION_TAG;
+                  decoded_len++;
+                  apdu_len--;
+                  apdu++;
+                  old_rpm_property = rpm_property;
+                  rpm_property = calloc(1, sizeof(BACNET_PROPERTY_REFERENCE));
+                  old_rpm_property->next = rpm_property;
+                  continue;
+                }
                 while (value && (apdu_len > 0)) {
                     if (IS_CONTEXT_SPECIFIC(*apdu)) {
                         len = bacapp_decode_context_data(apdu, apdu_len, value,
