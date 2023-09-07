@@ -51,6 +51,7 @@
 #include "bacnet/basic/service/h_lso.h"
 #include "bacnet/basic/service/h_noserv.h"
 #include "bacnet/basic/service/h_rd.h"
+#include "bacnet/basic/service/h_restart.h"
 #include "bacnet/basic/service/h_rp.h"
 #include "bacnet/basic/service/h_rp_a.h"
 #include "bacnet/basic/service/h_rpm.h"
