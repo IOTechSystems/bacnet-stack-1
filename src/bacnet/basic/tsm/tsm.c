@@ -36,6 +36,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stddef.h>
+#include <string.h>
 #include "bacnet/bits.h"
 #include "bacnet/apdu.h"
 #include "bacnet/bacaddr.h"
@@ -220,7 +221,6 @@ void tsm_set_confirmed_unsegmented_transaction(uint8_t invokeID,
     uint8_t *apdu,
     uint16_t apdu_len)
 {
-    uint16_t j = 0;
     uint8_t index;
     BACNET_TSM_DATA *plist;
 
@@ -237,9 +237,7 @@ void tsm_set_confirmed_unsegmented_transaction(uint8_t invokeID,
             /* start the timer */
             plist->RequestTimer = apdu_timeout();
             /* copy the data */
-            for (j = 0; j < apdu_len; j++) {
-                plist->apdu[j] = apdu[j];
-            }
+            memcpy (plist->apdu, apdu, apdu_len);
             plist->apdu_len = apdu_len;
             npdu_copy_data(&plist->npdu_data, ndpu_data);
             bacnet_address_copy(&plist->dest, dest);
@@ -267,7 +265,6 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
     uint8_t *apdu,
     uint16_t *apdu_len)
 {
-    uint16_t j = 0;
     uint8_t index;
     bool found = false;
     BACNET_TSM_DATA *plist;
@@ -287,9 +284,7 @@ bool tsm_get_transaction_pdu(uint8_t invokeID,
             if (*apdu_len > MAX_PDU) {
                 *apdu_len = MAX_PDU;
             }
-            for (j = 0; j < *apdu_len; j++) {
-                apdu[j] = plist->apdu[j];
-            }
+            memcpy (apdu, plist->apdu, *apdu_len);
             npdu_copy_data(ndpu_data, &plist->npdu_data);
             bacnet_address_copy(dest, &plist->dest);
             found = true;

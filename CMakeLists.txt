@@ -1,9 +1,12 @@
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
+file (STRINGS VERSION DOT_VERSION)
+string (REGEX REPLACE "..$" "" API_VERSION ${DOT_VERSION})
+
 if(BACDL_BIP)
-  project(bacnet-ip VERSION 1.0.0 LANGUAGES C)
+  project(bacnet-ip VERSION ${DOT_VERSION} LANGUAGES C)
 elseif(BACDL_MSTP)
-  project(bacnet-mstp VERSION 1.0.0 LANGUAGES C)
+  project(bacnet-mstp VERSION ${DOT_VERSION} LANGUAGES C)
 endif()
 
 if ("${LINUX_SYS}" STREQUAL "AzureSphere")
@@ -43,7 +46,7 @@ if (NOT "${LINUX_SYS}" STREQUAL "AzureSphere")
   set (OPT_LIB_FILES src/bacnet/basic/object/bacfile.c src/bacnet/basic/object/bacfile.h)
 endif ()
 
-add_library(${PROJECT_NAME}
+add_library(${PROJECT_NAME}-${API_VERSION}
     ${OPT_LIB_FILES}
     src/bacnet/abort.c
     src/bacnet/abort.h
@@ -382,21 +385,21 @@ add_library(${PROJECT_NAME}
     src/bacnet/wpm.c
     src/bacnet/wpm.h)
 target_sources(
-  ${PROJECT_NAME}
+  ${PROJECT_NAME}-${API_VERSION}
   PRIVATE
   ${BACNETSTACK_SRCS})
 target_include_directories(
-  ${PROJECT_NAME}
+  ${PROJECT_NAME}-${API_VERSION}
   PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/src/>
          $<INSTALL_INTERFACE:include/bacnet/>)
 if(BUILD_SHARED_LIBS)
   set_target_properties(
-    ${PROJECT_NAME}
+    ${PROJECT_NAME}-${API_VERSION}
     PROPERTIES
       C_VISIBILITY_PRESET default)
 endif()
 target_compile_definitions(
-  ${PROJECT_NAME}
+  ${PROJECT_NAME}-${API_VERSION}
   PUBLIC
   BACNET_PROTOCOL_REVISION=${BACNET_PROTOCOL_REVISION}
   $<$<BOOL:${BACDL_BIP}>:BACDL_BIP>
@@ -410,12 +413,12 @@ target_compile_definitions(
   $<$<NOT:$<BOOL:${BUILD_SHARED_LIBS}>>:BACNET_STACK_STATIC_DEFINE>
   PRIVATE
   PRINT_ENABLED=0)
-target_link_libraries(${PROJECT_NAME} PUBLIC Threads::Threads)
+target_link_libraries(${PROJECT_NAME}-${API_VERSION} PUBLIC Threads::Threads)
 
 add_library(
   ${PROJECT_NAME}::${PROJECT_NAME}
   ALIAS
-  ${PROJECT_NAME})
+  ${PROJECT_NAME}-${API_VERSION})
 
 #
 # add ports
@@ -429,7 +432,7 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux" OR "${LINUX_SYS}" STREQUAL "AzureSp
   message(STATUS "BACNET: building for linux")
   set(BACNET_PORT_DIRECTORY_PATH ${CMAKE_CURRENT_LIST_DIR}/ports/linux)
 
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${PROJECT_NAME}-${API_VERSION} PRIVATE
     ports/linux/bacport.h
     ports/linux/datetime-init.c
     $<$<BOOL:${BACDL_BIP}>:ports/linux/bip-init.c>
@@ -448,14 +451,14 @@ elseif(WIN32)
   message(STATUS "BACNET: building for win32")
   set(BACNET_PORT_DIRECTORY_PATH ${CMAKE_CURRENT_LIST_DIR}/ports/win32)
 
-  target_link_libraries(${PROJECT_NAME} PUBLIC wsock32)
+  target_link_libraries(${PROJECT_NAME}-${API_VERSION} PUBLIC wsock32)
 
-  target_link_libraries(${PROJECT_NAME} PRIVATE
+  target_link_libraries(${PROJECT_NAME}-${API_VERSION} PRIVATE
     winmm
     $<$<BOOL:${BACDL_BIP}>:ws2_32>
     $<$<BOOL:${BACDL_BIP}>:iphlpapi>)
 
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${PROJECT_NAME}-${API_VERSION} PRIVATE
     ports/win32/bacport.h
     $<$<BOOL:${BACDL_BIP6}>:ports/win32/bip6.c>
     $<$<BOOL:${BACDL_BIP}>:ports/win32/bip-init.c>
@@ -471,7 +474,7 @@ elseif(APPLE)
   message(STATUS "BACNET: building for APPLE")
   set(BACNET_PORT_DIRECTORY_PATH ${CMAKE_CURRENT_LIST_DIR}/ports/bsd)
 
-  target_sources(${PROJECT_NAME} PRIVATE
+  target_sources(${PROJECT_NAME}-${API_VERSION} PRIVATE
     ports/bsd/bacport.h
     ports/bsd/bip-init.c
     ports/bsd/datetime-init.c
@@ -479,12 +482,13 @@ elseif(APPLE)
     ports/bsd/stdbool.h)
 endif()
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME}-${API_VERSION} PUBLIC
   $<BUILD_INTERFACE:${BACNET_PORT_DIRECTORY_PATH}>)
 
 #
 # examples
 #
+add_library (${PROJECT_NAME} ALIAS ${PROJECT_NAME}-${API_VERSION})
 
 if(BACNET_STACK_BUILD_APPS)
   message(STATUS "BACNET: compiling also apps")
@@ -636,7 +640,7 @@ include(CMakePackageConfigHelpers)
 
 set(BACNET_STACK_CONFIG_INSTALL_DIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 install(
-  TARGETS ${PROJECT_NAME}
+  TARGETS ${PROJECT_NAME}-${API_VERSION}
   EXPORT ${PROJECT_NAME}Targets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT lib)
