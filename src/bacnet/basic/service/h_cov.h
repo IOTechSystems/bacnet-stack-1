@@ -48,6 +48,12 @@ extern "C" {
         BACNET_ADDRESS * src,
         BACNET_CONFIRMED_SERVICE_DATA * service_data);
     BACNET_STACK_EXPORT
+    void handler_cov_subscribe_property(
+        uint8_t * service_request,
+        uint16_t service_len,
+        BACNET_ADDRESS * src,
+        BACNET_CONFIRMED_SERVICE_DATA * service_data);
+    BACNET_STACK_EXPORT
     bool handler_cov_fsm(
         void);
     BACNET_STACK_EXPORT
