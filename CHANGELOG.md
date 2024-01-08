@@ -64,3 +64,19 @@
 # Whats Changed in v1.1.1
 
 - Fixed BBMD registration failure check
+
+# What's Changed in v1.1.2
+
+- Added PROP_SCALE support
+
+# What's Changed in v1.2.0
+
+- Reduced number of outstanding transactions per device (lower memory footprint)
+
+# What's Changed in v1.2.1
+
+- Added SubscribeCOVProperty support (client-side)
+
+# What's Changed in v1.2.2
+
+- Fixed array decoding in COV notifications
