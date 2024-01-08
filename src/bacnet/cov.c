@@ -320,7 +320,9 @@ int cov_notify_decode_service_request(
             /* a tag number of 2 is not extended so only one octet */
             len++;
             app_data = &value->value;
-            while (!decode_is_closing_tag_number(&apdu[len], 2)) {
+            bool more_values = !decode_is_closing_tag_number(&apdu[len], 2);
+            while (more_values) {
+                BACNET_APPLICATION_DATA_VALUE *next = app_data->next;
                 if (app_data == NULL) {
                     /* out of room to store more values */
                     return BACNET_STATUS_ERROR;
@@ -331,8 +333,10 @@ int cov_notify_decode_service_request(
                     return BACNET_STATUS_ERROR;
                 }
                 len += app_len;
-
-                app_data = app_data->next;
+                if ((more_values = !decode_is_closing_tag_number(&apdu[len], 2))) {
+                    app_data->next = next;       // bacnet_decode_application_data sets app_data->next to NULL
+                    app_data = app_data->next;
+                }
             }
             /* a tag number of 2 is not extended so only one octet */
             len++;
