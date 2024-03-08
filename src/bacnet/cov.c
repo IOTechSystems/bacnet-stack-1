@@ -36,6 +36,7 @@
 #include "bacnet/bacdcode.h"
 #include "bacnet/bacdef.h"
 #include "bacnet/bacapp.h"
+#include "bacnet/timestamp.h"
 #include "bacnet/memcopy.h"
 /* me! */
 #include "bacnet/cov.h"
@@ -322,15 +323,42 @@ int cov_notify_decode_service_request(
             app_data = &value->value;
             bool more_values = !decode_is_closing_tag_number(&apdu[len], 2);
             while (more_values) {
-                BACNET_APPLICATION_DATA_VALUE *next = app_data->next;
+                BACNET_APPLICATION_DATA_VALUE *next;
                 if (app_data == NULL) {
                     /* out of room to store more values */
                     return BACNET_STATUS_ERROR;
                 }
-                app_len = bacapp_decode_application_data(
-                    &apdu[len], apdu_len - len, app_data);
-                if (app_len < 0) {
-                    return BACNET_STATUS_ERROR;
+                next = app_data->next;
+                if (value->propertyIdentifier == PROP_TIME_OF_DEVICE_RESTART) {
+                    BACNET_TIMESTAMP stamp;
+                    app_len = bacapp_decode_timestamp(&apdu[len], &stamp);
+                    if (app_len < 0) {
+                        return BACNET_STATUS_ERROR;
+                    }
+                    app_data->next = NULL;
+                    app_data->context_specific = true;
+                    app_data->context_tag = stamp.tag;
+                    switch (stamp.tag) {
+                        case TIME_STAMP_TIME:
+                            app_data->tag = BACNET_APPLICATION_TAG_TIME;
+                            app_data->type.Time = stamp.value.time;
+                            break;
+                        case TIME_STAMP_SEQUENCE:
+                            app_data->tag = BACNET_APPLICATION_TAG_UNSIGNED_INT;
+                            app_data->type.Unsigned_Int = stamp.value.sequenceNum;
+                            break;
+                        case TIME_STAMP_DATETIME:
+                            app_data->tag = BACNET_APPLICATION_TAG_DATE;
+                            app_data->type.Date = stamp.value.dateTime.date;
+                            // TODO: decode stamp.value.dateTime.time into app_data->next
+                            break;
+                    }
+                } else {
+                    app_len = bacapp_decode_application_data(
+                        &apdu[len], apdu_len - len, app_data);
+                    if (app_len < 0) {
+                        return BACNET_STATUS_ERROR;
+                    }
                 }
                 len += app_len;
                 if ((more_values = !decode_is_closing_tag_number(&apdu[len], 2))) {

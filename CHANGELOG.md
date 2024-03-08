@@ -80,3 +80,7 @@
 # What's Changed in v1.2.2
 
 - Fixed array decoding in COV notifications
+
+# What's Changed in v1.2.3
+
+- Support PROP_TIME_OF_DEVICE_RESTART when decoding CoV notifications
