@@ -828,7 +828,7 @@ int main(int argc, char *argv[])
     
     BACNET_ADDRESS src = { 0 }; /* address where message came from */
     uint16_t pdu_len = 0;
-    unsigned timeout = 1; /* milliseconds */
+    unsigned timeout = 25; /* milliseconds */
     time_t last_seconds = 0;
     time_t current_seconds = 0;
     uint32_t elapsed_seconds = 0;
