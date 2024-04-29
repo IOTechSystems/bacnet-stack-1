@@ -74,11 +74,23 @@ extern "C" {
     BACNET_STACK_EXPORT
     int bip_send_mpdu(BACNET_IP_ADDRESS *dest, uint8_t *mtu, uint16_t mtu_len);
 
+typedef enum {
+  BIP_OK = 0,
+  BIP_UNINIT,
+  BIP_SEL_TIMEOUT,
+  BIP_SEL_ERROR,
+  BIP_RCV_ERROR,
+  BIP_RCV_NODATA,
+  BIP_RCV_NOTBACNET,
+  BIP_RCV_TOOLONG
+} bip_rc;
+
     BACNET_STACK_EXPORT
     uint16_t bip_receive(BACNET_ADDRESS *src,
         uint8_t *pdu,
         uint16_t max_pdu,
-        unsigned timeout);
+        unsigned timeout,
+        bip_rc *rc);
 
     /* use host byte order for setting UDP port */
     BACNET_STACK_EXPORT
