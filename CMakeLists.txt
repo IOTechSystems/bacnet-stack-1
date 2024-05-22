@@ -31,6 +31,10 @@ option (BACDL_MSTP "compile with mstp support" OFF)
 option (BACDL_ARCNET "compile with arcnet support" OFF)
 option (BACDL_BIP6 "compile with ipv6 support" OFF)
 
+if(BACNET_SIMULATOR)
+  add_definitions(-DINTRINSIC_REPORTING)
+endif()
+
 set(BACNET_PROTOCOL_REVISION 19)
 
 #
