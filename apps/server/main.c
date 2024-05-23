@@ -991,7 +991,7 @@ int main(int argc, char *argv[])
             Load_Control_State_Machine_Handler();
             elapsed_milliseconds = elapsed_seconds * 1000;
             handler_cov_timer_seconds(elapsed_seconds);
-            tsm_timer_milliseconds(elapsed_milliseconds);
+            tsm_timer_milliseconds(&src, elapsed_milliseconds);
             trend_log_timer(elapsed_seconds);
 #if defined(INTRINSIC_REPORTING)
             Device_local_reporting();
@@ -1375,6 +1375,17 @@ static void send_event (BACNET_EVENT_TYPE event_type, uint32_t nc_instance)
             break;
     }
     Notification_Class_common_reporting_function(&event_data);
+}
+
+
+tsm_device_t *get_tsm_device(BACNET_ADDRESS *address)
+{
+//    get_tsm provided by device service and used to allow greater than 255 concurrent requests
+    tsm_device_t *tsm_device = NULL;
+    tsm_device = calloc(1, sizeof(*tsm_device));
+    tsm_device->Current_Invoke_ID = 1;
+
+    return tsm_device;
 }
 
 /* @} */
