@@ -64,3 +64,11 @@
 # Whats Changed in v1.1.1
 
 - Fixed BBMD registration failure check
+
+# Whats Changed in v1.1.2
+
+- Added PROP_SCALE support
+
+# Whats Changed in v1.1.3
+
+- Increase address cache size to 2550 devices
