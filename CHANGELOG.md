@@ -84,3 +84,8 @@
 # What's Changed in v1.2.3
 
 - Support PROP_TIME_OF_DEVICE_RESTART when decoding CoV notifications
+
+# What's Changed in v1.2.4
+
+- Increase device cache size (to 2550 devices)
+- Bind IP socket to BACNET_IFACE if specified
