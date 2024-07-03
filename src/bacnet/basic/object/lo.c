@@ -153,11 +153,7 @@ unsigned Lighting_Output_Count(void)
  */
 uint32_t Lighting_Output_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**

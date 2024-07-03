@@ -1658,7 +1658,7 @@ void Channel_Objects_Init()
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
             Channel_Descr[i].Members[m].objectIdentifier.type =
                 OBJECT_LIGHTING_OUTPUT;
-            Channel_Descr[i].Members[m].objectIdentifier.instance = i + 1;
+            Channel_Descr[i].Members[m].objectIdentifier.instance = i;
             Channel_Descr[i].Members[m].propertyIdentifier = PROP_LIGHTING_COMMAND;
             Channel_Descr[i].Members[m].arrayIndex = BACNET_ARRAY_ALL;
             Channel_Descr[i].Members[m].deviceIdentifier.type = OBJECT_DEVICE;
