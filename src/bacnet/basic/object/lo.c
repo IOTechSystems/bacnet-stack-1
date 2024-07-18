@@ -170,7 +170,7 @@ unsigned Lighting_Output_Instance_To_Index(uint32_t object_instance)
     unsigned index = Lighting_Output_Size;
 
     if (object_instance) {
-        index = object_instance - 1;
+        index = object_instance;
         if (index > Lighting_Output_Size) {
             index = Lighting_Output_Size;
         }

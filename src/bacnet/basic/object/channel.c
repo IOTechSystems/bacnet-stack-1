@@ -151,11 +151,7 @@ unsigned Channel_Count(void)
  */
 uint32_t Channel_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**
@@ -172,7 +168,7 @@ unsigned Channel_Instance_To_Index(uint32_t object_instance)
     unsigned index = Channel_Descr_Size;
 
     if (object_instance) {
-        index = object_instance - 1;
+        index = object_instance;
         if (index > Channel_Descr_Size) {
             index = Channel_Descr_Size;
         }
