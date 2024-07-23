@@ -147,7 +147,7 @@ void bacfile_cleanup()
 void bacfile_init(void)
 {
     //bacnet file listing must have at least one entry of null name
-    BACnet_File_Listing = malloc(sizeof(*BACnet_File_Listing));
+    BACnet_File_Listing = malloc (sizeof (*BACnet_File_Listing));
     BACnet_File_Listing[0].filename = NULL;
     BACnet_File_Listing[0].instance = 0;
 }

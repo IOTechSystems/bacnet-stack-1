@@ -2331,7 +2331,10 @@ void Network_Port_Alloc(size_t size)
 
 void Network_Port_Objects_Init()
 {
-
+  for (int i = 0; i < Object_List_Size; i++)
+  {
+    Object_List[i].Instance_Number = i;
+  }
 }
 
 void Network_Port_Cleanup()

@@ -151,11 +151,7 @@ unsigned Channel_Count(void)
  */
 uint32_t Channel_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**
@@ -172,7 +168,7 @@ unsigned Channel_Instance_To_Index(uint32_t object_instance)
     unsigned index = Channel_Descr_Size;
 
     if (object_instance) {
-        index = object_instance - 1;
+        index = object_instance;
         if (index > Channel_Descr_Size) {
             index = Channel_Descr_Size;
         }
@@ -1658,7 +1654,7 @@ void Channel_Objects_Init()
         for (m = 0; m < CHANNEL_MEMBERS_MAX; m++) {
             Channel_Descr[i].Members[m].objectIdentifier.type =
                 OBJECT_LIGHTING_OUTPUT;
-            Channel_Descr[i].Members[m].objectIdentifier.instance = i + 1;
+            Channel_Descr[i].Members[m].objectIdentifier.instance = i;
             Channel_Descr[i].Members[m].propertyIdentifier = PROP_LIGHTING_COMMAND;
             Channel_Descr[i].Members[m].arrayIndex = BACNET_ARRAY_ALL;
             Channel_Descr[i].Members[m].deviceIdentifier.type = OBJECT_DEVICE;

@@ -153,11 +153,7 @@ unsigned Lighting_Output_Count(void)
  */
 uint32_t Lighting_Output_Index_To_Instance(unsigned index)
 {
-    uint32_t instance = 1;
-
-    instance += index;
-
-    return instance;
+    return index;
 }
 
 /**
@@ -174,7 +170,7 @@ unsigned Lighting_Output_Instance_To_Index(uint32_t object_instance)
     unsigned index = Lighting_Output_Size;
 
     if (object_instance) {
-        index = object_instance - 1;
+        index = object_instance;
         if (index > Lighting_Output_Size) {
             index = Lighting_Output_Size;
         }
