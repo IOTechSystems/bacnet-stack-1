@@ -89,3 +89,8 @@
 
 - Increase device cache size (to 2550 devices)
 - Bind IP socket to BACNET_IFACE if specified
+
+# What's Changed in v1.2.5
+
+- Minor fix to instance numbering for object channel, lighting output and netport objects
+- Remove BACNET Simulator from device initialization as is now in the simulator repo
