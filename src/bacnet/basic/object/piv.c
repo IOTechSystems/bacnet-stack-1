@@ -114,21 +114,13 @@ void PositiveInteger_Value_Add(size_t count)
     pthread_mutex_unlock(&PIV_Descr_Mutex);
 
     //initialize object properties
+    PositiveInteger_Value_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&PIV_Descr_Mutex);
-        PIV_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&PIV_Descr_Mutex);
-
         snprintf(name_buffer, 64, "positiveinteger_value_%zu", i);
-        PositiveInteger_Value_Set_Properties(
-            i,
-            name_buffer,
-            i,
-            false,
-            UNITS_KILOWATTS
-        );
+        PositiveInteger_Value_Name_Set(i, name_buffer);
     }
 }
 
@@ -156,7 +148,7 @@ void PositiveInteger_Value_Objects_Init(void)
 
     pthread_mutex_lock(&PIV_Descr_Mutex);
     for (i = 0; i < PIV_Descr_Size; i++) {
-        PIV_Descr[i].Units = 0;
+        PIV_Descr[i].Units = UNITS_NO_UNITS;
         PIV_Descr[i].Out_Of_Service = false;
         PIV_Descr[i].Present_Value = 0;
         PIV_Descr[i].Name = NULL;
