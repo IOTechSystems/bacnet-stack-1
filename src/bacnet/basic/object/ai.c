@@ -218,7 +218,7 @@ void Analog_Input_Objects_Init(void)
 
 void Analog_Input_Init(void)
 {
-  printf("Analog Input Init\n");
+
 }
 
 void Analog_Input_Cleanup(void)
