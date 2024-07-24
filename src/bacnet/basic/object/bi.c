@@ -137,21 +137,13 @@ void Binary_Input_Add(size_t count)
     pthread_mutex_unlock(&BI_Descr_Mutex);
 
     //initialize object properties
+    Binary_Input_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&BI_Descr_Mutex);
-        BI_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&BI_Descr_Mutex);
-
-        snprintf(name_buffer, 64, "binary_input_%zu", i);
-        Binary_Input_Set_Properties(
-            i,
-            name_buffer,
-            BINARY_ACTIVE,
-            false, 
-            POLARITY_NORMAL
-        );
+      snprintf(name_buffer, 64, "binary_input_%zu", i);
+      Binary_Input_Name_Set(i, name_buffer);
     }
 }
 
@@ -182,8 +174,10 @@ void Binary_Input_Objects_Init(void)
         /* initialize all the values */
         pthread_mutex_lock(&BI_Descr_Mutex);
         for (i = 0; i < BI_Descr_Size; i++) {
-            BI_Descr[i].Present_Value = BINARY_INACTIVE;
+            BI_Descr[i].Present_Value = BINARY_ACTIVE;
+            BI_Descr[i].Out_Of_Service = false;
             BI_Descr[i].Name = NULL;
+            BI_Descr[i].Polarity = POLARITY_NORMAL;
         }
         
         pthread_mutex_unlock(&BI_Descr_Mutex);

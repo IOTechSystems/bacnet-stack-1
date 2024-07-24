@@ -125,14 +125,13 @@ void Binary_Value_Add(size_t count)
     pthread_mutex_unlock(&BV_Descr_Mutex);
 
     //initialize object properties
+    Binary_Value_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&BV_Descr_Mutex);
-        BV_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&BV_Descr_Mutex);
         snprintf(name_buffer, 64, "binary_value_%zu", i);
-        Binary_Value_Set_Properties(i, name_buffer, BINARY_ACTIVE, false);
+        Binary_Value_Name_Set(i, name_buffer);
     }
 }
 
