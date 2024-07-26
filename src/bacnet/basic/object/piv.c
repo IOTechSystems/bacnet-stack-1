@@ -120,7 +120,14 @@ void PositiveInteger_Value_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
         snprintf(name_buffer, 64, "positiveinteger_value_%zu", i);
-        PositiveInteger_Value_Name_Set(i, name_buffer);
+
+        PositiveInteger_Value_Set_Properties(
+          i,
+          name_buffer,
+          i,
+          false,
+          UNITS_KILOWATTS
+        );
     }
 }
 

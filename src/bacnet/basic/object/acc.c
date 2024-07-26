@@ -506,7 +506,8 @@ void Accumulator_Add(size_t count)
     for (size_t i = prev_size; i < new_size; i++)
     {
       snprintf (name_buffer, 64, "accumulator_%zu", i);
-      Accumulator_Name_Set (i, name_buffer);
+
+      Accumulator_Set_Properties(i, name_buffer, i, 10);
     }
 }
 

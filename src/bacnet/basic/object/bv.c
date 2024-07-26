@@ -131,7 +131,8 @@ void Binary_Value_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
         snprintf(name_buffer, 64, "binary_value_%zu", i);
-        Binary_Value_Name_Set(i, name_buffer);
+
+        Binary_Value_Set_Properties(i, name_buffer, BINARY_ACTIVE, false);
     }
 }
 

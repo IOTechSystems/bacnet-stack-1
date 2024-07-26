@@ -158,7 +158,24 @@ void Analog_Value_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
       snprintf(name_buffer, 64, "analog_value_%zu", i);
-      Analog_Value_Name_Set(i, name_buffer);
+
+      Analog_Value_Set_Properties(
+        i,
+        name_buffer,
+        (float) i,
+        EVENT_STATE_NORMAL,
+        false,
+        UNITS_NO_UNITS,
+        0,
+        0,
+        1000.0f,
+        -1000.0f,
+        0.0f,
+        0.0f,
+        LIMIT_ENABLE_ALL,
+        EVENT_ENABLE_ALL,
+        NOTIFY_EVENT
+      );
     }
 }
 

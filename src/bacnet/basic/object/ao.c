@@ -122,7 +122,8 @@ void Analog_Output_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
         snprintf(name_buffer, 64, "analog_output_%zu", i);
-        Analog_Output_Name_Set(i, name_buffer);
+
+        Analog_Output_Set_Properties(i, name_buffer, (float) i);
     }
 }
 

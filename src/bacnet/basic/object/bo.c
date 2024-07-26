@@ -127,7 +127,13 @@ void Binary_Output_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
         snprintf(name_buffer, 64, "binary_output_%zu", i);
-        Binary_Output_Name_Set(i, name_buffer);
+
+        Binary_Output_Set_Properties(
+          i,
+          name_buffer,
+          BINARY_ACTIVE,
+          false
+        );
     }
 }
 

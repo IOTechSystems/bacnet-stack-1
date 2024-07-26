@@ -143,7 +143,14 @@ void Binary_Input_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
       snprintf(name_buffer, 64, "binary_input_%zu", i);
-      Binary_Input_Name_Set(i, name_buffer);
+
+      Binary_Input_Set_Properties(
+        i,
+        name_buffer,
+        BINARY_ACTIVE,
+        false,
+        POLARITY_NORMAL
+      );
     }
 }
 

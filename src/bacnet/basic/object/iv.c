@@ -541,7 +541,14 @@ void Integer_Value_Add(size_t count)
     for(size_t i = prev_size; i < new_size; i++ )
     {
         snprintf(name_buffer, 64, "integer_value_%zu", i);
-        Integer_Value_Name_Set(i, name_buffer);
+
+        Integer_Value_Set_Properties(
+          i,
+          name_buffer,
+          i,
+          false,
+          UNITS_POUNDS_MASS_PER_MINUTE
+        );
     }
 }
 
