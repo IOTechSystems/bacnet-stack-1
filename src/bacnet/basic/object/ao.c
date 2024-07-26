@@ -117,14 +117,12 @@ void Analog_Output_Add(size_t count)
     pthread_mutex_unlock(&AO_Descr_Mutex);
 
     //initialize object properties
+    Analog_Output_Objects_Init();
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&AO_Descr_Mutex);
-        AO_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&AO_Descr_Mutex);
-
         snprintf(name_buffer, 64, "analog_output_%zu", i);
+
         Analog_Output_Set_Properties(i, name_buffer, (float) i);
     }
 }

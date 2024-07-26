@@ -500,15 +500,14 @@ void Accumulator_Add(size_t count)
     pthread_mutex_unlock(&Acc_Descr_Mutex);
 
     //initialize object properties
-    char name_buffer[64];
-    for(size_t i = prev_size; i < new_size; i++ )
-    {
-        pthread_mutex_lock(&Acc_Descr_Mutex);
-        Acc_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&Acc_Descr_Mutex);
+    Accumulator_Objects_Init();
 
-        snprintf(name_buffer, 64, "accumulator_%zu", i);
-        Accumulator_Set_Properties(i, name_buffer, i, 10);
+    char name_buffer[64];
+    for (size_t i = prev_size; i < new_size; i++)
+    {
+      snprintf (name_buffer, 64, "accumulator_%zu", i);
+
+      Accumulator_Set_Properties(i, name_buffer, i, 10);
     }
 }
 

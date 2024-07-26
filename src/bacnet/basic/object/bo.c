@@ -121,19 +121,18 @@ void Binary_Output_Add(size_t count)
     pthread_mutex_unlock(&BO_Descr_Mutex);
 
     //initialize object properties
+    Binary_Output_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&BO_Descr_Mutex);
-        BO_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&BO_Descr_Mutex);
-
         snprintf(name_buffer, 64, "binary_output_%zu", i);
+
         Binary_Output_Set_Properties(
-            i,
-            name_buffer,
-            BINARY_ACTIVE,
-            false    
+          i,
+          name_buffer,
+          BINARY_ACTIVE,
+          false
         );
     }
 }

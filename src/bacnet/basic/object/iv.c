@@ -535,20 +535,19 @@ void Integer_Value_Add(size_t count)
     pthread_mutex_unlock(&I_Descr_Mutex);
 
     //initialize object properties
+    Integer_Value_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&I_Descr_Mutex);
-        I_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&I_Descr_Mutex);
-
         snprintf(name_buffer, 64, "integer_value_%zu", i);
+
         Integer_Value_Set_Properties(
-            i,
-            name_buffer,
-            i,
-            false,
-            UNITS_POUNDS_MASS_PER_MINUTE
+          i,
+          name_buffer,
+          i,
+          false,
+          UNITS_POUNDS_MASS_PER_MINUTE
         );
     }
 }

@@ -152,31 +152,30 @@ void Analog_Value_Add(size_t count)
     pthread_mutex_unlock(&AV_Descr_Mutex);
 
     //initialize object properties
+    Analog_Value_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&AV_Descr_Mutex);
-        AV_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&AV_Descr_Mutex);
+      snprintf(name_buffer, 64, "analog_value_%zu", i);
 
-        snprintf(name_buffer, 64, "analog_value_%zu", i);
-        Analog_Value_Set_Properties(
-            i, 
-            name_buffer, 
-            (float) i,
-            EVENT_STATE_NORMAL, 
-            false, 
-            UNITS_NO_UNITS, 
-            0,
-            0,
-            1000.0f,
-            -1000.0f,
-            0.0f,
-            0.0f,
-            LIMIT_ENABLE_ALL,
-            EVENT_ENABLE_ALL,
-            NOTIFY_EVENT
-        );
+      Analog_Value_Set_Properties(
+        i,
+        name_buffer,
+        (float) i,
+        EVENT_STATE_NORMAL,
+        false,
+        UNITS_NO_UNITS,
+        0,
+        0,
+        1000.0f,
+        -1000.0f,
+        0.0f,
+        0.0f,
+        LIMIT_ENABLE_ALL,
+        EVENT_ENABLE_ALL,
+        NOTIFY_EVENT
+      );
     }
 }
 

@@ -146,31 +146,30 @@ void Analog_Input_Add(size_t count)
     pthread_mutex_unlock(&AI_Descr_Mutex);
 
     //initialize object properties
+    Analog_Input_Objects_Init();
+
     char name_buffer[64];
     for(size_t i = prev_size; i < new_size; i++ )
     {
-        pthread_mutex_lock(&AI_Descr_Mutex);
-        AI_Descr[i].Name = NULL;
-        pthread_mutex_unlock(&AI_Descr_Mutex);
 
         snprintf(name_buffer, 64, "analog_input_%zu", i);
         Analog_Input_Set_Properties(
-            i, 
-            &name_buffer[0], 
-            (float) i,
-            EVENT_STATE_NORMAL, 
-            false, 
-            UNITS_PERCENT, 
-            0.0f,
-            RELIABILITY_NO_FAULT_DETECTED,
-            0, 
-            0,
-            1000.0f,
-            -1000.0f,
-            0.0f,
-            LIMIT_ENABLE_ALL,
-            EVENT_ENABLE_ALL,
-            NOTIFY_ALARM
+          i,
+          &name_buffer[0],
+          (float) i,
+          EVENT_STATE_NORMAL,
+          false,
+          UNITS_PERCENT,
+          0.0f,
+          RELIABILITY_NO_FAULT_DETECTED,
+          0,
+          0,
+          1000.0f,
+          -1000.0f,
+          0.0f,
+          LIMIT_ENABLE_ALL,
+          EVENT_ENABLE_ALL,
+          NOTIFY_ALARM
         );
     }
 }
@@ -214,6 +213,8 @@ void Analog_Input_Objects_Init(void)
         AI_Descr[i].Event_State = EVENT_STATE_NORMAL;
         /* notification class not connected */
         AI_Descr[i].Notification_Class = BACNET_MAX_INSTANCE;
+        AI_Descr[i].Limit_Enable = 0;
+        AI_Descr[i].Ack_notify_data.bSendAckNotify = true;
         /* initialize Event time stamps using wildcards
            and set Acked_transitions */
         for (j = 0; j < MAX_BACNET_EVENT_TRANSITION; j++) {
