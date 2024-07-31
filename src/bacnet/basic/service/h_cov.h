@@ -50,6 +50,8 @@ extern "C" {
     BACNET_STACK_EXPORT
     bool handler_cov_fsm(
         void);
+    void handler_cov_all(
+        void);
     BACNET_STACK_EXPORT
     void handler_cov_task(
         void);
