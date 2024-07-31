@@ -594,6 +594,92 @@ void handler_cov_timer_seconds(uint32_t elapsed_seconds)
     }
 }
 
+void handler_cov_all(void)
+{
+    bool found = false;
+    for (int index = 0; index < MAX_COV_SUBCRIPTIONS; index++)
+    {
+      if (COV_Subscriptions[index].flag.valid) {
+                BACNET_OBJECT_TYPE object_type = (BACNET_OBJECT_TYPE)COV_Subscriptions[index]
+                    .monitoredObjectIdentifier.type;
+                uint32_t object_instance =
+                    COV_Subscriptions[index].monitoredObjectIdentifier.instance;
+                if (Device_COV(object_type, object_instance)) {
+                    COV_Subscriptions[index].flag.send_requested = true;
+                    found = true;
+                }
+      }
+    }
+    if (found)
+    {
+      for (int index = 0; index < MAX_COV_SUBCRIPTIONS; index++)
+      {
+            if ((COV_Subscriptions[index].flag.valid) &&
+                (COV_Subscriptions[index].flag.send_requested)) {
+                BACNET_OBJECT_TYPE object_type = (BACNET_OBJECT_TYPE)COV_Subscriptions[index]
+                    .monitoredObjectIdentifier.type;
+                uint32_t object_instance =
+                    COV_Subscriptions[index].monitoredObjectIdentifier.instance;
+                Device_COV_Clear(object_type, object_instance);
+            }
+      }
+    }
+    for (int index = 0; index < MAX_COV_SUBCRIPTIONS; index++)
+    {
+            if ((COV_Subscriptions[index].flag.valid) &&
+                (COV_Subscriptions[index].flag.issueConfirmedNotifications) &&
+                (COV_Subscriptions[index].invokeID)) {
+                BACNET_ADDRESS *dest = cov_address_get(COV_Subscriptions[index].dest_index);
+                if (tsm_invoke_id_free(dest, COV_Subscriptions[index].invokeID)) {
+                    COV_Subscriptions[index].invokeID = 0;
+                } else if (tsm_invoke_id_failed(dest, COV_Subscriptions[index].invokeID)) {
+                    tsm_free_invoke_id(dest, COV_Subscriptions[index].invokeID);
+                    COV_Subscriptions[index].invokeID = 0;
+                }
+            }
+    }
+    if (found)
+    {
+      for (int index = 0; index < MAX_COV_SUBCRIPTIONS; index++)
+      {
+            if ((COV_Subscriptions[index].flag.valid) &&
+                (COV_Subscriptions[index].flag.send_requested)) {
+                bool send = true;
+                if (COV_Subscriptions[index].flag.issueConfirmedNotifications) {
+                    if (COV_Subscriptions[index].invokeID != 0) {
+                        /* already sending */
+                        send = false;
+                    }
+                    BACNET_ADDRESS *dest = cov_address_get(COV_Subscriptions[index].dest_index);
+                    if (!tsm_transaction_available(dest)) {
+                        /* no transactions available - can't send now */
+                        send = false;
+                    }
+                }
+                if (send) {
+                    BACNET_PROPERTY_VALUE value_list[MAX_COV_PROPERTIES];
+                    BACNET_OBJECT_TYPE object_type = (BACNET_OBJECT_TYPE)COV_Subscriptions[index]
+                        .monitoredObjectIdentifier.type;
+                    uint32_t object_instance =
+                        COV_Subscriptions[index].monitoredObjectIdentifier.instance;
+                    /* configure the linked list for the two properties */
+                    bacapp_property_value_list_init(
+                        &value_list[0], MAX_COV_PROPERTIES);
+                    bool status = Device_Encode_Value_List(
+                        object_type, object_instance, &value_list[0]);
+                    if (status) {
+                        status = cov_send_request(
+                            &COV_Subscriptions[index], &value_list[0]);
+                    }
+                    if (status) {
+                        COV_Subscriptions[index].flag.send_requested = false;
+                    }
+                }
+            }
+      }
+    }
+}
+
 bool handler_cov_fsm(void)
 {
     static int index = 0;

@@ -94,3 +94,7 @@
 
 - Minor fix to instance numbering for object channel, lighting output and netport objects
 - Remove BACNET Simulator from device initialization as is now in the simulator repo
+
+# What's Changed in v1.2.6
+
+- Add handler_cov_all() function which is faster than doing while (!handler_cov_fsm()) {}
