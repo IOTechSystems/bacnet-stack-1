@@ -205,6 +205,8 @@ add_library(${PROJECT_NAME}-${API_VERSION}
     src/bacnet/basic/service/h_noserv.h
     src/bacnet/basic/service/h_rd.c
     src/bacnet/basic/service/h_rd.h
+    src/bacnet/basic/service/h_restart.c
+    src/bacnet/basic/service/h_restart.h
     src/bacnet/basic/service/h_rp_a.c
     src/bacnet/basic/service/h_rp_a.h
     src/bacnet/basic/service/h_rp.c
@@ -365,8 +367,11 @@ add_library(${PROJECT_NAME}-${API_VERSION}
     src/bacnet/rd.h
     src/bacnet/readrange.c
     src/bacnet/readrange.h
+    src/bacnet/recipients.h
     src/bacnet/reject.c
     src/bacnet/reject.h
+    src/bacnet/restart.c
+    src/bacnet/restart.h
     src/bacnet/rp.c
     src/bacnet/rp.h
     src/bacnet/rpm.c

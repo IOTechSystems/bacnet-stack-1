@@ -145,6 +145,9 @@ int bacapp_encode_application_data(
                 apdu_len = encode_application_time(&apdu[0], &value->type.Time);
                 break;
 #endif
+            case BACNET_APPLICATION_TAG_TIMESTAMP:
+                apdu_len = bacapp_encode_timestamp(&apdu[0], &value->type.TimeStamp);
+                break;
 #if defined(BACAPP_OBJECT_ID)
             case BACNET_APPLICATION_TAG_OBJECT_ID:
                 apdu_len = encode_application_object_id(&apdu[0],
