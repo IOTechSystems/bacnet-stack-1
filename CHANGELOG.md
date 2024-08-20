@@ -98,3 +98,8 @@
 # What's Changed in v1.2.6
 
 - Add handler_cov_all() function which is faster than doing while (!handler_cov_fsm()) {}
+
+# What's Changed in v1.2.7
+
+- Add restart support
+- Add support for accepting SubscribeCOVProperty requests
