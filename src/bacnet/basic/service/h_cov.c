@@ -862,6 +862,7 @@ static bool cov_subscribe_property(BACNET_ADDRESS *src,
 #if PRINT_ENABLED
             fprintf(stderr, "COV: %s Object %s:%u property %s\n", cov_data->cancellationRequest ? "Cancel sub" : "Subscribe", bactext_object_type_name (object_type), object_instance, bactext_property_name (cov_data->monitoredProperty.propertyIdentifier));
 #endif
+            // todo non PresentValue COVs are not yet implemented
             // status = cov_list_subscribe(src, cov_data, error_class, error_code);
         } else {
             *error_class = ERROR_CLASS_OBJECT;
