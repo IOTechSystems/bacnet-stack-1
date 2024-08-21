@@ -32,6 +32,7 @@
 #include "bacnet/bacint.h"
 #include "bacnet/bacstr.h"
 #include "bacnet/datetime.h"
+#include "bacnet/timestamp.h"
 #if defined (BACAPP_LIGHTING_COMMAND)
 #include "bacnet/lighting.h"
 #endif
@@ -80,6 +81,7 @@ typedef struct BACnet_Application_Data_Value {
 #if defined (BACAPP_TIME)
         BACNET_TIME Time;
 #endif
+        BACNET_TIMESTAMP TimeStamp;
 #if defined (BACAPP_OBJECT_ID)
         BACNET_OBJECT_ID Object_Id;
 #endif
